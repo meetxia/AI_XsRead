@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阅读中 - 文字之境</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600&display=swap');
+        
+        :root {
+            --color-primary: #d95468;
+            --color-secondary: #ed7654;
+            --color-accent: #FFBAAC;
+            --color-bg-card: #ffffff;
+            --color-text-primary: #1a202c;
+            --color-text-secondary: #4a5568;
+            --color-text-muted: #718096;
+            --color-border: #e2e8f0;
+            --color-shadow: rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: 'Noto Serif SC', serif;
+            transition: background 0.3s ease;
+        }
+        
+        .nav-card {
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+        }
+        
+        .text-themed-primary {
+            color: var(--color-text-primary);
+        }
+        
+        .text-themed-secondary {
+            color: var(--color-text-secondary);
+        }
+        
+        .text-themed-muted {
+            color: var(--color-text-muted);
+        }
+        
+        .reading-area {
+            max-width: 680px;
+            margin: 0 auto;
+            line-height: 2.2;
+            font-size: 1.125rem;
+            color: var(--color-text-primary);
+        }
+        
+        .reading-area p {
+            margin-bottom: 1.5rem;
+            text-indent: 2em;
+            color: var(--color-text-secondary);
+        }
+        
+        .chapter-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: var(--color-text-primary);
+        }
+        
+        .reading-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--color-bg-card);
+            box-shadow: 0 -4px 6px -1px var(--color-shadow);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            border-top: 1px solid var(--color-border);
+        }
+        
+        .reading-controls.show {
+            transform: translateY(0);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--color-border);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-primary);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- 顶部工具栏 -->
+    <header class="fixed top-0 left-0 right-0 nav-card z-50">
+        <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+            <button onclick="history.back()" class="p-2 hover:opacity-70 rounded-lg transition">
+                <svg class="w-6 h-6 text-themed-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+            
+            <div class="flex items-center space-x-4">
+                <button id="bookmark-btn" class="p-2 hover:opacity-70 rounded-lg transition">
+                    <svg class="w-6 h-6 text-themed-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                    </svg>
+                </button>
+                <button id="dark-mode-toggle" class="p-2 hover:opacity-70 rounded-lg transition">
+                    <svg class="w-6 h-6 text-themed-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 阅读区域 -->
+    <main class="pt-20 pb-32 px-4 sm:px-6">
+        <article class="reading-area fade-in">
+            
+            <!-- 小说信息 -->
+            <div class="text-center mb-12">
+                <h1 class="text-3xl font-bold text-gray-800 mb-4">时光里的温柔相遇</h1>
+                <div class="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                    <span>作者：温柔笔触</span>
+                    <span>·</span>
+                    <span>都市言情</span>
+                </div>
+            </div>
+            
+            <!-- 章节标题 -->
+            <h2 class="chapter-title">第一章：图书馆的邂逅</h2>
+            
+            <!-- 正文内容 -->
+            <div class="prose">
+                <p>那年春天，我在图书馆的角落遇见了他。</p>
+                
+                <p>阳光透过窗棂洒在他的书页上，恰好照亮了我的心房。那一刻，时间仿佛静止了，整个世界都安静下来，只剩下他翻书的沙沙声和我不安分的心跳。</p>
+                
+                <p>我假装在书架前挑选书籍，实际上余光一直偷偷观察着他。他穿着简单的白衬衫，袖口微微卷起，露出修长的手腕。侧脸的轮廓在光影中显得格外柔和，睫毛在眼睑下投下一片阴影。</p>
+                
+                <p>"需要帮忙吗？"突然，他的声音在耳边响起。</p>
+                
+                <p>我吓了一跳，手中的书差点掉落。原来不知何时，他已经站在了我身边，正微笑着看着我。那双眼睛清澈如水，仿佛能看透人心。</p>
+                
+                <p>"我……我在找一本书。"我结结巴巴地说，脸颊不由自主地红了起来。</p>
+                
+                <p>"哪一本？"他问，声音温柔得像春日的暖风。</p>
+                
+                <p>我随口说了一个书名，心里却在疯狂地祈祷他找不到。可是命运总是爱捉弄人，他轻松地从高处的书架上取下了那本书，递到我面前。</p>
+                
+                <p>"给。"他说，"这本书很不错，我也很喜欢。"</p>
+                
+                <p>我接过书，手指不小心碰到了他的指尖。那一瞬间，仿佛有电流通过，让我的心跳又快了几分。</p>
+                
+                <p>"谢谢。"我小声说。</p>
+                
+                <p>"不客气。"他笑了笑，"我叫陆景深，经常在这里看书。以后如果需要帮忙，可以找我。"</p>
+                
+                <p>陆景深。这个名字像一首诗，在我心里轻轻回荡。</p>
+                
+                <p>"我叫温以南。"我也笑了，"那我们以后就是书友了。"</p>
+                
+                <p>"书友？"他挑了挑眉，眼中闪过一丝玩味，"好啊，书友。"</p>
+                
+                <p>那天之后，我几乎每天都会来图书馆。有时候能遇见他，有时候遇不见。但每次遇见，都像是命运特意安排的惊喜。</p>
+                
+                <p>我们会一起讨论书中的情节，分享彼此的想法。他总是能说出我想说却说不出的话，总是能理解我那些细腻的情感。渐渐地，我发现自己越来越期待在图书馆遇见他，越来越在意他的每一个眼神、每一句话。</p>
+                
+                <p>这是喜欢吗？我问自己。</p>
+                
+                <p>可是我不敢确定，也不敢问。我怕这份朦胧的美好，一旦被戳破，就会消失不见。</p>
+                
+                <p>直到那个下雨的午后，一切都变了。</p>
+                
+                <p>我没有带伞，站在图书馆门口看着外面瓢泼的大雨，不知道该怎么办。就在这时，一把伞撑在了我的头顶。</p>
+                
+                <p>"我送你回去吧。"陆景深的声音在耳边响起。</p>
+                
+                <p>我抬头看他，雨水顺着伞檐滴落，在我们之间形成了一道若有若无的水帘。透过这道水帘，他的眼神比往常更加温柔，让我的心跳得几乎要跳出胸膛。</p>
+                
+                <p>"好。"我点点头。</p>
+                
+                <p>我们就这样并肩走在雨中。伞很小，只能勉强遮住两个人。他悄悄把伞往我这边倾斜，自己的半边肩膀都被淋湿了。</p>
+                
+                <p>"你会感冒的。"我说，想把伞往他那边推。</p>
+                
+                <p>"没关系。"他握住了我的手，"我不想让你淋雨。"</p>
+                
+                <p>那一刻，我终于确定了。</p>
+                
+                <p>这就是喜欢。</p>
+                
+                <p>是会因为一个眼神而心跳加速的喜欢，是会因为一句话而辗转难眠的喜欢，是会期待每一次相遇的喜欢。</p>
+                
+                <p>而他呢？他是不是也喜欢我？</p>
+                
+                <p>我偷偷看向他，却发现他也正看着我。四目相对的瞬间，他笑了。</p>
+                
+                <p>"温以南。"他突然停下脚步，转身看着我，"我可以追你吗？"</p>
+                
+                <p>雨声在耳边轰鸣，可我却听得清清楚楚。我的心跳快得像要爆炸，脸颊烫得像被火烧。</p>
+                
+                <p>"可以。"我小声说，声音几乎被雨声淹没。</p>
+                
+                <p>但他听见了。他笑了，笑得那么温柔，那么开心。然后，他轻轻握紧了我的手。</p>
+                
+                <p>那个春天，那场雨，那把伞，还有那句"我可以追你吗"，成为了我一生中最美好的回忆。</p>
+                
+                <p>从此以后，图书馆不再只是图书馆，它是我们相遇的地方，是我们故事开始的地方。</p>
+                
+                <p>而陆景深，也不再只是陆景深。</p>
+                
+                <p>他是我的书友，是我的朋友，更是我喜欢的人。</p>
+            </div>
+            
+        </article>
+    </main>
+    
+    <!-- 底部控制栏 -->
+    <div id="reading-controls" class="reading-controls">
+        <div class="max-w-4xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between mb-4">
+                <button class="px-6 py-2 rounded-full font-medium transition" style="background-color: var(--color-border); color: var(--color-text-secondary)">
+                    上一章
+                </button>
+                <span class="text-sm text-themed-muted">1 / 50</span>
+                <button class="px-6 py-2 text-white rounded-full font-medium transition" style="background-color: var(--color-primary)">
+                    下一章
+                </button>
+            </div>
+            <div class="flex items-center justify-around text-sm text-themed-secondary">
+                <button class="flex flex-col items-center space-y-1 transition" style="color: var(--color-text-secondary)">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                    <span>目录</span>
+                </button>
+                <button id="toggle-mode-btn" class="flex flex-col items-center space-y-1 transition" style="color: var(--color-text-secondary)">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                    <span>模式</span>
+                </button>
+                <button onclick="location.href='index.html'" class="flex flex-col items-center space-y-1 transition" style="color: var(--color-text-secondary)">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    <span>首页</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入主题系统 -->
+    <script src="theme.js"></script>
+    
+    <script>
+        // 点击屏幕中央显示/隐藏控制栏
+        let controlsVisible = false;
+        const readingControls = document.getElementById('reading-controls');
+        
+        document.addEventListener('click', (e) => {
+            const clickY = e.clientY;
+            const windowHeight = window.innerHeight;
+            
+            // 点击屏幕中央1/3区域
+            if (clickY > windowHeight / 3 && clickY < (windowHeight * 2) / 3) {
+                controlsVisible = !controlsVisible;
+                if (controlsVisible) {
+                    readingControls.classList.add('show');
+                } else {
+                    readingControls.classList.remove('show');
+                }
+            }
+        });
+        
+        // 书签功能
+        const bookmarkBtn = document.getElementById('bookmark-btn');
+        let isBookmarked = false;
+        
+        bookmarkBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isBookmarked = !isBookmarked;
+            if (isBookmarked) {
+                bookmarkBtn.querySelector('svg').setAttribute('fill', 'currentColor');
+            } else {
+                bookmarkBtn.querySelector('svg').setAttribute('fill', 'none');
+            }
+        });
+        
+        // 暗色模式切换
+        const darkModeBtn = document.getElementById('dark-mode-toggle');
+        if (darkModeBtn) {
+            darkModeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (window.themeManager) {
+                    window.themeManager.toggleMode();
+                }
+            });
+        }
+        
+        const toggleModeBtn = document.getElementById('toggle-mode-btn');
+        if (toggleModeBtn) {
+            toggleModeBtn.addEventListener('click', () => {
+                if (window.themeManager) {
+                    window.themeManager.toggleMode();
+                }
+            });
+        }
+        
+        // 阅读进度保存
+        let lastScrollPosition = 0;
+        window.addEventListener('scroll', () => {
+            lastScrollPosition = window.scrollY;
+            localStorage.setItem('readingPosition', lastScrollPosition);
+        });
+        
+        // 恢复阅读位置
+        window.addEventListener('load', () => {
+            const savedPosition = localStorage.getItem('readingPosition');
+            if (savedPosition) {
+                window.scrollTo(0, parseInt(savedPosition));
+            }
+        });
+    </script>
+    
+</body>
+</html>
+

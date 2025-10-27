@@ -1,0 +1,28 @@
+# 依赖
+node_modules/
+
+# 环境变量先不忽略
+
+# 日志
+logs/
+*.log
+npm-debug.log*
+
+# 上传文件
+uploads/*
+!uploads/.gitkeep
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 缓存
+.cache/
+dist/
+

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字之境 - 故事入境，杂念自消</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --color-primary: #d95468;
+            --color-secondary: #ed7654;
+            --color-accent: #FFBAAC;
+            --color-bg-card: #ffffff;
+            --color-text-primary: #1a202c;
+            --color-text-secondary: #4a5568;
+            --color-text-muted: #718096;
+            --color-border: #e2e8f0;
+            --color-shadow: rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: 'Noto Serif SC', serif;
+            transition: background 0.3s ease;
+        }
+        
+        .masonry {
+            column-count: 1;
+            column-gap: 1rem;
+        }
+        
+        @media (min-width: 640px) {
+            .masonry {
+                column-count: 2;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .masonry {
+                column-count: 3;
+            }
+        }
+        
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 1rem;
+        }
+        
+        .card-hover {
+            background-color: var(--color-bg-card);
+            color: var(--color-text-primary);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px var(--color-shadow);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px var(--color-shadow), 0 10px 10px -5px var(--color-shadow);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .nav-card {
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+        }
+        
+        .text-themed-primary {
+            color: var(--color-text-primary);
+        }
+        
+        .text-themed-secondary {
+            color: var(--color-text-secondary);
+        }
+        
+        .text-themed-muted {
+            color: var(--color-text-muted);
+        }
+        
+        .bg-themed-primary {
+            background-color: var(--color-primary);
+        }
+        
+        .border-themed {
+            border-color: var(--color-border);
+        }
+        
+        /* 底部导航样式 */
+        .bottom-nav {
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.8);
+            border-top: 1px solid var(--color-border);
+        }
+        
+        .mode-dark .bottom-nav {
+            background-color: rgba(30, 41, 59, 0.9);
+        }
+        
+        .bottom-nav-item {
+            transition: all 0.2s ease;
+        }
+        
+        .bottom-nav-item.active {
+            color: var(--color-primary);
+        }
+        
+        .bottom-nav-item:active {
+            transform: scale(0.95);
+        }
+        
+        /* 主题下拉菜单 */
+        .theme-option-item:hover {
+            background-color: var(--color-accent);
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- 桌面端顶部导航 -->
+    <nav class="hidden md:block fixed top-0 left-0 right-0 nav-card z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2">
+                    <svg class="w-8 h-8" style="color: var(--color-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                    <span class="text-xl font-semibold text-themed-primary">文字之境</span>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <a href="index.html" class="font-medium pb-1" style="color: var(--color-primary); border-bottom: 2px solid var(--color-primary)">发现</a>
+                    <a href="recommend.html" class="text-themed-secondary hover:opacity-80 transition">推荐</a>
+                    <a href="bookshelf.html" class="text-themed-secondary hover:opacity-80 transition">书架</a>
+                    
+                    <!-- 主题选择下拉 -->
+                    <div class="relative" id="theme-dropdown">
+                        <button id="theme-dropdown-btn" class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:opacity-80 transition text-themed-secondary">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                            </svg>
+                            <span class="text-sm" id="current-theme-name-nav">主题</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div id="theme-dropdown-menu" class="hidden absolute right-0 mt-2 w-56 rounded-xl shadow-lg py-2 z-50" style="background-color: var(--color-bg-card); border: 1px solid var(--color-border)">
+                            <button data-theme="rose" class="theme-option-item w-full px-4 py-2 text-left hover:opacity-80 transition">
+                                <div class="flex items-center space-x-3">
+                                    <div class="flex space-x-1">
+                                        <div class="w-4 h-4 rounded" style="background: #d95468"></div>
+                                        <div class="w-4 h-4 rounded" style="background: #ed7654"></div>
+                                        <div class="w-4 h-4 rounded" style="background: #FFBAAC"></div>
+                                    </div>
+                                    <span class="text-sm text-themed-primary">玫瑰温情</span>
+                                </div>
+                            </button>
+                            <button data-theme="elegant" class="theme-option-item w-full px-4 py-2 text-left hover:opacity-80 transition">
+                                <div class="flex items-center space-x-3">
+                                    <div class="flex space-x-1">
+                                        <div class="w-4 h-4 rounded" style="background: #759148"></div>
+                                        <div class="w-4 h-4 rounded" style="background: #FFBAAC"></div>
+                                        <div class="w-4 h-4 rounded" style="background: #E9EDF0"></div>
+                                    </div>
+                                    <span class="text-sm text-themed-primary">雅致高级</span>
+                                </div>
+                            </button>
+                            <button data-theme="vintage" class="theme-option-item w-full px-4 py-2 text-left hover:opacity-80 transition">
+                                <div class="flex items-center space-x-3">
+                                    <div class="flex space-x-1">
+                                        <div class="w-4 h-4 rounded" style="background: #FA8F79"></div>
+                                        <div class="w-4 h-4 rounded" style="background: #6BA16D"></div>
+                                        <div class="w-4 h-4 rounded" style="background: #A2BB6A"></div>
+                                    </div>
+                                    <span class="text-sm text-themed-primary">文物古韵</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button id="dark-mode-toggle" class="p-2 rounded-lg hover:opacity-80 transition">
+                        <svg class="w-6 h-6 text-themed-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- 移动端顶部栏 -->
+    <div class="md:hidden fixed top-0 left-0 right-0 nav-card z-50">
+        <div class="flex justify-between items-center h-14 px-4">
+            <div class="flex items-center space-x-2">
+                <svg class="w-6 h-6" style="color: var(--color-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <span class="font-semibold text-themed-primary">文字之境</span>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <!-- 移动端主题选择 -->
+                <div class="relative" id="theme-dropdown-mobile">
+                    <button id="theme-dropdown-btn-mobile" class="p-2 rounded-lg active:scale-95 transition">
+                        <svg class="w-5 h-5 text-themed-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                        </svg>
+                    </button>
+                    <div id="theme-dropdown-menu-mobile" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-lg py-2 z-50" style="background-color: var(--color-bg-card); border: 1px solid var(--color-border)">
+                        <button data-theme="rose" class="theme-option-item w-full px-4 py-2 text-left hover:opacity-80 transition">
+                            <div class="flex items-center space-x-2">
+                                <div class="flex space-x-1">
+                                    <div class="w-3 h-3 rounded" style="background: #d95468"></div>
+                                    <div class="w-3 h-3 rounded" style="background: #ed7654"></div>
+                                </div>
+                                <span class="text-sm text-themed-primary">玫瑰温情</span>
+                            </div>
+                        </button>
+                        <button data-theme="elegant" class="theme-option-item w-full px-4 py-2 text-left hover:opacity-80 transition">
+                            <div class="flex items-center space-x-2">
+                                <div class="flex space-x-1">
+                                    <div class="w-3 h-3 rounded" style="background: #759148"></div>
+                                    <div class="w-3 h-3 rounded" style="background: #FFBAAC"></div>
+                                </div>
+                                <span class="text-sm text-themed-primary">雅致高级</span>
+                            </div>
+                        </button>
+                        <button data-theme="vintage" class="theme-option-item w-full px-4 py-2 text-left hover:opacity-80 transition">
+                            <div class="flex items-center space-x-2">
+                                <div class="flex space-x-1">
+                                    <div class="w-3 h-3 rounded" style="background: #FA8F79"></div>
+                                    <div class="w-3 h-3 rounded" style="background: #6BA16D"></div>
+                                </div>
+                                <span class="text-sm text-themed-primary">文物古韵</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 暗色模式切换 -->
+                <button id="dark-mode-toggle-mobile" class="p-2 rounded-lg active:scale-95 transition">
+                    <svg class="w-5 h-5 text-themed-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    
+    <!-- 主要内容区 -->
+    <main class="pt-20 pb-24 md:pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        
+        <!-- 欢迎语 -->
+        <div class="text-center mb-12 fade-in">
+            <h1 class="text-4xl md:text-5xl font-bold text-themed-primary mb-4">故事入境，杂念自消</h1>
+            <p class="text-lg text-themed-secondary">每个故事都是一扇门，每次阅读都是一场相遇</p>
+        </div>
+        
+        <!-- 瀑布流卡片 -->
+        <div class="masonry" id="novel-container">
+            
+            <!-- 小说卡片示例 1 -->
+            <div class="masonry-item fade-in">
+                <div class="card-hover rounded-2xl p-6 cursor-pointer" onclick="location.href='read.html?id=1'">
+                    <div class="flex items-start justify-between mb-3">
+                        <span class="px-3 py-1 text-xs rounded-full" style="background-color: var(--color-accent); color: var(--color-primary)">都市言情</span>
+                        <span class="text-xs text-themed-muted">3天前</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-themed-primary mb-3 leading-relaxed">时光里的温柔相遇</h3>
+                    <p class="text-themed-secondary text-sm mb-4 leading-loose">
+                        那年春天，我在图书馆的角落遇见了他。阳光透过窗棂洒在他的书页上，恰好照亮了我的心房...
+                    </p>
+                    <div class="flex items-center justify-between text-sm text-themed-muted">
+                        <div class="flex items-center space-x-4">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
+                                </svg>
+                                12.8万字
+                            </span>
+                            <span class="flex items-center" style="color: var(--color-primary)">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                                </svg>
+                                2.3k
+                            </span>
+                        </div>
+                        <span class="font-medium" style="color: var(--color-primary)">阅读 →</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 小说卡片示例 2 -->
+            <div class="masonry-item fade-in" style="animation-delay: 0.1s">
+                <div class="card-hover rounded-2xl p-6 cursor-pointer" onclick="location.href='read.html?id=2'">
+                    <div class="flex items-start justify-between mb-3">
+                        <span class="px-3 py-1 text-xs rounded-full" style="background-color: var(--color-accent); color: var(--color-secondary)">古风穿越</span>
+                        <span class="text-xs text-themed-muted">5天前</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-themed-primary mb-3 leading-relaxed">长安月下，归人未归</h3>
+                    <p class="text-themed-secondary text-sm mb-4 leading-loose">
+                        宫墙深深，月色清冷。她站在长安城楼上，等待一个永远不会回来的人。三年了，那个许诺要回来娶她的少年郎，再无音讯...
+                    </p>
+                    <div class="flex items-center justify-between text-sm text-themed-muted">
+                        <div class="flex items-center space-x-4">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
+                                </svg>
+                                25.6万字
+                            </span>
+                            <span class="flex items-center" style="color: var(--color-primary)">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                                </svg>
+                                5.8k
+                            </span>
+                        </div>
+                        <span class="font-medium" style="color: var(--color-primary)">阅读 →</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 更多卡片... -->
+            <div class="masonry-item fade-in" style="animation-delay: 0.2s">
+                <div class="card-hover rounded-2xl p-6 cursor-pointer">
+                    <div class="flex items-start justify-between mb-3">
+                        <span class="px-3 py-1 text-xs rounded-full" style="background-color: #e9d5ff; color: #9333ea">悬疑推理</span>
+                        <span class="text-xs text-themed-muted">1周前</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-themed-primary mb-3 leading-relaxed">雨夜迷雾中的真相</h3>
+                    <p class="text-themed-secondary text-sm mb-4 leading-loose">
+                        雨夜，老宅，消失的遗嘱。三个女人，一个秘密。当真相浮出水面，所有人都沉默了...
+                    </p>
+                    <div class="flex items-center justify-between text-sm text-themed-muted">
+                        <div class="flex items-center space-x-4">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
+                                </svg>
+                                18.2万字
+                            </span>
+                            <span class="flex items-center" style="color: var(--color-primary)">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                                </svg>
+                                4.1k
+                            </span>
+                        </div>
+                        <span class="font-medium" style="color: var(--color-primary)">阅读 →</span>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- 加载更多 -->
+        <div class="text-center mt-12">
+            <button id="load-more" class="px-8 py-3 text-white rounded-full font-medium shadow-lg hover:shadow-xl transition transform hover:-translate-y-1" style="background: linear-gradient(to right, var(--color-primary), var(--color-secondary))">
+                发现更多故事
+            </button>
+        </div>
+        
+    </main>
+    
+    <!-- 移动端底部导航 -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bottom-nav z-50">
+        <div class="flex justify-around items-center h-16 px-2">
+            <a href="index.html" class="bottom-nav-item active flex flex-col items-center space-y-1 flex-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                </svg>
+                <span class="text-xs font-medium">发现</span>
+            </a>
+            
+            <a href="recommend.html" class="bottom-nav-item flex flex-col items-center space-y-1 flex-1 text-themed-muted">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+                <span class="text-xs font-medium">推荐</span>
+            </a>
+            
+            <a href="bookshelf.html" class="bottom-nav-item flex flex-col items-center space-y-1 flex-1 text-themed-muted">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                </svg>
+                <span class="text-xs font-medium">书架</span>
+            </a>
+        </div>
+    </nav>
+    
+    <!-- 底部 -->
+    <footer class="nav-card mt-16 py-8 hidden md:block">
+        <div class="max-w-7xl mx-auto px-4 text-center text-themed-muted">
+            <p class="mb-2">境已开启，等待故事入场，等待读者到来</p>
+            <p class="text-sm">文字之境 © 2025 - 每个故事都是一扇门</p>
+        </div>
+    </footer>
+    
+    <!-- 引入主题系统 -->
+    <script src="theme.js"></script>
+    
+    <script>
+        // 等待DOM完全加载后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('✓ DOM加载完成，初始化UI组件');
+            
+            // 桌面端主题下拉菜单
+            const themeDropdownBtn = document.getElementById('theme-dropdown-btn');
+            const themeDropdownMenu = document.getElementById('theme-dropdown-menu');
+            
+            if (themeDropdownBtn && themeDropdownMenu) {
+                console.log('✓ 找到桌面端主题按钮');
+                themeDropdownBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    themeDropdownMenu.classList.toggle('hidden');
+                    console.log('桌面端主题菜单切换');
+                    // 关闭移动端菜单
+                    const mobileMenu = document.getElementById('theme-dropdown-menu-mobile');
+                    if (mobileMenu) mobileMenu.classList.add('hidden');
+                });
+            }
+            
+            // 移动端主题下拉菜单
+            const themeDropdownBtnMobile = document.getElementById('theme-dropdown-btn-mobile');
+            const themeDropdownMenuMobile = document.getElementById('theme-dropdown-menu-mobile');
+            
+            if (themeDropdownBtnMobile && themeDropdownMenuMobile) {
+                console.log('✓ 找到移动端主题按钮');
+                themeDropdownBtnMobile.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    themeDropdownMenuMobile.classList.toggle('hidden');
+                    console.log('移动端主题菜单切换');
+                });
+            }
+            
+            // 点击外部关闭所有下拉菜单
+            document.addEventListener('click', (e) => {
+                if (themeDropdownMenu && themeDropdownBtn && 
+                    !themeDropdownMenu.contains(e.target) && 
+                    !themeDropdownBtn.contains(e.target)) {
+                    themeDropdownMenu.classList.add('hidden');
+                }
+                
+                if (themeDropdownMenuMobile && themeDropdownBtnMobile && 
+                    !themeDropdownMenuMobile.contains(e.target) && 
+                    !themeDropdownBtnMobile.contains(e.target)) {
+                    themeDropdownMenuMobile.classList.add('hidden');
+                }
+            });
+            
+            // 更新导航栏主题名称
+            window.addEventListener('themeChanged', (e) => {
+                const themeNames = {
+                    rose: '玫瑰温情',
+                    elegant: '雅致高级',
+                    vintage: '文物古韵'
+                };
+                const nameEl = document.getElementById('current-theme-name-nav');
+                if (nameEl) {
+                    nameEl.textContent = themeNames[e.detail.theme] || '主题';
+                }
+                console.log('✓ 主题已切换:', e.detail.theme, e.detail.mode);
+            });
+            
+            // 加载更多功能
+            const loadMoreBtn = document.getElementById('load-more');
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', function() {
+                    this.textContent = '正在加载...';
+                    setTimeout(() => {
+                        this.textContent = '发现更多故事';
+                    }, 1000);
+                });
+            }
+        });
+        
+        // 页面完全加载后确保主题已应用
+        window.addEventListener('load', () => {
+            console.log('✓ 页面完全加载');
+            // 主动触发一次主题更新，确保UI同步
+            if (window.themeManager) {
+                console.log('✓ 主题管理器存在，更新显示');
+                window.themeManager.updateThemeDisplay();
+            } else {
+                console.warn('⚠ 主题管理器不存在');
+            }
+        });
+    </script>
+    
+</body>
+</html>

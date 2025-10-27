@@ -1,0 +1,26 @@
+{
+  "name": "xsread-sync-service",
+  "version": "1.0.0",
+  "description": "文字之境 - 数据同步服务",
+  "main": "syncService.js",
+  "scripts": {
+    "start": "node syncService.js",
+    "dev": "nodemon syncService.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "sync",
+    "redis",
+    "mysql"
+  ],
+  "author": "开发者C",
+  "license": "MIT",
+  "dependencies": {
+    "mysql2": "^3.6.0",
+    "ioredis": "^5.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
+
