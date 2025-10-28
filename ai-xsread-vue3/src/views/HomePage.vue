@@ -15,19 +15,19 @@
         <div class="container">
           <div class="quick-nav">
             <div class="nav-item" @click="navigateTo('hot')">
-              <span class="nav-icon">🔥</span>
+              <i class="bi bi-fire nav-icon"></i>
               <span class="nav-text">本周热门</span>
             </div>
             <div class="nav-item" @click="navigateTo('new')">
-              <span class="nav-icon">✨</span>
+              <i class="bi bi-stars nav-icon"></i>
               <span class="nav-text">新书上架</span>
             </div>
             <div class="nav-item" @click="navigateTo('finished')">
-              <span class="nav-icon">✓</span>
+              <i class="bi bi-check-circle nav-icon"></i>
               <span class="nav-text">完结好书</span>
             </div>
             <div class="nav-item" @click="navigateTo('recommend')">
-              <span class="nav-icon">⭐</span>
+              <i class="bi bi-star-fill nav-icon"></i>
               <span class="nav-text">编辑推荐</span>
             </div>
           </div>
@@ -374,6 +374,7 @@ onMounted(() => {
   font-size: 2rem;
   margin-bottom: 0.5rem;
   display: block;
+  color: var(--color-primary);
 }
 
 .nav-text {
@@ -390,7 +391,7 @@ onMounted(() => {
   }
   
   .nav-icon {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     margin-bottom: 0.25rem;
   }
   

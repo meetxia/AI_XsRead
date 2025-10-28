@@ -95,7 +95,7 @@
             class="preview-cover"
           />
           <div v-else class="preview-cover-placeholder">
-            <span>📚</span>
+            <i class="bi bi-book-fill"></i>
           </div>
           <div class="preview-info">
             <div class="preview-title">{{ novel.title }}</div>

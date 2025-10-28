@@ -16,7 +16,7 @@
         loading="lazy"
       />
       <div v-else class="cover-placeholder">
-        <span class="placeholder-icon">📚</span>
+        <i class="bi bi-book-fill placeholder-icon"></i>
       </div>
       
       <!-- 状态标签 -->
@@ -29,7 +29,7 @@
       
       <!-- VIP标记 -->
       <div v-if="novel.isVip" class="vip-mark">
-        <span class="vip-icon">👑</span>
+        <i class="bi bi-trophy-fill vip-icon"></i>
         <span class="vip-text">VIP</span>
       </div>
     </div>
@@ -266,6 +266,7 @@ function timeAgo(time) {
 
 .placeholder-icon {
   font-size: 2.5rem;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* 状态标签 */

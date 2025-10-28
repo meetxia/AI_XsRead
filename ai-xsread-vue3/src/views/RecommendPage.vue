@@ -41,7 +41,7 @@
               <div class="novel-meta">
                 <span>作者：温柔笔触</span>
                 <span>12.8万字</span>
-                <span class="likes">❤ 2.3k</span>
+                <span class="likes"><i class="bi bi-heart-fill"></i> 2.3k</span>
               </div>
               <button @click="handleRead({ id: 1 })" class="read-btn">立即阅读</button>
             </div>
@@ -64,7 +64,7 @@
                 <div class="rank-meta">
                   <span>{{ book.author }}</span>
                   <span>{{ book.category || '都市言情' }}</span>
-                  <span class="rank-likes">❤ {{ formatNumber(book.hotValue) }}</span>
+                  <span class="rank-likes"><i class="bi bi-heart-fill"></i> {{ formatNumber(book.hotValue) }}</span>
                 </div>
               </div>
             </div>

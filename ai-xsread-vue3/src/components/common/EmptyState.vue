@@ -3,7 +3,7 @@
     <!-- 插图 -->
     <div class="empty-illustration">
       <div class="illustration-wrapper">
-        <span class="illustration-emoji">{{ emoji }}</span>
+        <i :class="['bi', iconClass, 'illustration-icon']"></i>
       </div>
     </div>
     
@@ -51,49 +51,49 @@ const emit = defineEmits(['action'])
 // 预设的空状态文案
 const presets = {
   'bookshelf-empty': {
-    emoji: '📚',
+    icon: 'bi-bookshelf',
     title: '书架空空如也',
     message: '快去发现喜欢的小说吧',
     actionText: '去首页看看'
   },
   'search-no-results': {
-    emoji: '🔍',
+    icon: 'bi-search',
     title: '没有找到相关小说',
     message: '换个关键词试试？或者看看推荐的书',
     actionText: '查看推荐'
   },
   'comments-empty': {
-    emoji: '💭',
+    icon: 'bi-chat-dots',
     title: '还没有评论',
     message: '成为第一个发表评论的人吧',
     actionText: '发表评论'
   },
   'network-error': {
-    emoji: '🌐',
+    icon: 'bi-wifi-off',
     title: '网络开小差了',
     message: '请检查网络连接后重试',
     actionText: '重新加载'
   },
   'no-data': {
-    emoji: '📭',
+    icon: 'bi-inbox',
     title: '暂无数据',
     message: '这里还没有内容哦',
     actionText: ''
   },
   'reading-history-empty': {
-    emoji: '📖',
+    icon: 'bi-book',
     title: '还没有阅读记录',
     message: '开始你的第一次阅读吧',
     actionText: '去看看小说'
   },
   'favorites-empty': {
-    emoji: '❤️',
+    icon: 'bi-heart',
     title: '还没有收藏',
     message: '收藏你喜欢的小说，方便下次阅读',
     actionText: '去发现'
   },
   '404': {
-    emoji: '🔭',
+    icon: 'bi-compass',
     title: '页面走丢了',
     message: '我们找不到你要访问的页面',
     actionText: '返回首页'
@@ -105,8 +105,8 @@ const currentPreset = computed(() => {
   return presets[props.type] || presets['no-data']
 })
 
-const emoji = computed(() => {
-  return currentPreset.value.emoji
+const iconClass = computed(() => {
+  return currentPreset.value.icon
 })
 
 const currentTitle = computed(() => {
@@ -145,9 +145,10 @@ const currentMessage = computed(() => {
   animation: float 3s ease-in-out infinite;
 }
 
-.illustration-emoji {
+.illustration-icon {
   font-size: 4rem;
   line-height: 1;
+  color: var(--color-primary);
 }
 
 /* 浮动动画 */
@@ -212,7 +213,7 @@ const currentMessage = computed(() => {
     height: 100px;
   }
   
-  .illustration-emoji {
+  .illustration-icon {
     font-size: 3rem;
   }
   

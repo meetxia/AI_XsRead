@@ -91,7 +91,7 @@
           
           <!-- 成功列表 -->
           <div v-if="uploadResult.details.success.length > 0" class="result-list success-list">
-            <h4>✅ 成功上传 ({{ uploadResult.details.success.length }})</h4>
+            <h4><i class="bi bi-check-circle-fill"></i> 成功上传 ({{ uploadResult.details.success.length }})</h4>
             <div v-for="item in uploadResult.details.success" :key="item.novelId" class="result-item">
               <span class="item-name">{{ item.title }}</span>
               <span class="item-info">{{ item.wordCount }}字</span>
@@ -101,7 +101,7 @@
           
           <!-- 已存在列表 -->
           <div v-if="uploadResult.details.exists.length > 0" class="result-list exists-list">
-            <h4>⏭️ 已存在 ({{ uploadResult.details.exists.length }})</h4>
+            <h4><i class="bi bi-skip-forward-fill"></i> 已存在 ({{ uploadResult.details.exists.length }})</h4>
             <div v-for="item in uploadResult.details.exists" :key="item.filename" class="result-item">
               <span class="item-name">{{ item.title }}</span>
               <span class="item-info text-yellow-600">重复</span>
@@ -110,7 +110,7 @@
           
           <!-- 失败列表 -->
           <div v-if="uploadResult.details.failed.length > 0" class="result-list failed-list">
-            <h4>❌ 失败 ({{ uploadResult.details.failed.length }})</h4>
+            <h4><i class="bi bi-x-circle-fill"></i> 失败 ({{ uploadResult.details.failed.length }})</h4>
             <div v-for="item in uploadResult.details.failed" :key="item.filename" class="result-item">
               <span class="item-name">{{ item.filename }}</span>
               <span class="item-info text-red-600">{{ item.reason }}</span>
@@ -123,7 +123,7 @@
 
       <!-- 使用说明 -->
       <div class="instructions">
-        <h3>📖 使用说明</h3>
+        <h3><i class="bi bi-book"></i> 使用说明</h3>
         <div class="instruction-list">
           <div class="instruction-item">
             <span class="step">1</span>

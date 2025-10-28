@@ -24,7 +24,7 @@
             <div class="max-w-2xl text-white">
               <div class="mb-4">
                 <span class="inline-block px-4 py-1 bg-yellow-500 text-white text-sm font-bold rounded-full">
-                  ⭐ 本周必读
+                  <i class="bi bi-star-fill"></i> 本周必读
                 </span>
               </div>
               <h2 class="text-4xl md:text-5xl font-bold mb-4">{{ item.title }}</h2>
