@@ -27,7 +27,7 @@
           <svg class="meta-icon" fill="currentColor" viewBox="0 0 20 20">
             <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
           </svg>
-          {{ formatWordCount(novel.wordCount) }}
+          {{ formatWordCount(novel.wordCount ?? novel.word_count) }}
         </span>
 
         <!-- 点赞数 -->
@@ -65,29 +65,31 @@ const router = useRouter()
 // 点击事件处理
 function handleClick() {
   emit('click', props.novel)
-  // 跳转到小说详情页
-  router.push(`/novel/${props.novel.id}`)
+  // 跳转到阅读页
+  router.push(`/reading/${props.novel.id}`)
 }
 
 // 格式化字数
 function formatWordCount(count) {
-  if (!count) return '12.8万字'
-  if (count > 10000) {
-    return `${(count / 10000).toFixed(1)}万字`
+  const value = Number(count)
+  if (!Number.isFinite(value) || value <= 0) return '0字'
+  if (value >= 10000) {
+    return `${(value / 10000).toFixed(1)}万字`
   }
-  return `${count}字`
+  return `${value}字`
 }
 
 // 格式化点赞数
 function formatLikes(likes) {
-  if (!likes) return '2.3k'
-  if (likes >= 10000) {
-    return `${(likes / 10000).toFixed(1)}w`
+  const value = Number(likes)
+  if (!Number.isFinite(value) || value < 0) return '0'
+  if (value >= 10000) {
+    return `${(value / 10000).toFixed(1)}w`
   }
-  if (likes >= 1000) {
-    return `${(likes / 1000).toFixed(1)}k`
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}k`
   }
-  return likes
+  return value
 }
 
 // 获取发布时间
@@ -205,31 +207,52 @@ function getCategoryStyle() {
 }
 
 .read-btn {
-  font-weight: 500;
-  color: var(--color-primary);
-  transition: opacity 0.2s ease;
-}
-
-.novel-card:hover .read-btn {
-  opacity: 0.8;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  padding: 0.375rem 0.625rem;
+  border-radius: 10px;
 }
 
 /* 移动端优化 */
 @media (max-width: 640px) {
   .novel-card {
-    padding: 1.25rem;
+    padding: 0.875rem;
+    border-radius: 0.875rem;
+  }
+
+  .card-header {
+    margin-bottom: 0.5rem;
   }
 
   .card-title {
-    font-size: 1.125rem;
+    font-size: 1.0625rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
   }
 
   .card-description {
     font-size: 0.8125rem;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .card-footer {
     font-size: 0.8125rem;
+  }
+  
+  .card-meta {
+    gap: 0.75rem;
+  }
+  
+  /* 移动端触摸反馈 */
+  .novel-card:active {
+    transform: scale(0.98);
   }
 }
 </style>

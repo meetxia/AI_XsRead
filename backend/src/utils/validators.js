@@ -93,11 +93,29 @@ const paginationValidation = [
   handleValidationErrors
 ];
 
+// 文本分页校验（用于整书按字符分页）
+const textPaginationValidation = [
+  query('page')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('页码必须是大于0的整数')
+    .toInt(),
+
+  query('pageSize')
+    .optional()
+    .isInt({ min: 100, max: 20000 })
+    .withMessage('每页字数必须在100-20000之间')
+    .toInt(),
+
+  handleValidationErrors
+];
+
 module.exports = {
   handleValidationErrors,
   registerValidation,
   loginValidation,
   idValidation,
-  paginationValidation
+  paginationValidation,
+  textPaginationValidation
 };
 

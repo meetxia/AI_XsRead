@@ -47,5 +47,12 @@ router.get(
   asyncHandler(commentController.getCommentReplies)
 );
 
+// 新增：发表评论的回复（需要登录）
+router.post(
+  '/comments/:commentId/reply',
+  authenticate,
+  asyncHandler(commentController.createReply)
+);
+
 module.exports = router;
 

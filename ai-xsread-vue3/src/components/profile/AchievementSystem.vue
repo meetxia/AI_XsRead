@@ -406,7 +406,6 @@ onMounted(() => {
 .status-locked {
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.25rem 0.75rem;
   border-radius: 9999px;
 }
 
@@ -453,6 +452,145 @@ onMounted(() => {
 
 .h-20 {
   height: 5rem;
+}
+
+/* 移动端优化 */
+@media (max-width: 640px) {
+  /* 成就概览 */
+  .achievement-summary {
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .summary-card {
+    padding: 0.75rem 0.5rem;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: center;
+  }
+
+  .summary-card.wide {
+    grid-column: span 4;
+    flex-direction: row;
+    padding: 0.75rem;
+  }
+
+  .summary-icon {
+    font-size: 1.5rem;
+  }
+
+  .summary-number {
+    font-size: 1.25rem;
+    margin-bottom: 0;
+  }
+
+  .summary-label {
+    font-size: 0.6875rem;
+    margin-bottom: 0;
+  }
+
+  .summary-card.wide .summary-icon {
+    font-size: 2rem;
+  }
+
+  /* 成就分类 */
+  .achievement-tabs {
+    gap: 0.375rem;
+    margin-bottom: 1rem;
+  }
+
+  .tab-btn {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+
+  /* 成就列表 */
+  .achievement-list {
+    gap: 0.625rem;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .achievement-card {
+    padding: 0.625rem;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    text-align: center;
+    border-radius: 0.75rem;
+  }
+
+  /* 成就图标 */
+  .achievement-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .icon-emoji {
+    font-size: 1.25rem;
+  }
+
+  .unlock-badge,
+  .lock-badge {
+    width: 16px;
+    height: 16px;
+    bottom: -2px;
+    right: -2px;
+  }
+
+  .unlock-badge svg,
+  .lock-badge svg {
+    width: 0.625rem;
+    height: 0.625rem;
+  }
+
+  /* 成就信息 */
+  .achievement-name {
+    font-size: 0.75rem;
+    margin-bottom: 0.125rem;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .achievement-desc {
+    display: none;
+  }
+
+  .achievement-progress {
+    width: 100%;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .progress-bar-container {
+    width: 100%;
+  }
+
+  .achievement-progress .progress-text {
+    font-size: 0.625rem;
+  }
+
+  /* 成就状态 */
+  .achievement-status {
+    width: 100%;
+  }
+
+  .status-unlocked,
+  .status-locked {
+    font-size: 0.625rem;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* 触摸反馈 */
+  .achievement-card:active {
+    transform: scale(0.95);
+  }
 }
 </style>
 

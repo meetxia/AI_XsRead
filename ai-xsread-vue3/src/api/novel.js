@@ -48,6 +48,15 @@ export function getChapterContent(chapterId) {
   })
 }
 
+// 按字符分页获取整本内容（无章节模式）
+export function getNovelPages(novelId, params) {
+  return request({
+    url: `/novels/${novelId}/pages`,
+    method: 'get',
+    params
+  })
+}
+
 // 点赞小说
 export function likeNovel(novelId) {
   return request({

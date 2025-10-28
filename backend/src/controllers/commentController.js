@@ -6,6 +6,41 @@ const { ErrorCodes, getErrorMessage } = require('../constants/errorCodes');
 const AppError = require('../utils/AppError');
 const { sanitizeComment } = require('../utils/sanitize');
 
+// 确保评论相关表存在（首次使用时自动创建）
+async function ensureCommentTables() {
+  const createCommentsSQL = `
+    CREATE TABLE IF NOT EXISTS comments (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      novel_id INT NOT NULL,
+      user_id INT NOT NULL,
+      content TEXT NOT NULL,
+      parent_id INT DEFAULT NULL,
+      reply_to_user_id INT DEFAULT NULL,
+      likes INT DEFAULT 0,
+      created_at DATETIME NOT NULL,
+      deleted_at DATETIME DEFAULT NULL,
+      INDEX idx_novel_id (novel_id),
+      INDEX idx_user_id (user_id),
+      INDEX idx_parent_id (parent_id),
+      INDEX idx_created_at (created_at),
+      INDEX idx_deleted_at (deleted_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+
+  const createLikesSQL = `
+    CREATE TABLE IF NOT EXISTS comment_likes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      comment_id INT NOT NULL,
+      created_at DATETIME NOT NULL,
+      UNIQUE KEY uk_user_comment (user_id, comment_id),
+      INDEX idx_comment_id (comment_id),
+      INDEX idx_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+
+  await pool.query(createCommentsSQL);
+  await pool.query(createLikesSQL);
+}
+
 /**
  * 获取小说评论列表
  * GET /api/novels/:novelId/comments
@@ -42,12 +77,12 @@ exports.getNovelComments = async (req, res, next) => {
         u.username,
         u.avatar,
         ru.username as reply_to_username,
-        (SELECT COUNT(*) FROM comments WHERE parent_id = c.id) as reply_count
+        (SELECT COUNT(*) FROM comments WHERE parent_id = c.id AND deleted_at IS NULL) as reply_count
         ${userId ? `, (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND user_id = ?) as is_liked` : ''}
       FROM comments c
       INNER JOIN users u ON c.user_id = u.id
       LEFT JOIN users ru ON c.reply_to_user_id = ru.id
-      WHERE c.novel_id = ? AND c.parent_id ${parentId ? '= ?' : 'IS NULL'}
+      WHERE c.novel_id = ? AND c.parent_id ${parentId ? '= ?' : 'IS NULL'} AND c.deleted_at IS NULL
       ORDER BY ${orderBy}
       LIMIT ? OFFSET ?
     `;
@@ -58,13 +93,35 @@ exports.getNovelComments = async (req, res, next) => {
     }
     queryParams.push(parseInt(pageSize), offset);
 
-    const [comments] = await pool.query(query, queryParams);
+    let comments;
+    try {
+      [comments] = await pool.query(query, queryParams);
+    } catch (dbErr) {
+      // 当评论相关表尚未创建时，优雅降级为空列表，避免500
+      if (dbErr && (dbErr.code === 'ER_NO_SUCH_TABLE' || dbErr.code === 'ER_BAD_FIELD_ERROR')) {
+        return res.json({
+          code: 200,
+          message: '获取成功',
+          data: {
+            list: [],
+            pagination: {
+              page: parseInt(page),
+              pageSize: parseInt(pageSize),
+              total: 0,
+              totalPages: 0
+            }
+          },
+          timestamp: Date.now()
+        });
+      }
+      throw dbErr;
+    }
 
     // 获取总数
     const countQuery = `
       SELECT COUNT(*) as total 
       FROM comments 
-      WHERE novel_id = ? AND parent_id ${parentId ? '= ?' : 'IS NULL'}
+      WHERE novel_id = ? AND parent_id ${parentId ? '= ?' : 'IS NULL'} AND deleted_at IS NULL
     `;
     const countParams = parentId ? [novelId, parentId] : [novelId];
     const [countResult] = await pool.query(countQuery, countParams);
@@ -179,11 +236,25 @@ exports.createComment = async (req, res, next) => {
     }
 
     // 插入评论
-    const [result] = await pool.query(
-      `INSERT INTO comments (novel_id, user_id, content, parent_id, reply_to_user_id, created_at) 
-       VALUES (?, ?, ?, ?, ?, NOW())`,
-      [novelId, userId, sanitizedContent, parentId, replyToUserId]
-    );
+    let result;
+    try {
+      [result] = await pool.query(
+        `INSERT INTO comments (novel_id, user_id, content, parent_id, reply_to_user_id, created_at) 
+         VALUES (?, ?, ?, ?, ?, NOW())`,
+        [novelId, userId, sanitizedContent, parentId, replyToUserId]
+      );
+    } catch (e) {
+      if (e && e.code === 'ER_NO_SUCH_TABLE') {
+        await ensureCommentTables();
+        [result] = await pool.query(
+          `INSERT INTO comments (novel_id, user_id, content, parent_id, reply_to_user_id, created_at) 
+           VALUES (?, ?, ?, ?, ?, NOW())`,
+          [novelId, userId, sanitizedContent, parentId, replyToUserId]
+        );
+      } else {
+        throw e;
+      }
+    }
 
     // 获取刚插入的评论
     const [newComment] = await pool.query(
@@ -303,10 +374,22 @@ exports.likeComment = async (req, res, next) => {
     }
 
     // 添加点赞记录
-    await connection.query(
-      'INSERT INTO comment_likes (user_id, comment_id, created_at) VALUES (?, ?, NOW())',
-      [userId, commentId]
-    );
+    try {
+      await connection.query(
+        'INSERT INTO comment_likes (user_id, comment_id, created_at) VALUES (?, ?, NOW())',
+        [userId, commentId]
+      );
+    } catch (e) {
+      if (e && e.code === 'ER_NO_SUCH_TABLE') {
+        await ensureCommentTables();
+        await connection.query(
+          'INSERT INTO comment_likes (user_id, comment_id, created_at) VALUES (?, ?, NOW())',
+          [userId, commentId]
+        );
+      } else {
+        throw e;
+      }
+    }
 
     // 更新评论点赞数
     await connection.query(
@@ -409,7 +492,7 @@ exports.getCommentReplies = async (req, res, next) => {
       FROM comments c
       INNER JOIN users u ON c.user_id = u.id
       LEFT JOIN users ru ON c.reply_to_user_id = ru.id
-      WHERE c.parent_id = ?
+      WHERE c.parent_id = ? AND c.deleted_at IS NULL
       ORDER BY c.created_at ASC
       LIMIT ? OFFSET ?
     `;
@@ -421,7 +504,7 @@ exports.getCommentReplies = async (req, res, next) => {
 
     // 获取总数
     const [countResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM comments WHERE parent_id = ?',
+      'SELECT COUNT(*) as total FROM comments WHERE parent_id = ? AND deleted_at IS NULL',
       [commentId]
     );
 
@@ -451,6 +534,84 @@ exports.getCommentReplies = async (req, res, next) => {
           total: countResult[0].total,
           totalPages: Math.ceil(countResult[0].total / pageSize)
         }
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 发表回复
+ * POST /api/comments/:commentId/reply
+ */
+exports.createReply = async (req, res, next) => {
+  try {
+    const { commentId } = req.params;
+    const { content } = req.body;
+    const userId = req.user.id;
+
+    if (!content || content.trim().length === 0) {
+      throw new AppError(
+        ErrorCodes.COMMENT_TOO_SHORT,
+        getErrorMessage(ErrorCodes.COMMENT_TOO_SHORT)
+      );
+    }
+    if (content.length > 500) {
+      throw new AppError(
+        ErrorCodes.COMMENT_TOO_LONG,
+        getErrorMessage(ErrorCodes.COMMENT_TOO_LONG)
+      );
+    }
+
+    const sanitizedContent = sanitizeComment(content);
+
+    // 校验父评论并获取所属小说及被回复用户
+    const [parents] = await pool.query(
+      'SELECT id, novel_id, user_id FROM comments WHERE id = ? LIMIT 1',
+      [commentId]
+    );
+    if (parents.length === 0) {
+      throw new AppError(
+        ErrorCodes.COMMENT_NOT_FOUND,
+        getErrorMessage(ErrorCodes.COMMENT_NOT_FOUND)
+      );
+    }
+
+    const parent = parents[0];
+
+    // 插入回复
+    const [result] = await pool.query(
+      `INSERT INTO comments (novel_id, user_id, content, parent_id, reply_to_user_id, created_at)
+       VALUES (?, ?, ?, ?, ?, NOW())`,
+      [parent.novel_id, userId, sanitizedContent, parent.id, parent.user_id]
+    );
+
+    // 返回新回复
+    const [rows] = await pool.query(
+      `SELECT 
+        c.id, c.content, c.likes, c.created_at,
+        u.id as user_id, u.username, u.avatar,
+        ru.username as reply_to_username
+       FROM comments c
+       INNER JOIN users u ON c.user_id = u.id
+       LEFT JOIN users ru ON c.reply_to_user_id = ru.id
+       WHERE c.id = ?`,
+      [result.insertId]
+    );
+
+    const r = rows[0];
+    res.status(201).json({
+      code: 201,
+      message: '回复成功',
+      data: {
+        id: r.id,
+        content: r.content,
+        likes: r.likes,
+        createdAt: r.created_at,
+        user: { id: r.user_id, username: r.username, avatar: r.avatar },
+        replyTo: r.reply_to_username ? { username: r.reply_to_username } : null
       },
       timestamp: Date.now()
     });

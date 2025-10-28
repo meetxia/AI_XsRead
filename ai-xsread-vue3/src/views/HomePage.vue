@@ -168,7 +168,13 @@ const loadNovels = async () => {
     
     if (response && response.data) {
       // 后端返回格式：data 直接是数组，pagination 在外层
-      const newNovels = Array.isArray(response.data) ? response.data : (response.data.list || [])
+      const rawList = Array.isArray(response.data) ? response.data : (response.data.list || [])
+      // 统一字段给前端组件使用
+      const newNovels = rawList.map(n => ({
+        ...n,
+        wordCount: n.wordCount ?? n.word_count ?? n.wordcount,
+        likes: n.likes ?? n.likeCount ?? n.like_count
+      }))
       
       if (currentPage.value === 1) {
         novels.value = newNovels
@@ -303,11 +309,11 @@ onMounted(() => {
 
 @media (max-width: 640px) {
   .welcome-section.compact {
-    padding: 1.5rem 1rem 0.75rem;
+    padding: 1rem 1rem 0.5rem;
   }
   
   .welcome-title-sm {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
   }
 }
 
@@ -331,9 +337,13 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
+  .quick-nav-section {
+    padding: 0.75rem 0 1rem;
+  }
+  
   .quick-nav {
     grid-template-columns: repeat(4, 1fr);
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 }
 
@@ -375,7 +385,8 @@ onMounted(() => {
 
 @media (max-width: 640px) {
   .nav-item {
-    padding: 1rem 0.5rem;
+    padding: 0.75rem 0.375rem;
+    border-radius: 12px;
   }
   
   .nav-icon {
@@ -384,7 +395,7 @@ onMounted(() => {
   }
   
   .nav-text {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
   }
 }
 
@@ -394,9 +405,21 @@ onMounted(() => {
   padding: 0 1rem;
 }
 
+@media (max-width: 640px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+}
+
 /* 小说列表区域 */
 .novels-section {
   padding: 2rem 0 3rem;
+}
+
+@media (max-width: 640px) {
+  .novels-section {
+    padding: 0.5rem 0 2rem;
+  }
 }
 
 /* 加载更多按钮 */

@@ -59,7 +59,7 @@
       </section>
 
       <!-- 阅读统计 -->
-      <section class="stats-section fade-in" style="animation-delay: 0.1s">
+      <section class="stats-section fade-in mt-xl" style="animation-delay: 0.1s">
         <h3 class="section-title">阅读统计</h3>
         <ReadingStatsChart />
       </section>
@@ -327,6 +327,7 @@ function handleEditAvatar() {
     if (file) {
       try {
         await userStore.uploadAvatar(file)
+        // 可选：轻提示
         console.log('头像上传成功')
       } catch (error) {
         console.error('头像上传失败:', error)
@@ -440,6 +441,7 @@ onMounted(async () => {
   margin: 0 auto;
   padding: 0 1rem;
 }
+
 
 /* 用户信息卡片 */
 .user-info-section {
@@ -876,6 +878,196 @@ onMounted(async () => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 移动端优化 */
+@media (max-width: 640px) {
+  .main-content {
+    padding: 0 0.75rem;
+  }
+
+  /* 用户信息卡片 */
+  .user-info-section {
+    margin: 1rem 0;
+  }
+
+  .user-card {
+    border-radius: 1rem;
+  }
+
+  .card-background {
+    height: 80px;
+  }
+
+  .user-content {
+    padding: 1.5rem 1rem 1rem;
+  }
+
+  .avatar-container {
+    margin-bottom: 0.75rem;
+  }
+
+  .user-avatar {
+    width: 70px;
+    height: 70px;
+    border-width: 3px;
+  }
+
+  .avatar-edit-btn {
+    width: 26px;
+    height: 26px;
+  }
+
+  .avatar-edit-btn svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .user-info {
+    margin-bottom: 0.75rem;
+  }
+
+  .user-name {
+    font-size: 1.375rem;
+    margin-bottom: 0.375rem;
+  }
+
+  .user-bio {
+    font-size: 0.8125rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .user-meta {
+    gap: 1rem;
+  }
+
+  .meta-item {
+    font-size: 0.8125rem;
+  }
+
+  .edit-profile-btn {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.8125rem;
+  }
+
+  /* 各区域间距 */
+  .stats-section,
+  .achievement-section,
+  .bookshelf-section,
+  .menu-section,
+  .settings-section,
+  .logout-section {
+    margin-bottom: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 1.0625rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* 书架预览 */
+  .bookshelf-preview {
+    gap: 0.5rem;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .book-cover {
+    padding: 0.5rem;
+    margin-bottom: 0.375rem;
+    border-radius: 0.375rem;
+  }
+
+  .book-title {
+    font-size: 0.75rem;
+  }
+
+  .book-progress {
+    font-size: 0.6875rem;
+  }
+
+  /* 功能菜单 - 改为一列4个 */
+  .menu-grid {
+    gap: 0.5rem;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .menu-item {
+    padding: 0.625rem 0.375rem;
+    flex-direction: column;
+    gap: 0.375rem;
+    border-radius: 0.75rem;
+    text-align: center;
+  }
+
+  .menu-item:hover {
+    transform: translateY(-2px);
+  }
+
+  .menu-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .menu-icon svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .menu-label {
+    font-size: 0.6875rem;
+    line-height: 1.2;
+  }
+
+  .menu-arrow {
+    display: none;
+  }
+
+  /* 设置列表 */
+  .setting-item {
+    padding: 0.875rem 1rem;
+  }
+
+  .setting-info {
+    gap: 0.625rem;
+  }
+
+  .setting-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .setting-label {
+    font-size: 0.875rem;
+  }
+
+  .setting-value {
+    font-size: 0.8125rem;
+  }
+
+  /* 退出登录 */
+  .logout-btn {
+    padding: 0.875rem;
+    font-size: 0.875rem;
+    border-radius: 0.75rem;
+  }
+
+  /* 触摸反馈 */
+  .menu-item:active {
+    transform: scale(0.95);
+  }
+
+  .setting-item:active {
+    background: var(--color-bg-hover);
+  }
+
+  .logout-btn:active {
+    transform: scale(0.98);
+  }
+
+  .book-item:active {
+    transform: scale(0.98);
   }
 }
 </style>

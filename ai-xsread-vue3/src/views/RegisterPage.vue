@@ -17,79 +17,18 @@
 
         <!-- 注册表单 -->
         <form @submit.prevent="handleRegister" class="register-form">
-          <!-- 用户名 -->
+          <!-- 用户名或邮箱 -->
           <div class="form-group">
-            <label>用户名 <span class="required">*</span></label>
+            <label>用户名或邮箱 <span class="required">*</span></label>
             <input
-              v-model="formData.username"
+              v-model="formData.identifier"
               type="text"
-              placeholder="3-20个字符，支持字母数字下划线"
+              placeholder="请输入用户名或邮箱地址"
               class="form-input"
               required
             />
-            <p v-if="errors.username" class="error-message">{{ errors.username }}</p>
-          </div>
-
-          <!-- 手机号/邮箱 -->
-          <div class="form-group">
-            <div class="method-tabs">
-              <button
-                type="button"
-                @click="registerMethod = 'phone'"
-                :class="['method-btn', { active: registerMethod === 'phone' }]"
-              >
-                手机号
-              </button>
-              <button
-                type="button"
-                @click="registerMethod = 'email'"
-                :class="['method-btn', { active: registerMethod === 'email' }]"
-              >
-                邮箱
-              </button>
-            </div>
-            
-            <input
-              v-if="registerMethod === 'phone'"
-              v-model="formData.phone"
-              type="tel"
-              placeholder="请输入手机号"
-              class="form-input"
-              required
-            />
-            <input
-              v-else
-              v-model="formData.email"
-              type="email"
-              placeholder="请输入邮箱地址"
-              class="form-input"
-              required
-            />
-            <p v-if="errors.contact" class="error-message">{{ errors.contact }}</p>
-          </div>
-
-          <!-- 验证码 -->
-          <div class="form-group">
-            <label>验证码 <span class="required">*</span></label>
-            <div class="code-input">
-              <input
-                v-model="formData.code"
-                type="text"
-                placeholder="请输入6位验证码"
-                maxlength="6"
-                class="form-input"
-                required
-              />
-              <button
-                type="button"
-                @click="sendCode"
-                :disabled="countdown > 0"
-                class="send-code-btn"
-              >
-                {{ countdown > 0 ? `${countdown}秒` : '发送验证码' }}
-              </button>
-            </div>
-            <p v-if="errors.code" class="error-message">{{ errors.code }}</p>
+            <p class="form-hint">用户名需3-20个字符，支持字母数字下划线</p>
+            <p v-if="errors.identifier" class="error-message">{{ errors.identifier }}</p>
           </div>
 
           <!-- 密码 -->
@@ -130,19 +69,6 @@
               </span>
             </div>
             <p v-if="errors.password" class="error-message">{{ errors.password }}</p>
-          </div>
-
-          <!-- 确认密码 -->
-          <div class="form-group">
-            <label>确认密码 <span class="required">*</span></label>
-            <input
-              v-model="formData.confirmPassword"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="请再次输入密码"
-              class="form-input"
-              required
-            />
-            <p v-if="errors.confirmPassword" class="error-message">{{ errors.confirmPassword }}</p>
           </div>
 
           <!-- 用户协议 -->
@@ -190,26 +116,16 @@ import AppHeader from '@/components/common/AppHeader.vue'
 const router = useRouter()
 const userStore = useUserStore()
 
-// 注册方式
-const registerMethod = ref('phone')
-
 // 表单数据
 const formData = reactive({
-  username: '',
-  phone: '',
-  email: '',
-  code: '',
-  password: '',
-  confirmPassword: ''
+  identifier: '', // 用户名或邮箱
+  password: ''
 })
 
 // 错误信息
 const errors = reactive({
-  username: '',
-  contact: '',
-  code: '',
+  identifier: '',
   password: '',
-  confirmPassword: '',
   agreement: ''
 })
 
@@ -217,7 +133,6 @@ const errors = reactive({
 const loading = ref(false)
 const showPassword = ref(false)
 const agreeTerms = ref(false)
-const countdown = ref(0)
 
 /**
  * 密码强度检测
@@ -254,51 +169,40 @@ const passwordStrength = computed(() => {
 })
 
 /**
+ * 判断输入的是用户名还是邮箱
+ */
+const isEmail = (str) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str)
+}
+
+/**
  * 表单验证
  */
 const validateForm = () => {
-  errors.username = ''
-  errors.contact = ''
-  errors.code = ''
+  errors.identifier = ''
   errors.password = ''
-  errors.confirmPassword = ''
   errors.agreement = ''
 
-  // 验证用户名
-  if (!formData.username) {
-    errors.username = '请输入用户名'
-    return false
-  }
-  if (!/^[a-zA-Z0-9_]{3,20}$/.test(formData.username)) {
-    errors.username = '用户名为3-20个字符，只能包含字母数字下划线'
+  // 验证用户名或邮箱
+  if (!formData.identifier) {
+    errors.identifier = '请输入用户名或邮箱'
     return false
   }
 
-  // 验证手机号或邮箱
-  if (registerMethod.value === 'phone') {
-    if (!formData.phone) {
-      errors.contact = '请输入手机号'
-      return false
-    }
-    if (!/^1[3-9]\d{9}$/.test(formData.phone)) {
-      errors.contact = '请输入正确的手机号'
+  const identifier = formData.identifier.trim()
+  
+  // 如果是邮箱格式，验证邮箱
+  if (isEmail(identifier)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
+      errors.identifier = '请输入正确的邮箱格式'
       return false
     }
   } else {
-    if (!formData.email) {
-      errors.contact = '请输入邮箱'
+    // 否则按用户名验证
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(identifier)) {
+      errors.identifier = '用户名需3-20个字符，只能包含字母、数字和下划线'
       return false
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.contact = '请输入正确的邮箱格式'
-      return false
-    }
-  }
-
-  // 验证验证码
-  if (!formData.code || formData.code.length !== 6) {
-    errors.code = '请输入6位验证码'
-    return false
   }
 
   // 验证密码
@@ -308,12 +212,6 @@ const validateForm = () => {
   }
   if (formData.password.length < 6 || formData.password.length > 20) {
     errors.password = '密码长度为6-20个字符'
-    return false
-  }
-
-  // 验证确认密码
-  if (formData.password !== formData.confirmPassword) {
-    errors.confirmPassword = '两次输入的密码不一致'
     return false
   }
 
@@ -335,14 +233,17 @@ const handleRegister = async () => {
   loading.value = true
 
   try {
+    const identifier = formData.identifier.trim()
+    
+    // 构建注册数据，根据输入判断是用户名还是邮箱
     const registerData = {
-      username: formData.username,
-      password: formData.password,
-      code: formData.code,
-      ...(registerMethod.value === 'phone' 
-        ? { phone: formData.phone }
-        : { email: formData.email }
-      )
+      password: formData.password
+    }
+
+    if (isEmail(identifier)) {
+      registerData.email = identifier
+    } else {
+      registerData.username = identifier
     }
 
     await userStore.register(registerData)
@@ -355,52 +256,10 @@ const handleRegister = async () => {
     if (error.field) {
       errors[error.field] = error.message
     } else {
-      errors.username = error.message || '注册失败，请稍后重试'
+      errors.identifier = error.message || '注册失败，请稍后重试'
     }
   } finally {
     loading.value = false
-  }
-}
-
-/**
- * 发送验证码
- */
-const sendCode = async () => {
-  const contact = registerMethod.value === 'phone' ? formData.phone : formData.email
-
-  if (!contact) {
-    errors.contact = registerMethod.value === 'phone' ? '请输入手机号' : '请输入邮箱'
-    return
-  }
-
-  if (registerMethod.value === 'phone' && !/^1[3-9]\d{9}$/.test(contact)) {
-    errors.contact = '请输入正确的手机号'
-    return
-  }
-
-  if (registerMethod.value === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
-    errors.contact = '请输入正确的邮箱格式'
-    return
-  }
-
-  try {
-    // TODO: 调用发送验证码API
-    // await sendVerificationCode({ contact, type: registerMethod.value })
-    
-    console.log('发送验证码到:', contact)
-
-    // 开始倒计时
-    countdown.value = 60
-    const timer = setInterval(() => {
-      countdown.value--
-      if (countdown.value <= 0) {
-        clearInterval(timer)
-      }
-    }, 1000)
-
-  } catch (error) {
-    console.error('发送验证码失败:', error)
-    errors.code = '发送失败，请稍后重试'
   }
 }
 </script>
@@ -493,34 +352,15 @@ const sendCode = async () => {
   box-shadow: 0 0 0 3px rgba(217, 84, 104, 0.1);
 }
 
+.form-hint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: -0.25rem;
+}
+
 .error-message {
   font-size: 0.8125rem;
   color: #ef4444;
-}
-
-/* 方式切换 */
-.method-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.method-btn {
-  flex: 1;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
-  background-color: transparent;
-  transition: all 0.3s;
-}
-
-.method-btn.active {
-  background-color: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
 }
 
 /* 密码输入 */
@@ -583,35 +423,6 @@ const sendCode = async () => {
 
 .strength-text.strong {
   color: #10b981;
-}
-
-/* 验证码输入 */
-.code-input {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.send-code-btn {
-  flex-shrink: 0;
-  padding: 0.875rem 1.25rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  background-color: transparent;
-  white-space: nowrap;
-  transition: all 0.3s;
-}
-
-.send-code-btn:hover:not(:disabled) {
-  background-color: var(--color-primary);
-  color: white;
-}
-
-.send-code-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* 协议 */

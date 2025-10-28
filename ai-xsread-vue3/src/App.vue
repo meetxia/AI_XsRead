@@ -40,6 +40,11 @@ onMounted(() => {
 
 <style>
 /* 全局样式 */
+#app, html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
 #app {
   width: 100%;
   min-height: 100vh;

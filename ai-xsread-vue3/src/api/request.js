@@ -83,8 +83,8 @@ request.interceptors.response.use(
     
     const res = response.data
     
-    // 统一错误处理
-    if (res.code !== 200 && res.code !== undefined) {
+    // 统一错误处理（200-299 都是成功状态）
+    if (res.code !== undefined && (res.code < 200 || res.code >= 300)) {
       console.error('API Error:', res.message)
       
       // 特殊错误码处理

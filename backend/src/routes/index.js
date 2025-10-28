@@ -8,6 +8,7 @@ const chapterRoutes = require('./chapters');
 const userRoutes = require('./user');
 const commentRoutes = require('./comments');
 const uploadRoutes = require('./upload');
+const authorRoutes = require('./authors');
 
 // API版本前缀
 const API_PREFIX = '/api';
@@ -19,6 +20,7 @@ router.use(`${API_PREFIX}`, commentRoutes);
 router.use(`${API_PREFIX}/chapters`, chapterRoutes);
 router.use(`${API_PREFIX}/user`, userRoutes);
 router.use(`${API_PREFIX}/upload`, uploadRoutes);
+router.use(`${API_PREFIX}/authors`, authorRoutes);
 
 // 健康检查接口
 router.get(`${API_PREFIX}/health`, (req, res) => {

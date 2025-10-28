@@ -57,3 +57,22 @@ export function getMyNovels(params) {
   })
 }
 
+/**
+ * 上传图片
+ * @param {File} file 图片文件
+ * @returns {Promise}
+ */
+export function uploadImage(file) {
+  const formData = new FormData()
+  formData.append('image', file)
+  
+  return request({
+    url: '/upload/image',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+

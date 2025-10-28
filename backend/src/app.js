@@ -16,8 +16,11 @@ const app = express();
 
 // ================== 中间件配置 ==================
 
-// 安全头部
-app.use(helmet());
+// 安全头部（允许跨域资源，如前端从不同端口加载图片）
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginEmbedderPolicy: false
+}));
 
 // 跨域配置
 app.use(cors(config.cors));
@@ -50,8 +53,13 @@ if (config.server.env === 'production') {
 
 // ================== 路由配置 ==================
 
-// 静态文件（上传目录）
-app.use('/uploads', express.static('uploads'));
+// 静态文件（上传目录） - 显式允许跨域访问图片
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Timing-Allow-Origin', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static('uploads'));
 
 // API 文档
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

@@ -1,16 +1,16 @@
 <template>
   <div class="comment-section">
-    <div class="flex items-center justify-between mb-6">
-      <h3 class="text-xl font-bold text-gray-900">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-bold" style="color: var(--color-text-primary)">
         评论区
-        <span class="text-sm text-gray-500 font-normal ml-2">({{ totalComments }}条)</span>
+        <span class="text-xs font-normal ml-2" style="color: var(--color-text-muted)">({{ totalComments }}条)</span>
       </h3>
       
       <!-- 筛选和排序 -->
       <div class="flex items-center space-x-3">
         <select 
           v-model="filterType"
-          class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+          class="px-3 py-2 border rounded-lg focus:outline-none text-sm select-themed"
         >
           <option value="all">全部评论</option>
           <option value="positive">好评</option>
@@ -19,53 +19,108 @@
         
         <select 
           v-model="sortType"
-          class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+          class="px-3 py-2 border rounded-lg focus:outline-none text-sm select-themed"
         >
-          <option value="latest">最新</option>
-          <option value="hottest">最热</option>
+          <option value="time">最新</option>
+          <option value="hot">最热</option>
         </select>
       </div>
     </div>
 
     <!-- 发表评论 -->
-    <div class="mb-6 p-4 bg-gray-50 rounded-xl">
+    <div class="mb-4 p-3 rounded-xl themed-card" style="background: var(--color-bg-card); border: 1px solid var(--color-border); color: var(--color-text-primary)">
       <textarea
         v-model="newComment"
         placeholder="说说你的看法..."
         rows="3"
-        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none"
+        class="w-full px-3 py-2 border rounded-lg focus:outline-none resize-none textarea-themed"
         :disabled="submitting"
       ></textarea>
       
+      <!-- 预览上传的图片 -->
+      <div v-if="uploadedImages.length > 0" class="flex flex-wrap gap-2 mt-2 mb-2">
+        <div 
+          v-for="(img, index) in uploadedImages" 
+          :key="index"
+          class="relative group"
+        >
+          <img 
+            :src="img.url" 
+            class="w-20 h-20 object-cover rounded-lg border-2 border-gray-200"
+          />
+          <button
+            @click="removeImage(index)"
+            class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
       <div class="flex items-center justify-between mt-3">
-        <div class="flex items-center space-x-3">
-          <!-- 评分 -->
-          <div class="flex items-center space-x-2">
-            <span class="text-sm text-gray-600">评分:</span>
-            <StarRating 
-              :rating="newCommentRating" 
-              :size="20"
-              @update:rating="newCommentRating = $event"
-            />
+        <div class="flex items-center space-x-2">
+          <!-- 表情 -->
+          <div class="relative">
+            <button 
+              @click="showEmojiPicker = !showEmojiPicker"
+              class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+              title="添加表情"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+            
+            <!-- 表情选择器 -->
+            <div 
+              v-show="showEmojiPicker" 
+              class="absolute bottom-12 left-0 z-50 bg-white rounded-lg shadow-xl border p-3 w-64"
+              style="max-height: 200px; overflow-y: auto;"
+            >
+              <div class="grid grid-cols-8 gap-2">
+                <button
+                  v-for="emoji in emojiList"
+                  :key="emoji"
+                  @click="insertEmoji(emoji)"
+                  class="text-2xl hover:bg-gray-100 rounded p-1 transition-colors"
+                >
+                  {{ emoji }}
+                </button>
+              </div>
+            </div>
           </div>
           
-          <!-- 表情 -->
-          <button 
-            class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-            title="表情"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </button>
+          <!-- 图片上传 -->
+          <div class="relative">
+            <input
+              ref="imageInput"
+              type="file"
+              accept="image/*"
+              multiple
+              @change="handleImageUpload"
+              class="hidden"
+            />
+            <button 
+              @click="$refs.imageInput.click()"
+              class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+              title="上传图片"
+              :disabled="uploadedImages.length >= 3"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
+          </div>
+          
+          <span class="text-xs text-gray-400">最多3张图片</span>
         </div>
         
         <div class="flex items-center space-x-2">
-          <span class="text-sm text-gray-400">{{ newComment.length }}/500</span>
+          <span class="text-xs text-gray-400">{{ newComment.length }}/500</span>
           <button
             @click="submitComment"
             :disabled="!newComment.trim() || submitting || newComment.length > 500"
-            class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            class="px-4 py-2 btn-primary disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {{ submitting ? '发表中...' : '发表评论' }}
           </button>
@@ -87,23 +142,24 @@
       </div>
     </div>
 
-    <div v-else-if="filteredComments.length > 0" class="space-y-4">
+    <div v-else-if="filteredComments.length > 0" class="space-y-3">
       <div 
         v-for="comment in filteredComments" 
         :key="comment.id"
-        class="comment-item p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow"
+        class="comment-item p-3 rounded-xl hover:shadow-md transition-shadow themed-card"
+        style="background: var(--color-bg-card); border: 1px solid var(--color-border); color: var(--color-text-primary)"
       >
         <!-- 评论头部 -->
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center space-x-3">
             <img 
-              :src="comment.userAvatar || '/default-avatar.png'" 
-              :alt="comment.userName"
+              :src="comment.user?.avatar || '/default-avatar.png'" 
+              :alt="comment.user?.username"
               class="w-10 h-10 rounded-full object-cover"
             />
             <div>
               <div class="flex items-center space-x-2">
-                <span class="font-semibold text-gray-900">{{ comment.userName }}</span>
+                <span class="font-semibold" style="color: var(--color-text-primary)">{{ comment.user?.username }}</span>
                 <span 
                   v-if="comment.isAuthor"
                   class="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs rounded"
@@ -141,6 +197,17 @@
           {{ comment.content }}
         </div>
 
+        <!-- 评论图片 -->
+        <div v-if="comment.images && comment.images.length > 0" class="flex flex-wrap gap-2 mb-3">
+          <img
+            v-for="(img, index) in comment.images"
+            :key="index"
+            :src="img"
+            @click="previewImage(img)"
+            class="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+          />
+        </div>
+
         <!-- 评论底部操作 -->
         <div class="flex items-center justify-between pt-3 border-t border-gray-100">
           <div class="flex items-center space-x-4">
@@ -173,40 +240,40 @@
         </div>
 
         <!-- 回复列表 -->
-        <div v-if="comment.showReplies && comment.replies && comment.replies.length > 0" class="mt-4 ml-12 space-y-3">
+        <div v-if="comment.showReplies && comment.replies && comment.replies.length > 0" class="mt-3 ml-10 space-y-2">
           <div 
             v-for="reply in comment.replies" 
             :key="reply.id"
-            class="p-3 bg-gray-50 rounded-lg"
+            class="p-2 rounded-lg reply-card"
           >
             <div class="flex items-center space-x-2 mb-2">
               <img 
-                :src="reply.userAvatar || '/default-avatar.png'" 
-                :alt="reply.userName"
+                :src="reply.user?.avatar || '/default-avatar.png'" 
+                :alt="reply.user?.username"
                 class="w-6 h-6 rounded-full object-cover"
               />
-              <span class="text-sm font-semibold text-gray-900">{{ reply.userName }}</span>
-              <span v-if="reply.replyToUser" class="text-sm text-gray-500">回复</span>
-              <span v-if="reply.replyToUser" class="text-sm font-semibold text-blue-600">@{{ reply.replyToUser }}</span>
+              <span class="text-sm font-semibold text-gray-900">{{ reply.user?.username }}</span>
+              <span v-if="reply.replyTo?.username" class="text-sm text-gray-500">回复</span>
+              <span v-if="reply.replyTo?.username" class="text-sm font-semibold text-blue-600">@{{ reply.replyTo.username }}</span>
               <span class="text-xs text-gray-400">{{ formatDate(reply.createdAt) }}</span>
             </div>
-            <div class="text-sm text-gray-700">{{ reply.content }}</div>
+            <div class="text-sm" style="color: var(--color-text-secondary)">{{ reply.content }}</div>
           </div>
         </div>
 
         <!-- 回复输入框 -->
-        <div v-if="comment.showReplyInput" class="mt-4 ml-12">
+        <div v-if="comment.showReplyInput" class="mt-3 ml-10">
           <div class="flex items-start space-x-2">
             <textarea
               v-model="replyContent[comment.id]"
-              :placeholder="`回复 @${comment.userName}`"
+              :placeholder="`回复 @${comment.user?.username}`"
               rows="2"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none text-sm"
+              class="flex-1 px-3 py-2 border rounded-lg focus:outline-none resize-none text-sm textarea-themed"
             ></textarea>
             <button
               @click="submitReply(comment)"
               :disabled="!replyContent[comment.id]?.trim()"
-              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm"
+              class="px-3 py-2 btn-primary disabled:bg-gray-300 disabled:cursor-not-allowed text-sm"
             >
               回复
             </button>
@@ -226,10 +293,10 @@
     </div>
 
     <!-- 加载更多 -->
-    <div v-if="hasMore" class="flex justify-center mt-6">
+    <div v-if="hasMore" class="flex justify-center mt-4">
       <button
         @click="loadMore"
-        class="px-6 py-2 text-blue-500 border border-blue-500 rounded-lg hover:bg-blue-50 transition-colors"
+        class="px-5 py-2 btn-outline"
       >
         加载更多评论
       </button>
@@ -238,9 +305,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import StarRating from './StarRating.vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { getComments, submitComment as apiSubmitComment, likeComment as apiLikeComment, submitReply as apiSubmitReply } from '@/api/novel'
+import { uploadImage } from '@/api/upload'
 
 const props = defineProps({
   novelId: {
@@ -253,13 +320,32 @@ const comments = ref([])
 const loading = ref(true)
 const submitting = ref(false)
 const newComment = ref('')
-const newCommentRating = ref(0)
-const sortType = ref('latest')
+const sortType = ref('time')
 const filterType = ref('all')
 const page = ref(1)
 const pageSize = ref(10)
 const totalComments = ref(0)
 const replyContent = ref({})
+const showEmojiPicker = ref(false)
+const uploadedImages = ref([])
+const imageInput = ref(null)
+
+// 常用表情列表
+const emojiList = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
+  '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩',
+  '😘', '😗', '😚', '😙', '🥲', '😋', '😛', '😜',
+  '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐',
+  '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬',
+  '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒',
+  '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '😶‍🌫️', '😵',
+  '😵‍💫', '🤯', '🤠', '🥳', '🥸', '😎', '🤓', '🧐',
+  '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳',
+  '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭',
+  '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱',
+  '👍', '👎', '👏', '🙌', '👌', '✌️', '🤞', '🤝',
+  '🙏', '💪', '❤️', '💔', '💕', '💖', '💗', '💓'
+]
 
 // 计算过滤后的评论
 const filteredComments = computed(() => {
@@ -272,10 +358,10 @@ const filteredComments = computed(() => {
     result = result.filter(c => c.rating <= 2)
   }
   
-  // 排序
-  if (sortType.value === 'latest') {
+  // 排序（与后端键保持一致：time/hot）
+  if (sortType.value === 'time') {
     result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-  } else if (sortType.value === 'hottest') {
+  } else if (sortType.value === 'hot') {
     result.sort((a, b) => b.likes - a.likes)
   }
   
@@ -434,7 +520,7 @@ async function submitReply(comment) {
   try {
     await apiSubmitReply(comment.id, {
       content: content,
-      replyToUser: comment.userName
+      replyToUser: comment.user?.username
     })
     
     // 清空输入
@@ -492,6 +578,78 @@ onMounted(() => {
 <style scoped>
 .comment-item {
   transition: all 0.2s ease;
+}
+
+/* 主题化与移动端紧凑样式 */
+.themed-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.reply-card {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+}
+
+.textarea-themed {
+  border-color: var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 10px;
+}
+
+.btn-outline {
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 10px;
+  background: transparent;
+}
+
+/* 选择器深色模式适配 */
+.select-themed {
+  border-color: var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+.select-themed:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+}
+.dark :deep(.select-themed) {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+/* 紧凑化按钮与布局（移动端） */
+@media (max-width: 640px) {
+  .comment-section .themed-card {
+    padding: 0.75rem;
+  }
+  .comment-section textarea {
+    min-height: 110px;
+    font-size: 0.875rem;
+  }
+  .comment-section .btn-primary {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 8px;
+  }
+}
+
+/* 防止“发表评论”按钮被外部样式影响成方块 */
+.comment-section .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  width: auto;
+  height: auto;
 }
 </style>
 

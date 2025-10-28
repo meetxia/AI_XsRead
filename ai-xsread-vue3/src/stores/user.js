@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { login as loginApi, register as registerApi, logout as logoutApi } from '@/api/auth'
+import { uploadAvatarApi } from '@/api/user'
 
 /**
  * 用户状态管理 Store
@@ -70,15 +71,18 @@ export const useUserStore = defineStore('user', () => {
         password: registerData.password
       })
       
-      if (response.code === 200) {
+      // 注册成功返回201或200
+      if (response.code === 201 || response.code === 200) {
         // 保存Token（后端返回的是 accessToken）
         token.value = response.data.accessToken
+        refreshToken.value = response.data.refreshToken
         
         // 保存用户信息
         userInfo.value = response.data.user
         
         // 存储到localStorage
         localStorage.setItem('token', response.data.accessToken)
+        localStorage.setItem('refreshToken', response.data.refreshToken)
         localStorage.setItem('userInfo', JSON.stringify(response.data.user))
         
         console.log('注册成功:', response.data.user)
@@ -181,22 +185,23 @@ export const useUserStore = defineStore('user', () => {
    * 上传头像
    * @param {File} file - 图片文件
    */
-  const uploadAvatar = async (file) => {
+  const uploadAvatar = async (file, onProgress) => {
     try {
-      // TODO: 调用上传头像API
-      // const formData = new FormData()
-      // formData.append('avatar', file)
-      // const response = await uploadAvatarApi(formData)
-      
-      // 模拟上传成功
-      const avatarUrl = URL.createObjectURL(file)
-      
-      userInfo.value.avatar = avatarUrl
-      localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
-      
-      console.log('头像已上传:', avatarUrl)
-      
-      return avatarUrl
+      const formData = new FormData()
+      formData.append('avatar', file)
+      const res = await uploadAvatarApi(formData, onProgress)
+      if (res.code === 200) {
+        const avatarUrl = res.data.avatar
+        userInfo.value = {
+          ...userInfo.value,
+          avatar: avatarUrl
+        }
+        localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+        console.log('头像已上传:', avatarUrl)
+        return avatarUrl
+      } else {
+        throw new Error(res.message || '上传失败')
+      }
       
     } catch (error) {
       console.error('上传头像失败:', error)

@@ -372,6 +372,107 @@ class NovelService {
     
     return chapter;
   }
+
+  /**
+   * 按字符分页返回整本小说的内容
+   * @param {number} novelId 小说ID
+   * @param {Object} options 选项 { page, pageSize }
+   * @returns {Promise<Object>} { page, pageSize, totalPages, totalChars, content }
+   */
+  async getNovelPageByChars(novelId, options = {}) {
+    const {
+      page = 1,
+      pageSize = 3000
+    } = options;
+
+    // 读取该小说所有章节内容，按章节顺序拼接
+    const [rows] = await pool.query(
+      `SELECT content FROM chapters WHERE novel_id = ? ORDER BY chapter_number ASC`,
+      [novelId]
+    );
+
+    if (!rows || rows.length === 0) {
+      return {
+        page: 1,
+        pageSize: parseInt(pageSize),
+        totalPages: 1,
+        totalChars: 0,
+        content: ''
+      };
+    }
+
+    const fullText = rows.map(r => r.content || '').join('\n\n');
+    const totalChars = fullText.length;
+    const baseSize = Math.max(500, Math.min(20000, parseInt(pageSize)));
+
+    // 智能分页：在 baseSize 附近（±tolerance）寻找标点或换行作为边界
+    const tolerance = Math.max(100, Math.floor(baseSize * 0.15)); // 默认±15%
+    const windowMin = Math.max(1, baseSize - tolerance);
+    const windowMax = baseSize + tolerance;
+
+    // 标点与分隔符（中英文句号/问号/感叹号/逗号/分号、换行、双换行）
+    const boundaryRegex = /[。！？.!?；;，,]\s|\n\n|\n/g;
+
+    // 预计算分页边界索引（每页结束位置的下一个索引）
+    const pageEnds = [];
+    let cursor = 0;
+    while (cursor < totalChars) {
+      const remaining = totalChars - cursor;
+      if (remaining <= baseSize + tolerance) {
+        // 剩余不足一大页，整块作为最后一页
+        pageEnds.push(totalChars);
+        break;
+      }
+
+      // 目标窗口区间
+      const targetStart = cursor + windowMin;
+      const targetEnd = Math.min(cursor + windowMax, totalChars);
+
+      // 在窗口中寻找最近边界（尽量靠近 baseSize）
+      let bestBoundary = -1;
+      boundaryRegex.lastIndex = targetStart;
+      let match;
+      while ((match = boundaryRegex.exec(fullText)) && match.index <= targetEnd) {
+        bestBoundary = match.index + (match[0].length > 1 ? match[0].length : 1);
+      }
+
+      if (bestBoundary === -1) {
+        // 窗口中找不到边界，退而求其次：向后再找一个边界，避免硬切
+        boundaryRegex.lastIndex = targetEnd;
+        const forward = boundaryRegex.exec(fullText);
+        if (forward) {
+          bestBoundary = forward.index + (forward[0].length > 1 ? forward[0].length : 1);
+        }
+      }
+
+      if (bestBoundary === -1) {
+        // 仍未找到，最后兜底在 baseSize 处硬切
+        bestBoundary = cursor + baseSize;
+      }
+
+      // 防止死循环
+      if (bestBoundary <= cursor) {
+        bestBoundary = Math.min(cursor + baseSize, totalChars);
+      }
+
+      pageEnds.push(bestBoundary);
+      cursor = bestBoundary;
+    }
+
+    const totalPages = Math.max(1, pageEnds.length);
+    const currentPage = Math.min(Math.max(1, parseInt(page)), totalPages);
+    const sliceStart = currentPage === 1 ? 0 : pageEnds[currentPage - 2];
+    const sliceEnd = pageEnds[currentPage - 1];
+    const content = fullText.slice(sliceStart, sliceEnd);
+
+    return {
+      page: currentPage,
+      pageSize: baseSize,
+      totalPages,
+      totalChars,
+      content
+    };
+  }
 }
 
 module.exports = new NovelService();

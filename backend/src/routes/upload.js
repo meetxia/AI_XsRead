@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const uploadController = require('../controllers/uploadController');
 const { authenticate } = require('../middlewares/auth');
+const { uploadService } = require('../services/uploadService');
 
 /**
  * @swagger
@@ -67,6 +68,14 @@ router.post(
   authenticate,
   uploadController.upload.array('files', 50), // 最多50个文件
   uploadController.batchUploadTxtNovels
+);
+
+// 用户头像上传
+router.post(
+  '/avatar',
+  authenticate,
+  uploadService.uploadSingle('avatar'),
+  uploadController.uploadAvatar
 );
 
 /**

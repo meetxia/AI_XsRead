@@ -367,5 +367,160 @@ module.exports = {
   unlikeNovel,
   collectNovel,
   uncollectNovel,
-  getNovelStatus
+  getNovelStatus,
+  /**
+   * 新增：按字符分页获取整本小说内容
+   */
+  async getNovelPages(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { page = 1, pageSize = 3000 } = req.query;
+      const result = await novelService.getNovelPageByChars(id, { page, pageSize });
+      return Response.success(res, result);
+    } catch (error) {
+      next(error);
+    }
+  },
+  // 评分相关
+  async getNovelRating(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || null;
+      const { pool } = require('../config/database');
+
+      // 汇总评分：基于 comments.rating 与 status=1 的评论
+      const [agg] = await pool.query(
+        `SELECT 
+           ROUND(AVG(CASE WHEN rating > 0 THEN rating END), 1) AS averageRating,
+           SUM(CASE WHEN rating > 0 THEN 1 ELSE 0 END) AS totalRatings,
+           SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) AS star5,
+           SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) AS star4,
+           SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) AS star3,
+           SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) AS star2,
+           SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) AS star1
+         FROM comments 
+         WHERE novel_id = ? AND deleted_at IS NULL`,
+        [id]
+      );
+
+      let userRating = null;
+      if (userId) {
+        const [mine] = await pool.query(
+          `SELECT id, rating, created_at FROM comments 
+           WHERE novel_id = ? AND user_id = ? AND deleted_at IS NULL 
+           ORDER BY created_at DESC LIMIT 1`,
+          [id, userId]
+        );
+        if (mine.length > 0 && mine[0].rating > 0) {
+          userRating = { id: mine[0].id, rating: mine[0].rating, createdAt: mine[0].created_at };
+        }
+      }
+
+      const distribution = {
+        5: Number(agg[0]?.star5 || 0),
+        4: Number(agg[0]?.star4 || 0),
+        3: Number(agg[0]?.star3 || 0),
+        2: Number(agg[0]?.star2 || 0),
+        1: Number(agg[0]?.star1 || 0)
+      };
+
+      return Response.success(res, {
+        averageRating: Number(agg[0]?.averageRating || 0),
+        totalRatings: Number(agg[0]?.totalRatings || 0),
+        distribution,
+        userRating
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async submitNovelRating(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+      const { rating } = req.body;
+      const { pool } = require('../config/database');
+
+      const value = Number(rating);
+      if (!Number.isFinite(value) || value < 1 || value > 5) {
+        return Response.error(res, '评分必须是1-5的整数', 400);
+      }
+
+      // 若用户已有带评分的评论，阻止重复提交；建议使用更新接口
+      const [exists] = await pool.query(
+        `SELECT id FROM comments WHERE novel_id = ? AND user_id = ? AND rating > 0 AND deleted_at IS NULL LIMIT 1`,
+        [id, userId]
+      );
+      if (exists.length > 0) {
+        return Response.error(res, '您已评分，请使用更新评分', 400);
+      }
+
+      await pool.query(
+        `INSERT INTO comments (novel_id, user_id, content, rating, created_at) 
+         VALUES (?, ?, '', ?, NOW())`,
+        [id, userId, value]
+      );
+
+      // 触发平均分更新：直接更新 novels.rating 与 rating_count
+      await pool.query(
+        `UPDATE novels n SET 
+           rating = IFNULL((SELECT ROUND(AVG(rating), 2) FROM comments WHERE novel_id = n.id AND rating > 0 AND deleted_at IS NULL), 0),
+           rating_count = (SELECT COUNT(*) FROM comments WHERE novel_id = n.id AND rating > 0 AND deleted_at IS NULL),
+           updated_at = NOW()
+         WHERE n.id = ?`,
+        [id]
+      );
+
+      return Response.created(res, null, '评分成功');
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateNovelRating(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+      const { rating } = req.body;
+      const { pool } = require('../config/database');
+
+      const value = Number(rating);
+      if (!Number.isFinite(value) || value < 1 || value > 5) {
+        return Response.error(res, '评分必须是1-5的整数', 400);
+      }
+
+      // 找到用户最近一条评分记录（或创建一条）
+      const [mine] = await pool.query(
+        `SELECT id FROM comments WHERE novel_id = ? AND user_id = ? AND rating > 0 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1`,
+        [id, userId]
+      );
+
+      if (mine.length > 0) {
+        await pool.query(
+          `UPDATE comments SET rating = ?, created_at = NOW() WHERE id = ?`,
+          [value, mine[0].id]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO comments (novel_id, user_id, content, rating, created_at) 
+           VALUES (?, ?, '', ?, NOW())`,
+          [id, userId, value]
+        );
+      }
+
+      await pool.query(
+        `UPDATE novels n SET 
+           rating = IFNULL((SELECT ROUND(AVG(rating), 2) FROM comments WHERE novel_id = n.id AND rating > 0 AND deleted_at IS NULL), 0),
+           rating_count = (SELECT COUNT(*) FROM comments WHERE novel_id = n.id AND rating > 0 AND deleted_at IS NULL),
+           updated_at = NOW()
+         WHERE n.id = ?`,
+        [id]
+      );
+
+      return Response.success(res, null, '评分已更新');
+    } catch (error) {
+      next(error);
+    }
+  }
 };

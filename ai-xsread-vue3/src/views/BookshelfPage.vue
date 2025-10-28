@@ -11,7 +11,7 @@
       </div>
 
       <!-- 阅读统计 -->
-      <section class="stats-section fade-in" style="animation-delay: 0.1s">
+      <section class="stats-section fade-in mt-xl" style="animation-delay: 0.1s">
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
@@ -1290,7 +1290,9 @@ onMounted(async () => {
   .main-content {
     padding: 0 0.75rem;
   }
-
+  .mt-xl {
+  margin-top: 1rem;
+}
   .bookshelf-page {
     padding-top: 3.5rem;
   }

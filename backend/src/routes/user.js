@@ -12,6 +12,15 @@ router.get('/bookshelf', paginationValidation, userController.getBookshelf);
 router.post('/bookshelf', userController.addToBookshelf);
 router.delete('/bookshelf/:novelId', idValidation, userController.removeFromBookshelf);
 
+// 更新书架项（例如类型、排序标签等）
+router.put('/bookshelf/:novelId', idValidation, userController.updateBookshelfItem);
+
+// 批量操作书架（当前支持批量删除）
+router.post('/bookshelf/batch', userController.batchOperateBookshelf);
+
+// 检查是否在书架
+router.get('/bookshelf/check/:novelId', idValidation, userController.checkInBookshelf);
+
 // 阅读进度
 router.get('/reading-progress/:novelId', idValidation, userController.getReadingProgress);
 router.post('/reading-progress', userController.updateReadingProgress);

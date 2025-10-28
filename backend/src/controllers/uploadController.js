@@ -9,6 +9,7 @@ const { parseTxtContent, validateTxtFile } = require('../utils/txtParser');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { uploadService } = require('../services/uploadService');
 
 // 配置文件上传
 const storage = multer.diskStorage({
@@ -342,6 +343,43 @@ module.exports = {
   upload,
   uploadTxtNovel,
   batchUploadTxtNovels,
-  getMyNovels
+  getMyNovels,
+  /**
+   * 上传用户头像并更新用户资料
+   */
+  async uploadAvatar(req, res, next) {
+    try {
+      if (!req.file) {
+        return Response.error(res, '请上传头像文件', 400);
+      }
+
+      // 处理图片（压缩+缩略图）
+      const result = await uploadService.processImage(req.file, {
+        format: 'webp',
+        maxWidth: 1200,
+        maxHeight: 1200,
+        thumbnailWidth: 300,
+        thumbnailHeight: 300
+      });
+
+      const relUrl = result.data.url; // 如 /uploads/images/xxx.webp
+      const relThumb = result.data.thumbnail; // 如 /uploads/thumbnails/thumb_xxx.webp
+      const base = `${req.protocol}://${req.get('host')}`;
+      const avatarUrl = `${base}${relUrl}`;
+      const avatarThumb = relThumb ? `${base}${relThumb}` : null;
+
+      // 更新用户头像
+      const userId = req.user.id;
+      await pool.query('UPDATE users SET avatar = ?, updated_at = NOW() WHERE id = ?', [avatarUrl, userId]);
+
+      return Response.success(res, {
+        avatar: avatarUrl,
+        thumbnail: avatarThumb
+      }, '头像上传成功');
+    } catch (error) {
+      console.error('上传头像失败:', error);
+      next(error);
+    }
+  }
 };
 

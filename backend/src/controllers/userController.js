@@ -1,5 +1,6 @@
 const { pool } = require('../config/database');
 const Response = require('../utils/response');
+const { getRandomAvatarUrl } = require('../utils/avatar');
 
 /**
  * 获取用户书架
@@ -194,7 +195,7 @@ const getReadingHistory = async (req, res) => {
        LEFT JOIN chapters c ON rh.chapter_id = c.id
        WHERE rh.user_id = ?
        GROUP BY rh.novel_id
-       ORDER BY MAX(rh.read_at) DESC
+       ORDER BY MAX(rh.read_time) DESC
        LIMIT ? OFFSET ?`,
       [userId, parseInt(pageSize), offset]
     );
@@ -229,13 +230,13 @@ const getUserStatistics = async (req, res) => {
       [userId]
     );
 
-    // 阅读时长统计（如果有reading_history表的duration字段）
+    // 阅读时长统计（使用reading_history表的duration字段和read_time字段）
     const [timeStats] = await pool.query(
       `SELECT 
         COALESCE(SUM(duration), 0) as total_read_time,
-        COALESCE(SUM(CASE WHEN read_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) THEN duration ELSE 0 END), 0) as today_read_time,
-        COALESCE(SUM(CASE WHEN read_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN duration ELSE 0 END), 0) as weekly_read_time,
-        COALESCE(SUM(CASE WHEN read_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN duration ELSE 0 END), 0) as monthly_read_time
+        COALESCE(SUM(CASE WHEN read_time >= DATE_SUB(NOW(), INTERVAL 1 DAY) THEN duration ELSE 0 END), 0) as today_read_time,
+        COALESCE(SUM(CASE WHEN read_time >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN duration ELSE 0 END), 0) as weekly_read_time,
+        COALESCE(SUM(CASE WHEN read_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN duration ELSE 0 END), 0) as monthly_read_time
        FROM reading_history
        WHERE user_id = ?`,
       [userId]
@@ -256,24 +257,24 @@ const getUserStatistics = async (req, res) => {
 
     // 连续阅读天数
     const [streakResult] = await pool.query(
-      `SELECT COUNT(DISTINCT DATE(read_at)) as reading_streak
+      `SELECT COUNT(DISTINCT DATE(read_time)) as reading_streak
        FROM reading_history
        WHERE user_id = ?
-       AND read_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`,
+       AND read_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`,
       [userId]
     );
 
     // 最近7天阅读趋势
     const [trendData] = await pool.query(
       `SELECT 
-        DATE(read_at) as date,
+        DATE(read_time) as date,
         COUNT(DISTINCT novel_id) as novels_read,
-        COUNT(*) as chapters_read,
+        COUNT(DISTINCT chapter_id) as chapters_read,
         COALESCE(SUM(duration), 0) as read_time
        FROM reading_history
-       WHERE user_id = ? AND read_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-       GROUP BY DATE(read_at)
-       ORDER BY date DESC`,
+       WHERE user_id = ? AND read_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+       GROUP BY DATE(read_time)
+       ORDER BY date ASC`,
       [userId]
     );
 
@@ -314,6 +315,7 @@ const getUserStatistics = async (req, res) => {
         date: item.date,
         novelsRead: item.novels_read,
         chaptersRead: item.chapters_read,
+        count: item.chapters_read, // 用于图表显示
         readTime: item.read_time || 0
       }))
     });
@@ -333,11 +335,11 @@ const getUserAchievements = async (req, res) => {
     // 获取各项统计数据
     const [stats] = await pool.query(
       `SELECT 
-        (SELECT COUNT(*) FROM reading_history WHERE user_id = ?) as total_chapters,
+        (SELECT COUNT(DISTINCT chapter_id) FROM reading_history WHERE user_id = ?) as total_chapters,
         (SELECT COUNT(DISTINCT novel_id) FROM reading_history WHERE user_id = ?) as total_novels,
         (SELECT COUNT(*) FROM bookshelf WHERE user_id = ? AND type = 'finished') as finished_novels,
         (SELECT COALESCE(SUM(duration), 0) FROM reading_history WHERE user_id = ?) as total_read_time,
-        (SELECT COUNT(DISTINCT DATE(read_at)) FROM reading_history WHERE user_id = ? AND read_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as reading_days`,
+        (SELECT COUNT(DISTINCT DATE(read_time)) FROM reading_history WHERE user_id = ? AND read_time >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as reading_days`,
       [userId, userId, userId, userId, userId]
     );
 
@@ -408,10 +410,31 @@ const getUserAchievements = async (req, res) => {
       });
     });
 
+    // 按分类对成就分组
+    const achievementsByCategory = {
+      all: achievements,
+      bookshelf: achievements.filter(a => ['chapters', 'novels', 'finished'].includes(a.type)),
+      reading: achievements.filter(a => a.type === 'chapters'),
+      habit: achievements.filter(a => a.type === 'streak'),
+      milestone: achievements.filter(a => a.type === 'time')
+    };
+
     return Response.success(res, {
       totalAchievements: achievements.length,
       unlockedAchievements: achievements.filter(a => a.unlocked).length,
-      achievements: achievements
+      summary: {
+        unlocked: achievements.filter(a => a.unlocked).length,
+        total: achievements.length,
+        percentage: Math.round((achievements.filter(a => a.unlocked).length / achievements.length) * 100) || 0
+      },
+      achievements: achievements.map(a => ({
+        ...a,
+        category: a.type === 'chapters' ? 'reading' : 
+                  a.type === 'novels' || a.type === 'finished' ? 'bookshelf' :
+                  a.type === 'streak' ? 'habit' : 'milestone',
+        progress: a.currentValue,
+        target: a.threshold
+      }))
     });
   } catch (error) {
     console.error('Get user achievements error:', error);
@@ -437,12 +460,25 @@ const getUserProfile = async (req, res) => {
       return Response.error(res, '用户不存在', 404);
     }
 
-    // 获取基础统计
+    // 若缺失头像则自动分配并更新
+    if (!users[0].avatar) {
+      try {
+        const newAvatar = getRandomAvatarUrl(req);
+        if (newAvatar) {
+          await pool.query('UPDATE users SET avatar = ?, updated_at = NOW() WHERE id = ?', [newAvatar, userId]);
+          users[0].avatar = newAvatar;
+        }
+      } catch (e) {
+        console.warn('分配头像失败（用户资料）:', e.message);
+      }
+    }
+
+    // 获取基础统计（使用正确的表名）
     const [stats] = await pool.query(
       `SELECT 
         (SELECT COUNT(*) FROM bookshelf WHERE user_id = ?) as total_books,
-        (SELECT COUNT(*) FROM novel_likes WHERE user_id = ?) as total_likes,
-        (SELECT COUNT(*) FROM novel_collections WHERE user_id = ?) as total_collections,
+        (SELECT COUNT(*) FROM user_likes WHERE user_id = ?) as total_likes,
+        (SELECT COUNT(*) FROM bookshelf WHERE user_id = ? AND type = 'collected') as total_collections,
         (SELECT COUNT(*) FROM comments WHERE user_id = ?) as total_comments`,
       [userId, userId, userId, userId]
     );
@@ -471,6 +507,78 @@ module.exports = {
   getReadingHistory,
   getUserStatistics,
   getUserAchievements,
-  getUserProfile
+  getUserProfile,
+  async updateBookshelfItem(req, res) {
+    try {
+      const userId = req.user.id;
+      const { novelId } = req.params;
+      const { type } = req.body; // reading/finished/collected 等
+
+      // 仅允许特定类型
+      const allowed = ['reading', 'finished', 'collected'];
+      if (type && !allowed.includes(type)) {
+        return Response.error(res, '无效的书架类型', 400);
+      }
+
+      const [exists] = await pool.query(
+        'SELECT id FROM bookshelf WHERE user_id = ? AND novel_id = ?',
+        [userId, novelId]
+      );
+      if (exists.length === 0) {
+        return Response.error(res, '书架项不存在', 404);
+      }
+
+      await pool.query(
+        'UPDATE bookshelf SET type = COALESCE(?, type), updated_at = NOW() WHERE user_id = ? AND novel_id = ?',
+        [type || null, userId, novelId]
+      );
+
+      return Response.success(res, null, '更新成功');
+    } catch (error) {
+      console.error('Update bookshelf item error:', error);
+      return Response.error(res, '更新失败', 500);
+    }
+  },
+
+  async batchOperateBookshelf(req, res) {
+    try {
+      const userId = req.user.id;
+      const { ids = [], action } = req.body;
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return Response.error(res, '缺少书籍ID列表', 400);
+      }
+      if (action !== 'delete') {
+        return Response.error(res, '不支持的批量操作', 400);
+      }
+
+      await pool.query(
+        `DELETE FROM bookshelf WHERE user_id = ? AND novel_id IN (${ids.map(() => '?').join(',')})`,
+        [userId, ...ids]
+      );
+
+      return Response.success(res, null, '批量操作完成');
+    } catch (error) {
+      console.error('Batch operate bookshelf error:', error);
+      return Response.error(res, '批量操作失败', 500);
+    }
+  },
+
+  async checkInBookshelf(req, res) {
+    try {
+      const userId = req.user.id;
+      const { novelId } = req.params;
+
+      const [rows] = await pool.query(
+        'SELECT id FROM bookshelf WHERE user_id = ? AND novel_id = ? LIMIT 1',
+        [userId, novelId]
+      );
+
+      return Response.success(res, { inBookshelf: rows.length > 0 });
+    } catch (error) {
+      console.error('Check in bookshelf error:', error);
+      return Response.error(res, '检查失败', 500);
+    }
+  }
 };
 

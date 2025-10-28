@@ -94,3 +94,16 @@ export const getReadingHistory = (params) => {
   })
 }
 
+/**
+ * 上传头像
+ */
+export const uploadAvatarApi = (formData, onProgress) => {
+  return request({
+    url: '/upload/avatar',
+    method: 'post',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: onProgress
+  })
+}
+

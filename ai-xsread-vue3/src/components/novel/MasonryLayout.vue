@@ -359,11 +359,23 @@ onUnmounted(() => {
 /* 移动端优化 */
 @media (max-width: 640px) {
   .masonry-container {
-    padding: 0.5rem;
+    padding: 0 0.375rem;
+  }
+  
+  .masonry {
+    column-gap: 0.5rem;
   }
   
   .masonry-item {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .load-more-container {
+    padding: 1.5rem 0;
+  }
+  
+  .no-more {
+    padding: 1.5rem 0;
   }
 }
 </style>

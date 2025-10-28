@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const novelController = require('../controllers/novelController');
-const { idValidation, paginationValidation } = require('../utils/validators');
+const { idValidation, paginationValidation, textPaginationValidation } = require('../utils/validators');
 const { authenticate } = require('../middlewares/auth');
 const { asyncHandler } = require('../middlewares/errorHandler');
 
@@ -228,7 +228,38 @@ router.get('/novels/:id', idValidation, novelController.getNovelDetail);
  */
 router.get('/novels/:novelId/chapters', paginationValidation, novelController.getChapterList);
 
+// 新增：整本小说按字符分页阅读（无章节）
+router.get(
+  '/novels/:id/pages',
+  textPaginationValidation,
+  asyncHandler(novelController.getNovelPages)
+);
+
 // ========== 点赞/收藏相关（需要登录） ==========
+
+// ========== 评分相关 ==========
+// 获取小说评分概览与我的评分（可选登录）
+router.get(
+  '/novels/:id/rating',
+  idValidation,
+  asyncHandler(novelController.getNovelRating)
+);
+
+// 提交评分（需要登录）
+router.post(
+  '/novels/:id/rating',
+  authenticate,
+  idValidation,
+  asyncHandler(novelController.submitNovelRating)
+);
+
+// 更新评分（需要登录）
+router.put(
+  '/novels/:id/rating',
+  authenticate,
+  idValidation,
+  asyncHandler(novelController.updateNovelRating)
+);
 
 /**
  * @swagger

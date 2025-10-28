@@ -270,7 +270,7 @@ async function refreshPersonalRecommend() {
 
 // 点击小说
 function handleNovelClick(novel) {
-  router.push(`/novel/${novel.id}`)
+  router.push(`/read/${novel.id}/1`)
 }
 
 // 阅读
@@ -795,6 +795,192 @@ onMounted(async () => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 移动端优化 */
+@media (max-width: 640px) {
+  .main-content {
+    padding: 0 0.75rem;
+  }
+  
+  /* 页面头部 */
+  .page-header {
+    padding: 2rem 0 1.5rem;
+  }
+  
+  .page-title {
+    font-size: 1.75rem;
+  }
+  
+  .page-subtitle {
+    font-size: 0.9375rem;
+  }
+  
+  /* 章节标题 */
+  .section-title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  
+  .title-accent,
+  .title-accent-secondary,
+  .title-accent-purple,
+  .title-accent-pink {
+    height: 1.5rem;
+    margin-right: 0.5rem;
+  }
+  
+  /* 本周必读卡片 */
+  .weekly-pick-section {
+    margin-bottom: 2.5rem;
+  }
+  
+  .weekly-pick-card {
+    border-radius: 1rem;
+  }
+  
+  .weekly-pick-cover {
+    padding: 2rem 1.5rem;
+    min-height: 180px;
+  }
+  
+  .weekly-pick-title {
+    font-size: 1.5rem;
+  }
+  
+  .weekly-pick-content {
+    padding: 1.25rem;
+  }
+  
+  .novel-title {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .novel-description {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+  }
+  
+  .novel-meta {
+    gap: 0.75rem;
+    font-size: 0.8125rem;
+    margin-bottom: 1rem;
+  }
+  
+  .read-btn {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+  }
+  
+  /* 热门榜单 */
+  .hot-rank-section {
+    margin-bottom: 2.5rem;
+  }
+  
+  .rank-grid {
+    gap: 0.75rem;
+  }
+  
+  .rank-card {
+    padding: 1rem;
+    gap: 0.75rem;
+    border-radius: 0.875rem;
+  }
+  
+  .rank-number {
+    font-size: 2rem;
+  }
+  
+  .rank-title {
+    font-size: 1rem;
+    margin-bottom: 0.375rem;
+  }
+  
+  .rank-description {
+    font-size: 0.8125rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .rank-meta {
+    gap: 0.75rem;
+    font-size: 0.6875rem;
+  }
+  
+  /* 作者心声 */
+  .author-voice-section {
+    margin-bottom: 2.5rem;
+  }
+  
+  .author-grid {
+    gap: 0.75rem;
+  }
+  
+  .author-card {
+    padding: 1rem;
+    border-radius: 0.875rem;
+  }
+  
+  .author-header {
+    gap: 0.625rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .author-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .author-name {
+    font-size: 0.9375rem;
+  }
+  
+  .author-quote {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+  
+  /* 分类精选 */
+  .category-section {
+    margin-bottom: 1.5rem;
+  }
+  
+  .category-grid {
+    gap: 0.625rem;
+  }
+  
+  .category-card {
+    padding: 1rem;
+    border-radius: 0.875rem;
+  }
+  
+  .category-icon {
+    font-size: 1.75rem;
+    margin-bottom: 0.375rem;
+  }
+  
+  .category-name {
+    font-size: 0.9375rem;
+    margin-bottom: 0.125rem;
+  }
+  
+  .category-count {
+    font-size: 0.6875rem;
+  }
+  
+  /* 移动端触摸反馈 */
+  .rank-card:active {
+    transform: scale(0.98);
+  }
+  
+  .category-card:active {
+    transform: scale(0.98);
+  }
+  
+  .read-btn:active {
+    transform: scale(0.95);
   }
 }
 </style>
