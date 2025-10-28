@@ -69,6 +69,7 @@ exports.getNovelComments = async (req, res, next) => {
       SELECT 
         c.id,
         c.content,
+        c.images,
         c.likes,
         c.created_at,
         c.parent_id,
@@ -130,6 +131,7 @@ exports.getNovelComments = async (req, res, next) => {
     const formattedComments = comments.map(comment => ({
       id: comment.id,
       content: comment.content,
+      images: comment.images ? JSON.parse(comment.images) : [],
       likes: comment.likes,
       replyCount: comment.reply_count,
       isLiked: userId ? comment.is_liked > 0 : false,
@@ -171,26 +173,34 @@ exports.getNovelComments = async (req, res, next) => {
 exports.createComment = async (req, res, next) => {
   try {
     const { novelId } = req.params;
-    const { content, parentId = null, replyToUserId = null } = req.body;
+    const { content, parentId = null, replyToUserId = null, images = [] } = req.body;
     const userId = req.user.id;
 
-    // 验证内容
-    if (!content || content.trim().length === 0) {
+    // 验证内容（评论必须有文字或图片）
+    if ((!content || content.trim().length === 0) && images.length === 0) {
       throw new AppError(
         ErrorCodes.COMMENT_TOO_SHORT,
-        getErrorMessage(ErrorCodes.COMMENT_TOO_SHORT)
+        '评论内容不能为空'
       );
     }
 
-    if (content.length > 500) {
+    if (content && content.length > 500) {
       throw new AppError(
         ErrorCodes.COMMENT_TOO_LONG,
         getErrorMessage(ErrorCodes.COMMENT_TOO_LONG)
       );
     }
 
+    // 验证图片数量
+    if (images.length > 3) {
+      throw new AppError(
+        ErrorCodes.INVALID_PARAMETER,
+        '最多只能上传3张图片'
+      );
+    }
+
     // 清理内容（XSS防护）
-    const sanitizedContent = sanitizeComment(content);
+    const sanitizedContent = content ? sanitizeComment(content) : '';
 
     // 验证小说是否存在
     const [novels] = await pool.query(
@@ -236,20 +246,21 @@ exports.createComment = async (req, res, next) => {
     }
 
     // 插入评论
+    const imagesJson = images.length > 0 ? JSON.stringify(images) : null;
     let result;
     try {
       [result] = await pool.query(
-        `INSERT INTO comments (novel_id, user_id, content, parent_id, reply_to_user_id, created_at) 
-         VALUES (?, ?, ?, ?, ?, NOW())`,
-        [novelId, userId, sanitizedContent, parentId, replyToUserId]
+        `INSERT INTO comments (novel_id, user_id, content, images, parent_id, reply_to_user_id, created_at) 
+         VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+        [novelId, userId, sanitizedContent, imagesJson, parentId, replyToUserId]
       );
     } catch (e) {
       if (e && e.code === 'ER_NO_SUCH_TABLE') {
         await ensureCommentTables();
         [result] = await pool.query(
-          `INSERT INTO comments (novel_id, user_id, content, parent_id, reply_to_user_id, created_at) 
-           VALUES (?, ?, ?, ?, ?, NOW())`,
-          [novelId, userId, sanitizedContent, parentId, replyToUserId]
+          `INSERT INTO comments (novel_id, user_id, content, images, parent_id, reply_to_user_id, created_at) 
+           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+          [novelId, userId, sanitizedContent, imagesJson, parentId, replyToUserId]
         );
       } else {
         throw e;
@@ -259,7 +270,7 @@ exports.createComment = async (req, res, next) => {
     // 获取刚插入的评论
     const [newComment] = await pool.query(
       `SELECT 
-        c.id, c.content, c.likes, c.created_at,
+        c.id, c.content, c.images, c.likes, c.created_at,
         u.id as user_id, u.username, u.avatar
        FROM comments c
        INNER JOIN users u ON c.user_id = u.id
@@ -273,6 +284,7 @@ exports.createComment = async (req, res, next) => {
       data: {
         id: newComment[0].id,
         content: newComment[0].content,
+        images: newComment[0].images ? JSON.parse(newComment[0].images) : [],
         likes: newComment[0].likes,
         createdAt: newComment[0].created_at,
         user: {

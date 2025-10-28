@@ -74,8 +74,9 @@
             <!-- 表情选择器 -->
             <div 
               v-show="showEmojiPicker" 
-              class="absolute bottom-12 left-0 z-50 bg-white rounded-lg shadow-xl border p-3 w-64"
+              class="emoji-picker absolute bottom-12 left-0 z-50 bg-white rounded-lg shadow-xl border p-3 w-64"
               style="max-height: 200px; overflow-y: auto;"
+              @click.stop
             >
               <div class="grid grid-cols-8 gap-2">
                 <button
@@ -463,26 +464,85 @@ function generateMockComments() {
   totalComments.value = 156
 }
 
+// 插入表情
+function insertEmoji(emoji) {
+  newComment.value += emoji
+  showEmojiPicker.value = false
+}
+
+// 处理图片上传
+async function handleImageUpload(event) {
+  const files = Array.from(event.target.files)
+  if (files.length === 0) return
+  
+  // 检查数量限制
+  const remainingSlots = 3 - uploadedImages.value.length
+  if (remainingSlots === 0) {
+    alert('最多只能上传3张图片')
+    return
+  }
+  
+  const filesToUpload = files.slice(0, remainingSlots)
+  
+  for (const file of filesToUpload) {
+    // 检查文件大小 (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert(`图片 ${file.name} 超过5MB，请压缩后再上传`)
+      continue
+    }
+    
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+      alert(`${file.name} 不是图片文件`)
+      continue
+    }
+    
+    try {
+      const response = await uploadImage(file)
+      uploadedImages.value.push({
+        url: response.data.url,
+        file: file.name
+      })
+    } catch (err) {
+      console.error('图片上传失败:', err)
+      alert(`图片 ${file.name} 上传失败`)
+    }
+  }
+  
+  // 清空input
+  event.target.value = ''
+}
+
+// 移除图片
+function removeImage(index) {
+  uploadedImages.value.splice(index, 1)
+}
+
+// 预览图片
+function previewImage(url) {
+  window.open(url, '_blank')
+}
+
 // 提交评论
 async function submitComment() {
-  if (!newComment.value.trim()) return
+  if (!newComment.value.trim() && uploadedImages.value.length === 0) return
   
   try {
     submitting.value = true
     await apiSubmitComment(props.novelId, {
       content: newComment.value,
-      rating: newCommentRating.value
+      images: uploadedImages.value.map(img => img.url)
     })
     
     // 清空输入
     newComment.value = ''
-    newCommentRating.value = 0
+    uploadedImages.value = []
     
     // 重新加载评论
     page.value = 1
     await loadComments()
     
-    alert('评论发表成功！')
+    // 不需要alert，直接显示
   } catch (err) {
     console.error('发表评论失败:', err)
     alert('评论发表失败，请稍后重试')
@@ -518,18 +578,23 @@ async function submitReply(comment) {
   if (!content?.trim()) return
   
   try {
-    await apiSubmitReply(comment.id, {
+    const response = await apiSubmitReply(comment.id, {
       content: content,
       replyToUser: comment.user?.username
     })
     
-    // 清空输入
+    // 直接添加回复到当前评论，无需重新加载
+    if (!comment.replies) {
+      comment.replies = []
+    }
+    comment.replies.push(response.data)
+    comment.replyCount = (comment.replyCount || 0) + 1
+    
+    // 清空输入并关闭回复框
     replyContent.value[comment.id] = ''
+    comment.showReplyInput = false
+    comment.showReplies = true
     
-    // 重新加载评论
-    await loadComments()
-    
-    alert('回复成功！')
   } catch (err) {
     console.error('回复失败:', err)
     alert('回复失败，请稍后重试')
@@ -570,8 +635,21 @@ watch([sortType, filterType], () => {
   loadComments()
 })
 
+// 点击外部关闭表情选择器
+function handleClickOutside(event) {
+  const emojiPicker = document.querySelector('.emoji-picker')
+  if (emojiPicker && !emojiPicker.contains(event.target)) {
+    showEmojiPicker.value = false
+  }
+}
+
 onMounted(() => {
   loadComments()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 

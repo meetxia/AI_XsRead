@@ -3,6 +3,7 @@ const router = express.Router();
 const uploadController = require('../controllers/uploadController');
 const { authenticate } = require('../middlewares/auth');
 const { uploadService } = require('../services/uploadService');
+const Response = require('../utils/response');
 
 /**
  * @swagger
@@ -76,6 +77,37 @@ router.post(
   authenticate,
   uploadService.uploadSingle('avatar'),
   uploadController.uploadAvatar
+);
+
+// 通用图片上传（用于评论等）
+router.post(
+  '/image',
+  authenticate,
+  uploadService.uploadSingle('image'),
+  async (req, res, next) => {
+    try {
+      if (!req.file) {
+        return Response.error(res, '请上传图片文件', 400);
+      }
+
+      // 处理图片（压缩）
+      const result = await uploadService.processImage(req.file, {
+        format: 'webp',
+        maxWidth: 1200,
+        maxHeight: 1200
+      });
+
+      const base = `${req.protocol}://${req.get('host')}`;
+      const imageUrl = `${base}${result.data.url}`;
+
+      return Response.success(res, {
+        url: imageUrl
+      }, '图片上传成功');
+    } catch (error) {
+      console.error('图片上传失败:', error);
+      next(error);
+    }
+  }
 );
 
 /**
