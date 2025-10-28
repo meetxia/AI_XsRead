@@ -61,11 +61,16 @@
           @click="handleSelectSuggest(item)"
           class="px-6 py-3 hover:bg-gray-50 cursor-pointer transition-colors flex items-center justify-between group"
         >
-          <div class="flex items-center flex-1 min-w-0">
-            <svg class="w-5 h-5 text-gray-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex items-center flex-1 min-w-0 gap-3">
+            <!-- 类型图标 -->
+            <div v-if="typeof item === 'object'" class="flex-shrink-0">
+              <span v-if="item.type === 'novel'" class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">小说</span>
+              <span v-else-if="item.type === 'author'" class="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded">作者</span>
+            </div>
+            <svg v-else class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <span class="text-gray-800 truncate" v-html="highlightKeyword(item)"></span>
+            <span class="text-gray-800 truncate" v-html="highlightKeyword(getSuggestionText(item))"></span>
           </div>
           <svg class="w-5 h-5 text-gray-300 group-hover:text-blue-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -156,15 +161,24 @@ function handleSearch() {
 
 // 选择建议项
 function handleSelectSuggest(item) {
-  localKeyword.value = item
-  emit('update:modelValue', item)
+  const text = getSuggestionText(item)
+  localKeyword.value = text
+  emit('update:modelValue', text)
   showSuggest.value = false
-  emit('search', item)
+  emit('search', text)
+}
+
+// 获取建议文本
+function getSuggestionText(item) {
+  if (typeof item === 'object') {
+    return item.text || item.suggestion || ''
+  }
+  return item || ''
 }
 
 // 高亮关键词
 function highlightKeyword(text) {
-  if (!localKeyword.value) return text
+  if (!localKeyword.value || !text) return text
   const regex = new RegExp(`(${localKeyword.value})`, 'gi')
   return text.replace(regex, '<span class="text-blue-600 font-semibold">$1</span>')
 }

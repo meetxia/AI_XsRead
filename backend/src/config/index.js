@@ -14,9 +14,32 @@ module.exports = {
     user: process.env.DB_USER || 'toefl_user',
     password: process.env.DB_PASSWORD || 'mojz168168-',
     database: process.env.DB_DATABASE || 'ai_xsread',
-    connectionLimit: 10,
-    waitForConnections: true,
-    queueLimit: 0
+    
+    // 连接池配置优化
+    connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 20,  // 最大连接数 (10 -> 20)
+    queueLimit: parseInt(process.env.DB_QUEUE_LIMIT) || 0,  // 无限队列
+    waitForConnections: true,  // 等待可用连接
+    
+    // 连接管理
+    acquireTimeout: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 30000,  // 获取连接超时 30秒
+    timeout: parseInt(process.env.DB_TIMEOUT) || 60000,  // 连接超时 60秒
+    connectTimeout: parseInt(process.env.DB_CONNECT_TIMEOUT) || 10000,  // 建立连接超时 10秒
+    
+    // 性能优化
+    enableKeepAlive: true,  // 保持连接
+    keepAliveInitialDelay: 0,
+    
+    // 字符集
+    charset: 'utf8mb4',
+    
+    // 时区
+    timezone: '+08:00',
+    
+    // 调试模式（仅开发环境）
+    debug: process.env.DB_DEBUG === 'true' && process.env.NODE_ENV === 'development',
+    
+    // 多语句查询
+    multipleStatements: false  // 安全起见，禁用多语句查询
   },
 
   // JWT配置

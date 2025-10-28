@@ -61,55 +61,13 @@
       <!-- 阅读统计 -->
       <section class="stats-section fade-in" style="animation-delay: 0.1s">
         <h3 class="section-title">阅读统计</h3>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
-              </svg>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ readingStats.readingBooks }}</div>
-              <div class="stat-label">正在阅读</div>
-            </div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-              </svg>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ readingStats.finishedBooks }}</div>
-              <div class="stat-label">已读完成</div>
-            </div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-              </svg>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ readingStats.totalReadTime }}</div>
-              <div class="stat-label">阅读时长(h)</div>
-            </div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-              </svg>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ readingStats.consecutiveDays }}</div>
-              <div class="stat-label">连续天数</div>
-            </div>
-          </div>
-        </div>
+        <ReadingStatsChart />
+      </section>
+
+      <!-- 成就系统 -->
+      <section class="achievement-section fade-in" style="animation-delay: 0.15s">
+        <h3 class="section-title">我的成就</h3>
+        <AchievementSystem />
       </section>
 
       <!-- 我的书架快捷入口 -->
@@ -204,6 +162,8 @@ import { useUserStore } from '@/stores/user'
 import { useBookshelfStore } from '@/stores/bookshelf'
 import AppHeader from '@/components/common/AppHeader.vue'
 import BottomNav from '@/components/common/BottomNav.vue'
+import ReadingStatsChart from '@/components/profile/ReadingStatsChart.vue'
+import AchievementSystem from '@/components/profile/AchievementSystem.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -214,14 +174,6 @@ const userInfo = computed(() => userStore.userInfo)
 
 // 默认头像
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
-
-// 阅读统计
-const readingStats = computed(() => ({
-  readingBooks: bookshelfStore.readingCount || 12,
-  finishedBooks: bookshelfStore.finishedCount || 35,
-  totalReadTime: 128,
-  consecutiveDays: 5
-}))
 
 // 最近阅读的书籍
 const recentBooks = ref([
@@ -433,7 +385,7 @@ function handleSettingClick(key) {
       console.log('账户信息')
       break
     case 'security':
-      console.log('账号安全')
+      router.push('/security')
       break
     case 'notification':
       console.log('消息通知')

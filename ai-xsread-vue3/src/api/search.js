@@ -1,11 +1,11 @@
 import request from './request'
 
-// 搜索建议（使用搜索接口）
+// 搜索建议（使用新的搜索建议接口）
 export function getSearchSuggest(keyword) {
   return request({
-    url: '/novels/search',
+    url: '/novels/search/suggestions',
     method: 'get',
-    params: { keyword, pageSize: 5 }
+    params: { keyword }
   })
 }
 
@@ -18,16 +18,11 @@ export function searchNovels(params) {
   })
 }
 
-// 获取热门搜索（使用热门小说列表）
+// 获取热门搜索（使用新的热门搜索接口）
 export function getHotSearch() {
   return request({
-    url: '/novels',
-    method: 'get',
-    params: { 
-      sortBy: 'views',
-      order: 'DESC',
-      pageSize: 10
-    }
+    url: '/novels/search/hot',
+    method: 'get'
   })
 }
 

@@ -6,13 +6,15 @@ const authRoutes = require('./auth');
 const novelRoutes = require('./novels');
 const chapterRoutes = require('./chapters');
 const userRoutes = require('./user');
+const commentRoutes = require('./comments');
 
 // API版本前缀
 const API_PREFIX = '/api';
 
 // 注册路由
 router.use(`${API_PREFIX}/auth`, authRoutes);
-router.use(`${API_PREFIX}/novels`, novelRoutes);
+router.use(`${API_PREFIX}`, novelRoutes); // novels和comments都在这里
+router.use(`${API_PREFIX}`, commentRoutes);
 router.use(`${API_PREFIX}/chapters`, chapterRoutes);
 router.use(`${API_PREFIX}/user`, userRoutes);
 

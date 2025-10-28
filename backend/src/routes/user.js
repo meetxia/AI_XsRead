@@ -19,5 +19,13 @@ router.post('/reading-progress', userController.updateReadingProgress);
 // 阅读历史
 router.get('/reading-history', paginationValidation, userController.getReadingHistory);
 
-module.exports = router;
+// 用户统计
+router.get('/statistics', userController.getUserStatistics);
 
+// 用户成就
+router.get('/achievements', userController.getUserAchievements);
+
+// 用户资料
+router.get('/profile', userController.getUserProfile);
+
+module.exports = router;

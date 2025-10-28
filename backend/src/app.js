@@ -3,11 +3,13 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const swaggerUi = require('swagger-ui-express');
 const config = require('./config');
 const { testConnection } = require('./config/database');
 const routes = require('./routes');
 const { errorHandler, notFound } = require('./middlewares/errorHandler');
 const requestLogger = require('./middlewares/logger');
+const swaggerSpec = require('./config/swagger');
 
 // 创建Express应用
 const app = express();
@@ -51,6 +53,18 @@ if (config.server.env === 'production') {
 // 静态文件（上传目录）
 app.use('/uploads', express.static('uploads'));
 
+// API 文档
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: '文字之境 API 文档'
+}));
+
+// API 文档 JSON
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // 注册所有路由
 app.use('/', routes);
 
@@ -83,7 +97,8 @@ const startServer = async () => {
       console.log('========================================');
       console.log(`📍 服务地址: http://localhost:${PORT}`);
       console.log(`🌍 环境模式: ${config.server.env}`);
-      console.log(`📊 API文档: http://localhost:${PORT}/api/health`);
+      console.log(`📚 API文档: http://localhost:${PORT}/api-docs`);
+      console.log(`📊 健康检查: http://localhost:${PORT}/api/health`);
       console.log('========================================\n');
       
       console.log('✅ 可用的API端点:');

@@ -1,240 +1,354 @@
-const { pool } = require('../config/database');
 const Response = require('../utils/response');
+const novelService = require('../services/novelService');
 
 /**
  * 获取小说列表
  */
-const getNovelList = async (req, res) => {
+const getNovelList = async (req, res, next) => {
   try {
-    const {
-      page = 1,
-      pageSize = 20,
-      categoryId,
-      status,
-      sortBy = 'updated_at',
-      order = 'DESC'
-    } = req.query;
-    
-    const offset = (page - 1) * pageSize;
-    
-    // 构建查询条件
-    let whereClause = 'WHERE 1=1';
-    const params = [];
-    
-    if (categoryId) {
-      whereClause += ' AND category_id = ?';
-      params.push(categoryId);
-    }
-    
-    if (status) {
-      whereClause += ' AND status = ?';
-      params.push(status);
-    }
-    
-    // 查询总数
-    const [countResult] = await pool.query(
-      `SELECT COUNT(*) as total FROM novels ${whereClause}`,
-      params
-    );
-    const total = countResult[0].total;
-    
-    // 查询列表数据
-    const [novels] = await pool.query(
-      `SELECT n.*, c.name as category_name 
-       FROM novels n 
-       LEFT JOIN categories c ON n.category_id = c.id 
-       ${whereClause}
-       ORDER BY ${sortBy} ${order}
-       LIMIT ? OFFSET ?`,
-      [...params, parseInt(pageSize), offset]
-    );
-    
-    return Response.paginate(res, novels, {
-      page: parseInt(page),
-      pageSize: parseInt(pageSize),
-      total
-    });
+    const result = await novelService.getNovelList(req.query);
+    return Response.paginate(res, result.list, result.pagination);
   } catch (error) {
-    console.error('Get novel list error:', error);
-    return Response.error(res, '获取小说列表失败', 500);
+    next(error);
   }
 };
 
 /**
  * 获取小说详情
  */
-const getNovelDetail = async (req, res) => {
+const getNovelDetail = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id; // 从认证中间件获取用户 ID
     
-    const [novels] = await pool.query(
-      `SELECT n.*, c.name as category_name,
-              (SELECT COUNT(*) FROM chapters WHERE novel_id = n.id) as chapter_count
-       FROM novels n
-       LEFT JOIN categories c ON n.category_id = c.id
-       WHERE n.id = ?`,
-      [id]
-    );
+    // 获取小说详情
+    const novel = await novelService.getNovelDetail(id, userId);
     
-    if (novels.length === 0) {
-      return Response.error(res, '小说不存在', 404);
-    }
+    // 异步增加浏览量（不阻塞响应）
+    novelService.increaseViews(id).catch(err => {
+      console.error('Increase views error:', err);
+    });
     
-    // 更新浏览量
-    await pool.query(
-      'UPDATE novels SET views = views + 1 WHERE id = ?',
-      [id]
-    );
-    
-    return Response.success(res, novels[0]);
+    return Response.success(res, novel);
   } catch (error) {
-    console.error('Get novel detail error:', error);
-    return Response.error(res, '获取小说详情失败', 500);
+    if (error.message === '小说不存在') {
+      return Response.error(res, error.message, 404);
+    }
+    next(error);
   }
 };
 
 /**
  * 获取推荐小说
  */
-const getRecommendNovels = async (req, res) => {
+const getRecommendNovels = async (req, res, next) => {
   try {
-    const { limit = 10 } = req.query;
-    
-    const [novels] = await pool.query(
-      `SELECT n.*, c.name as category_name
-       FROM novels n
-       LEFT JOIN categories c ON n.category_id = c.id
-       WHERE n.status = 'published'
-       ORDER BY n.views DESC, n.rating DESC
-       LIMIT ?`,
-      [parseInt(limit)]
-    );
+    const userId = req.user?.id;
+    const novels = await novelService.getRecommendNovels({ 
+      limit: req.query.limit,
+      userId 
+    });
     
     return Response.success(res, novels);
   } catch (error) {
-    console.error('Get recommend novels error:', error);
-    return Response.error(res, '获取推荐小说失败', 500);
+    next(error);
+  }
+};
+
+/**
+ * 获取热门小说
+ */
+const getHotNovels = async (req, res, next) => {
+  try {
+    const novels = await novelService.getHotNovels(req.query);
+    return Response.success(res, novels);
+  } catch (error) {
+    next(error);
   }
 };
 
 /**
  * 获取章节列表
  */
-const getChapterList = async (req, res) => {
+const getChapterList = async (req, res, next) => {
   try {
     const { novelId } = req.params;
-    const { page = 1, pageSize = 50 } = req.query;
+    const result = await novelService.getChapterList(novelId, req.query);
     
-    const offset = (page - 1) * pageSize;
-    
-    // 查询总数
-    const [countResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM chapters WHERE novel_id = ?',
-      [novelId]
-    );
-    const total = countResult[0].total;
-    
-    // 查询章节列表
-    const [chapters] = await pool.query(
-      `SELECT id, novel_id, chapter_number, title, word_count, 
-              is_free, created_at, updated_at
-       FROM chapters
-       WHERE novel_id = ?
-       ORDER BY chapter_number ASC
-       LIMIT ? OFFSET ?`,
-      [novelId, parseInt(pageSize), offset]
-    );
-    
-    return Response.paginate(res, chapters, {
-      page: parseInt(page),
-      pageSize: parseInt(pageSize),
-      total
-    });
+    return Response.paginate(res, result.list, result.pagination);
   } catch (error) {
-    console.error('Get chapter list error:', error);
-    return Response.error(res, '获取章节列表失败', 500);
+    next(error);
   }
 };
 
 /**
  * 获取章节内容
  */
-const getChapterContent = async (req, res) => {
+const getChapterContent = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
     
-    const [chapters] = await pool.query(
-      'SELECT * FROM chapters WHERE id = ?',
-      [id]
-    );
-    
-    if (chapters.length === 0) {
-      return Response.error(res, '章节不存在', 404);
-    }
-    
-    return Response.success(res, chapters[0]);
+    const chapter = await novelService.getChapterContent(id, userId);
+    return Response.success(res, chapter);
   } catch (error) {
-    console.error('Get chapter content error:', error);
-    return Response.error(res, '获取章节内容失败', 500);
+    if (error.message === '章节不存在') {
+      return Response.error(res, error.message, 404);
+    }
+    next(error);
   }
 };
 
 /**
  * 搜索小说
  */
-const searchNovels = async (req, res) => {
+const searchNovels = async (req, res, next) => {
   try {
-    const { keyword, page = 1, pageSize = 20 } = req.query;
-    
-    if (!keyword) {
-      return Response.error(res, '请输入搜索关键词', 400);
-    }
-    
-    const offset = (page - 1) * pageSize;
-    const searchTerm = `%${keyword}%`;
-    
-    // 查询总数
-    const [countResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM novels WHERE title LIKE ? OR author LIKE ? OR description LIKE ?',
-      [searchTerm, searchTerm, searchTerm]
-    );
-    const total = countResult[0].total;
-    
-    // 搜索小说
-    const [novels] = await pool.query(
-      `SELECT n.*, c.name as category_name
-       FROM novels n
-       LEFT JOIN categories c ON n.category_id = c.id
-       WHERE n.title LIKE ? OR n.author LIKE ? OR n.description LIKE ?
-       ORDER BY n.views DESC
-       LIMIT ? OFFSET ?`,
-      [searchTerm, searchTerm, searchTerm, parseInt(pageSize), offset]
-    );
-    
-    return Response.paginate(res, novels, {
-      page: parseInt(page),
-      pageSize: parseInt(pageSize),
-      total
-    });
+    const result = await novelService.searchNovels(req.query);
+    return Response.paginate(res, result.list, result.pagination);
   } catch (error) {
-    console.error('Search novels error:', error);
-    return Response.error(res, '搜索失败', 500);
+    if (error.message === '请输入搜索关键词') {
+      return Response.error(res, error.message, 400);
+    }
+    next(error);
   }
 };
 
 /**
  * 获取分类列表
  */
-const getCategories = async (req, res) => {
+const getCategories = async (req, res, next) => {
   try {
-    const [categories] = await pool.query(
-      'SELECT * FROM categories ORDER BY sort_order ASC, id ASC'
-    );
-    
+    const categories = await novelService.getCategories();
     return Response.success(res, categories);
   } catch (error) {
-    console.error('Get categories error:', error);
-    return Response.error(res, '获取分类列表失败', 500);
+    next(error);
+  }
+};
+
+/**
+ * 获取搜索建议
+ */
+const getSearchSuggestions = async (req, res, next) => {
+  try {
+    const { keyword } = req.query;
+    
+    if (!keyword || keyword.trim().length < 2) {
+      return Response.success(res, []);
+    }
+    
+    const { pool } = require('../config/database');
+    
+    // 搜索小说标题
+    const [titleSuggestions] = await pool.query(
+      `SELECT DISTINCT title as suggestion, 'novel' as type, id 
+       FROM novels 
+       WHERE title LIKE ? 
+       ORDER BY views DESC 
+       LIMIT 5`,
+      [`%${keyword}%`]
+    );
+    
+    // 搜索作者
+    const [authorSuggestions] = await pool.query(
+      `SELECT DISTINCT author as suggestion, 'author' as type 
+       FROM novels 
+       WHERE author LIKE ? 
+       ORDER BY views DESC 
+       LIMIT 3`,
+      [`%${keyword}%`]
+    );
+    
+    // 合并结果
+    const suggestions = [
+      ...titleSuggestions.map(s => ({ text: s.suggestion, type: s.type, id: s.id })),
+      ...authorSuggestions.map(s => ({ text: s.suggestion, type: s.type }))
+    ];
+    
+    return Response.success(res, suggestions.slice(0, 8));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 获取热门搜索
+ */
+const getHotSearches = async (req, res, next) => {
+  try {
+    const { pool } = require('../config/database');
+    
+    // 基于浏览量获取热门小说作为热搜
+    const [hotNovels] = await pool.query(
+      `SELECT title as keyword, views as count
+       FROM novels 
+       ORDER BY views DESC, rating DESC
+       LIMIT 10`
+    );
+    
+    // 添加趋势标记
+    const hotSearches = hotNovels.map((item, index) => ({
+      keyword: item.keyword,
+      count: item.count,
+      hot: index < 3, // 前3个标记为热门
+      trend: index < 5 ? 'up' : 'stable', // 前5个上升，其他稳定
+      isNew: false
+    }));
+    
+    return Response.success(res, hotSearches);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 点赞小说
+ */
+const likeNovel = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    const { pool } = require('../config/database');
+    
+    // 检查是否已点赞
+    const [existing] = await pool.query(
+      'SELECT id FROM user_likes WHERE user_id = ? AND novel_id = ?',
+      [userId, id]
+    );
+    
+    if (existing.length > 0) {
+      return Response.error(res, '已经点赞过了', 400);
+    }
+    
+    // 添加点赞
+    await pool.query(
+      'INSERT INTO user_likes (user_id, novel_id) VALUES (?, ?)',
+      [userId, id]
+    );
+    
+    // 增加小说点赞数
+    await pool.query(
+      'UPDATE novels SET likes = likes + 1 WHERE id = ?',
+      [id]
+    );
+    
+    return Response.success(res, null, '点赞成功');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 取消点赞
+ */
+const unlikeNovel = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    const { pool } = require('../config/database');
+    
+    // 删除点赞
+    await pool.query(
+      'DELETE FROM user_likes WHERE user_id = ? AND novel_id = ?',
+      [userId, id]
+    );
+    
+    // 减少小说点赞数
+    await pool.query(
+      'UPDATE novels SET likes = likes - 1 WHERE id = ? AND likes > 0',
+      [id]
+    );
+    
+    return Response.success(res, null, '取消点赞成功');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 收藏小说
+ */
+const collectNovel = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    const { pool } = require('../config/database');
+    
+    // 检查是否已收藏
+    const [existing] = await pool.query(
+      'SELECT id FROM bookshelf WHERE user_id = ? AND novel_id = ?',
+      [userId, id]
+    );
+    
+    if (existing.length > 0) {
+      return Response.error(res, '已经收藏过了', 400);
+    }
+    
+    // 添加到书架
+    await pool.query(
+      'INSERT INTO bookshelf (user_id, novel_id, type) VALUES (?, ?, ?)',
+      [userId, id, 'reading']
+    );
+    
+    return Response.success(res, null, '收藏成功');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 取消收藏
+ */
+const uncollectNovel = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    const { pool } = require('../config/database');
+    
+    // 从书架删除
+    await pool.query(
+      'DELETE FROM bookshelf WHERE user_id = ? AND novel_id = ?',
+      [userId, id]
+    );
+    
+    return Response.success(res, null, '取消收藏成功');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 获取用户对小说的状态
+ */
+const getNovelStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    const { pool } = require('../config/database');
+    
+    // 查询点赞状态
+    const [likes] = await pool.query(
+      'SELECT id FROM user_likes WHERE user_id = ? AND novel_id = ?',
+      [userId, id]
+    );
+    
+    // 查询收藏状态
+    const [bookshelf] = await pool.query(
+      'SELECT id FROM bookshelf WHERE user_id = ? AND novel_id = ?',
+      [userId, id]
+    );
+    
+    return Response.success(res, {
+      isLiked: likes.length > 0,
+      isCollected: bookshelf.length > 0
+    });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -242,9 +356,16 @@ module.exports = {
   getNovelList,
   getNovelDetail,
   getRecommendNovels,
+  getHotNovels,
   getChapterList,
   getChapterContent,
   searchNovels,
-  getCategories
+  getCategories,
+  getSearchSuggestions,
+  getHotSearches,
+  likeNovel,
+  unlikeNovel,
+  collectNovel,
+  uncollectNovel,
+  getNovelStatus
 };
-
