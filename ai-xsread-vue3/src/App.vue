@@ -43,6 +43,8 @@ onMounted(() => {
 #app {
   width: 100%;
   min-height: 100vh;
+  overflow-x: hidden; /* 防止水平滚动 */
+  max-width: 100vw; /* 限制最大宽度 */
 }
 
 /* 页面过渡动画 */

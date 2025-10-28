@@ -5,7 +5,7 @@ import request from './request'
  */
 export const getUserStatistics = () => {
   return request({
-    url: '/api/user/statistics',
+    url: '/user/statistics',
     method: 'get'
   })
 }
@@ -15,7 +15,7 @@ export const getUserStatistics = () => {
  */
 export const getUserAchievements = () => {
   return request({
-    url: '/api/user/achievements',
+    url: '/user/achievements',
     method: 'get'
   })
 }
@@ -25,7 +25,7 @@ export const getUserAchievements = () => {
  */
 export const getUserProfile = () => {
   return request({
-    url: '/api/user/profile',
+    url: '/user/profile',
     method: 'get'
   })
 }
@@ -35,7 +35,7 @@ export const getUserProfile = () => {
  */
 export const getBookshelf = (params) => {
   return request({
-    url: '/api/user/bookshelf',
+    url: '/user/bookshelf',
     method: 'get',
     params
   })
@@ -46,7 +46,7 @@ export const getBookshelf = (params) => {
  */
 export const addToBookshelf = (data) => {
   return request({
-    url: '/api/user/bookshelf',
+    url: '/user/bookshelf',
     method: 'post',
     data
   })
@@ -57,7 +57,7 @@ export const addToBookshelf = (data) => {
  */
 export const removeFromBookshelf = (novelId) => {
   return request({
-    url: `/api/user/bookshelf/${novelId}`,
+    url: `/user/bookshelf/${novelId}`,
     method: 'delete'
   })
 }
@@ -67,7 +67,7 @@ export const removeFromBookshelf = (novelId) => {
  */
 export const getReadingProgress = (novelId) => {
   return request({
-    url: `/api/user/reading-progress/${novelId}`,
+    url: `/user/reading-progress/${novelId}`,
     method: 'get'
   })
 }
@@ -77,7 +77,7 @@ export const getReadingProgress = (novelId) => {
  */
 export const updateReadingProgress = (data) => {
   return request({
-    url: '/api/user/reading-progress',
+    url: '/user/reading-progress',
     method: 'post',
     data
   })
@@ -88,7 +88,7 @@ export const updateReadingProgress = (data) => {
  */
 export const getReadingHistory = (params) => {
   return request({
-    url: '/api/user/reading-history',
+    url: '/user/reading-history',
     method: 'get',
     params
   })

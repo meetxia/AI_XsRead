@@ -61,6 +61,15 @@ const router = createRouter({
       }
     },
     {
+      path: '/read/:id/:chapter?',
+      name: 'read',
+      component: () => import(/* webpackChunkName: "reading" */ '@/views/ReadingPage.vue'),
+      meta: { 
+        title: '阅读',
+        keepAlive: false
+      }
+    },
+    {
       path: '/search',
       name: 'search',
       component: () => import(/* webpackChunkName: "search" */ '@/views/SearchPage.vue'),
@@ -103,6 +112,16 @@ const router = createRouter({
       meta: { 
         title: '注册',
         keepAlive: false
+      }
+    },
+    {
+      path: '/upload',
+      name: 'upload',
+      component: () => import(/* webpackChunkName: "upload" */ '@/views/UploadNovelPage.vue'),
+      meta: { 
+        title: '上传小说',
+        keepAlive: false,
+        requiresAuth: true
       }
     }
   ],

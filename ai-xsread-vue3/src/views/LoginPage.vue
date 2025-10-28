@@ -119,34 +119,6 @@
             </span>
           </button>
 
-          <!-- 第三方登录 -->
-          <div class="third-party">
-            <div class="divider">
-              <span>或使用第三方登录</span>
-            </div>
-            <div class="social-login">
-              <button type="button" @click="thirdPartyLogin('wechat')" class="social-btn wechat">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 2.711-6.632 1.755-1.14 3.963-1.768 6.226-1.768.28 0 .553.027.827.042C17.557 5.29 13.523 2.188 8.691 2.188zm-2.276 5.691c.276 0 .5.224.5.5s-.224.5-.5.5-.5-.224-.5-.5.224-.5.5-.5zm4.276 0c.276 0 .5.224.5.5s-.224.5-.5.5-.5-.224-.5-.5.224-.5.5-.5z"></path>
-                  <path d="M23.759 15.534c0-3.41-3.202-6.172-7.146-6.172-3.944 0-7.146 2.762-7.146 6.172 0 3.41 3.202 6.172 7.146 6.172.276 0 .551-.027.827-.042l1.394.782a.355.355 0 0 0 .195.066c.167 0 .302-.135.302-.302 0-.066-.027-.13-.066-.188l-.302-1.076a.644.644 0 0 1 .213-.665c1.488-1.114 2.483-2.762 2.483-4.747zm-9.138-1.114c-.276 0-.5-.224-.5-.5s.224-.5.5-.5.5.224.5.5-.224.5-.5.5zm4.276 0c-.276 0-.5-.224-.5-.5s.224-.5.5-.5.5.224.5.5-.224.5-.5.5z"></path>
-                </svg>
-                <span>微信</span>
-              </button>
-              <button type="button" @click="thirdPartyLogin('qq')" class="social-btn qq">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M21.395 15.035a39.548 39.548 0 0 0-.803-2.264l-1.079-2.695c.001-.032.014-.562.014-.836C19.526 4.632 17.351 0 12 0S4.474 4.632 4.474 9.241c0 .274.013.804.014.836l-1.08 2.695a38.97 38.97 0 0 0-.802 2.264c-1.021 3.283-.69 4.643-.438 4.673.54.065 1.514-2.114 1.514-2.114 0 .718.005.012.005 1.011 0 3.076 2.888 6.394 7.313 6.394s7.313-3.319 7.313-6.394c0-.999.005-.293.005-1.011 0 0 .974 2.179 1.514 2.114.253-.03.583-1.39-.437-4.673z"></path>
-                </svg>
-                <span>QQ</span>
-              </button>
-              <button type="button" @click="thirdPartyLogin('weibo')" class="social-btn weibo">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9.779 13.538c-.316.232-.764.389-1.211.389-1.316 0-2.421-1.158-2.421-2.526 0-.631.316-1.105.737-1.421.316-.232.763-.389 1.21-.389 1.317 0 2.422 1.158 2.422 2.526 0 .631-.316 1.105-.737 1.421zm4.211-3.789c-.421-.842-1.579-1.316-2.737-1.158-.421.079-.763.237-1.052.474.421-.158.842-.316 1.263-.316 1.105 0 2.053.632 2.526 1.579.421.947.158 1.895-.474 2.526a3.96 3.96 0 0 0 .947-.947c.316-.474.421-1.105.158-1.737.079-.158.079-.316-.079-.421h.448zm9.01-1.263c0 5.053-4.211 9.264-9.263 9.264-5.053 0-9.264-4.211-9.264-9.264C4.473 3.433 8.684-.778 13.737-.778c5.052 0 9.263 4.211 9.263 9.263z"></path>
-                </svg>
-                <span>微博</span>
-              </button>
-            </div>
-          </div>
-
           <!-- 注册链接 -->
           <div class="register-link">
             还没有账号？<router-link to="/register">立即注册</router-link>
@@ -297,13 +269,6 @@ const sendCode = async () => {
   }
 }
 
-/**
- * 第三方登录
- */
-const thirdPartyLogin = (platform) => {
-  console.log('第三方登录:', platform)
-  // TODO: 实现第三方登录逻辑
-}
 </script>
 
 <style scoped>
@@ -527,78 +492,6 @@ const thirdPartyLogin = (platform) => {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* 第三方登录 */
-.third-party {
-  margin-top: 1.5rem;
-}
-
-.divider {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  position: relative;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 40%;
-  height: 1px;
-  background-color: var(--color-border);
-}
-
-.divider::before {
-  left: 0;
-}
-
-.divider::after {
-  right: 0;
-}
-
-.divider span {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  background-color: var(--color-bg-card);
-  padding: 0 1rem;
-}
-
-.social-login {
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
-}
-
-.social-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  font-size: 0.75rem;
-  transition: all 0.3s;
-}
-
-.social-btn.wechat {
-  color: #07c160;
-  background-color: rgba(7, 193, 96, 0.1);
-}
-
-.social-btn.qq {
-  color: #12b7f5;
-  background-color: rgba(18, 183, 245, 0.1);
-}
-
-.social-btn.weibo {
-  color: #e6162d;
-  background-color: rgba(230, 22, 45, 0.1);
-}
-
-.social-btn:hover {
-  transform: translateY(-2px);
 }
 
 /* 注册链接 */

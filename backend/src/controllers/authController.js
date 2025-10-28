@@ -94,7 +94,7 @@ const login = async (req, res) => {
     return Response.success(res, {
       accessToken,
       refreshToken,
-      expiresIn: 7200, // 2小时，单位：秒
+      expiresIn: 7 * 24 * 60 * 60, // 7天，单位：秒
       user: {
         id: user.id,
         username: user.username,

@@ -7,6 +7,7 @@ const novelRoutes = require('./novels');
 const chapterRoutes = require('./chapters');
 const userRoutes = require('./user');
 const commentRoutes = require('./comments');
+const uploadRoutes = require('./upload');
 
 // API版本前缀
 const API_PREFIX = '/api';
@@ -17,6 +18,7 @@ router.use(`${API_PREFIX}`, novelRoutes); // novels和comments都在这里
 router.use(`${API_PREFIX}`, commentRoutes);
 router.use(`${API_PREFIX}/chapters`, chapterRoutes);
 router.use(`${API_PREFIX}/user`, userRoutes);
+router.use(`${API_PREFIX}/upload`, uploadRoutes);
 
 // 健康检查接口
 router.get(`${API_PREFIX}/health`, (req, res) => {

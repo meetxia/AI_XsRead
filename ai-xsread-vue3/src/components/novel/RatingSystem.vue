@@ -1,17 +1,17 @@
 <template>
   <div class="rating-system">
-    <h3 class="text-xl font-bold text-gray-900 mb-4">作品评分</h3>
+    <h3 class="text-xl font-bold text-gray-900 mb-3 section-title">作品评分</h3>
     
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- 左侧：总评分 -->
-      <div class="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl">
-        <div class="text-5xl font-bold text-gray-900 mb-2">
-          {{ overallRating.toFixed(1) }}
+      <div class="flex flex-col items-center justify-center p-4 rounded-xl score-card">
+        <div class="text-4xl font-bold text-gray-900 mb-1 score-number">
+          {{ overallRatingDisplay }}
         </div>
-        <div class="flex items-center mb-2">
-          <StarRating :rating="overallRating" :size="24" :readonly="true" />
+        <div class="flex items-center mb-1">
+          <StarRating :rating="overallRating" :size="20" :readonly="true" />
         </div>
-        <div class="text-sm text-gray-500">
+        <div class="text-xs text-gray-500 sub-text">
           {{ totalRatings }} 人评分
         </div>
       </div>
@@ -24,18 +24,15 @@
           class="flex items-center space-x-3"
         >
           <div class="flex items-center space-x-1 w-16">
-            <span class="text-sm text-gray-600">{{ star }}</span>
-            <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <span class="text-sm text-gray-600 muted-text">{{ star }}</span>
+            <svg class="w-4 h-4 themed-star" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
           </div>
-          <div class="flex-1 h-6 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              class="h-full bg-gradient-to-r from-yellow-400 to-orange-400 transition-all duration-500"
-              :style="{ width: `${getRatingPercentage(star)}%` }"
-            ></div>
+          <div class="flex-1 h-3 rounded-full overflow-hidden bar-bg">
+            <div class="h-full bar-fill transition-all duration-500" :style="{ width: `${getRatingPercentage(star)}%` }"></div>
           </div>
-          <div class="text-sm text-gray-500 w-12 text-right">
+          <div class="text-sm text-gray-500 w-12 text-right muted-text">
             {{ ratingDistribution[star] || 0 }}
           </div>
         </div>
@@ -43,10 +40,10 @@
     </div>
 
     <!-- 我的评分 -->
-    <div class="mt-6 p-6 bg-gray-50 rounded-xl">
+    <div class="mt-4 p-4 rounded-xl themed-card small-radius">
       <div class="flex items-center justify-between mb-4">
-        <h4 class="font-semibold text-gray-900">我的评分</h4>
-        <div v-if="userRating" class="text-sm text-gray-500">
+        <h4 class="font-semibold text-gray-900 panel-title">我的评分</h4>
+        <div v-if="userRating" class="text-sm text-gray-500 muted-text">
           已评分于 {{ formatDate(userRating.createdAt) }}
         </div>
       </div>
@@ -54,27 +51,27 @@
       <div class="flex items-center justify-center space-x-4">
         <StarRating 
           :rating="currentRating" 
-          :size="32"
+          :size="28"
           :readonly="false"
           @update:rating="handleRating"
         />
-        <div v-if="currentRating > 0" class="text-2xl font-bold text-gray-900">
-          {{ currentRating.toFixed(1) }}
+        <div v-if="hasCurrentRating" class="text-2xl font-bold text-gray-900 score-inline">
+          {{ currentRatingDisplay }}
         </div>
       </div>
       
       <div v-if="ratingMessage" class="mt-3 text-center">
-        <p class="text-sm" :class="ratingMessageType === 'success' ? 'text-green-600' : 'text-red-600'">
+        <p class="text-sm" :class="ratingMessageType === 'success' ? 'text-success' : 'text-danger'">
           {{ ratingMessage }}
         </p>
       </div>
 
-      <div v-if="currentRating > 0" class="mt-4 text-center">
+      <div v-if="currentRating > 0" class="mt-3 text-center">
         <button
           v-if="!userRating"
           @click="submitRating"
           :disabled="submitting"
-          class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+          class="btn-primary"
         >
           {{ submitting ? '提交中...' : '提交评分' }}
         </button>
@@ -82,7 +79,7 @@
           v-else-if="currentRating !== userRating.rating"
           @click="updateRating"
           :disabled="submitting"
-          class="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+          class="btn-secondary"
         >
           {{ submitting ? '更新中...' : '更新评分' }}
         </button>
@@ -90,9 +87,9 @@
     </div>
 
     <!-- 评分趋势 (可选) -->
-    <div v-if="showTrend" class="mt-6">
-      <h4 class="font-semibold text-gray-900 mb-3">评分趋势</h4>
-      <div class="h-40 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
+    <div v-if="showTrend" class="mt-4">
+      <h4 class="font-semibold text-gray-900 mb-2 panel-title">评分趋势</h4>
+      <div class="trend-placeholder">
         <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
         </svg>
@@ -121,7 +118,7 @@ const props = defineProps({
   }
 })
 
-const overallRating = ref(props.initialRating || 0)
+const overallRating = ref(Number(props.initialRating || 0))
 const totalRatings = ref(0)
 const ratingDistribution = ref({
   5: 0,
@@ -136,6 +133,22 @@ const submitting = ref(false)
 const ratingMessage = ref('')
 const ratingMessageType = ref('success')
 
+// 当前评分展示/判定，确保数值安全
+const hasCurrentRating = computed(() => Number(currentRating.value) > 0)
+const currentRatingDisplay = computed(() => {
+  const val = Number(currentRating.value)
+  return Number.isFinite(val) ? val.toFixed(1) : '0.0'
+})
+
+// 展示用：评分保留一位小数，保证安全
+const overallRatingDisplay = computed(() => {
+  const val = Number(overallRating.value)
+  if (Number.isFinite(val)) {
+    return val.toFixed(1)
+  }
+  return '0.0'
+})
+
 // 获取评分百分比
 const getRatingPercentage = computed(() => {
   return (star) => {
@@ -148,10 +161,10 @@ const getRatingPercentage = computed(() => {
 async function loadRatingData() {
   try {
     const res = await getNovelRating(props.novelId)
-    const data = res.data
+    const data = (res && (res.data || res)) || {}
     
-    overallRating.value = data.averageRating || props.initialRating || 0
-    totalRatings.value = data.totalRatings || 0
+    overallRating.value = Number(data.averageRating ?? props.initialRating ?? 0)
+    totalRatings.value = Number(data.totalRatings ?? 0)
     ratingDistribution.value = data.distribution || {
       5: 0, 4: 0, 3: 0, 2: 0, 1: 0
     }
@@ -163,7 +176,7 @@ async function loadRatingData() {
   } catch (err) {
     console.error('加载评分数据失败:', err)
     // 使用模拟数据
-    if (props.initialRating) {
+    if (Number(props.initialRating)) {
       generateMockDistribution()
     }
   }
@@ -290,6 +303,85 @@ onMounted(() => {
 
 .rating-system {
   animation: slideIn 0.3s ease-out;
+}
+
+/* 移动端优化与主题色适配 */
+.section-title {
+  color: var(--color-text-primary);
+}
+
+.score-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+
+.score-number {
+  color: var(--color-text-primary);
+}
+
+.sub-text, .muted-text {
+  color: var(--color-text-muted);
+}
+
+.bar-bg {
+  background: var(--color-border);
+}
+
+.bar-fill {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+}
+
+.themed-star {
+  color: var(--color-primary);
+}
+
+.themed-card {
+  background: var(--color-bg-card);
+}
+
+.small-radius {
+  border: 1px solid var(--color-border);
+}
+
+.panel-title {
+  color: var(--color-text-primary);
+}
+
+.score-inline {
+  color: var(--color-text-primary);
+}
+
+.text-success {
+  color: #16a34a;
+}
+
+.text-danger {
+  color: #ef4444;
+}
+
+.btn-primary {
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 10px;
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  background: var(--color-secondary);
+  color: #fff;
+  border-radius: 10px;
+}
+
+.trend-placeholder {
+  height: 8rem;
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
 

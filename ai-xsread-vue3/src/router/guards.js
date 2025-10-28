@@ -7,10 +7,11 @@ import { useUserStore } from '@/stores/user'
 
 /**
  * 需要登录的路由路径
+ * 注意：阅读页不需要登录，让游客也能试读
  */
 const AUTH_REQUIRED_ROUTES = [
   '/bookshelf',
-  '/reading',
+  // '/reading',  // 移除：阅读页允许游客访问
   '/user',
   '/profile',
   '/settings'

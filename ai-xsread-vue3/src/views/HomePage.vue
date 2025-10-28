@@ -5,11 +5,32 @@
     
     <!-- 主内容区域 -->
     <main class="main-content">
-      <!-- 欢迎标语区域 -->
-      <section class="welcome-section">
-        <div class="welcome-content">
-          <h1 class="welcome-title fade-in">故事入境，杂念自消</h1>
-          <p class="welcome-subtitle fade-in">每个故事都是一扇门，每次阅读都是一场相遇</p>
+      <!-- 精简欢迎语 -->
+      <section class="welcome-section compact">
+        <h1 class="welcome-title-sm fade-in">故事入境，杂念自消</h1>
+      </section>
+      
+      <!-- 快速导航 -->
+      <section class="quick-nav-section">
+        <div class="container">
+          <div class="quick-nav">
+            <div class="nav-item" @click="navigateTo('hot')">
+              <span class="nav-icon">🔥</span>
+              <span class="nav-text">本周热门</span>
+            </div>
+            <div class="nav-item" @click="navigateTo('new')">
+              <span class="nav-icon">✨</span>
+              <span class="nav-text">新书上架</span>
+            </div>
+            <div class="nav-item" @click="navigateTo('finished')">
+              <span class="nav-icon">✓</span>
+              <span class="nav-text">完结好书</span>
+            </div>
+            <div class="nav-item" @click="navigateTo('recommend')">
+              <span class="nav-icon">⭐</span>
+              <span class="nav-text">编辑推荐</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -43,10 +64,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import BottomNav from '@/components/common/BottomNav.vue'
 import MasonryLayout from '@/components/novel/MasonryLayout.vue'
 import { getNovels } from '@/api/novel'
+
+const router = useRouter()
 
 // 分类列表
 const categories = ref([
@@ -77,6 +101,39 @@ const displayNovels = computed(() => {
   }
   return novels.value.filter(novel => novel.category === currentCategory.value)
 })
+
+/**
+ * 快速导航
+ */
+const navigateTo = (type) => {
+  switch(type) {
+    case 'hot':
+      // 加载热门小说
+      currentCategory.value = 'all'
+      novels.value = []
+      currentPage.value = 1
+      loadNovels()
+      break
+    case 'new':
+      // 加载新书
+      currentCategory.value = 'all'
+      novels.value = []
+      currentPage.value = 1
+      loadNovels()
+      break
+    case 'finished':
+      // 加载完结小说
+      currentCategory.value = 'all'
+      novels.value = []
+      currentPage.value = 1
+      loadNovels()
+      break
+    case 'recommend':
+      // 跳转到推荐页
+      router.push('/recommend')
+      break
+  }
+}
 
 /**
  * 选择分类
@@ -229,53 +286,105 @@ onMounted(() => {
   width: 100%;
 }
 
-/* 欢迎区域 */
-.welcome-section {
-  padding: 4rem 1rem 3rem;
+/* 精简欢迎区域 */
+.welcome-section.compact {
+  padding: 2rem 1rem 1rem;
   text-align: center;
 }
 
-.welcome-content {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.welcome-title {
-  font-size: 3rem;
-  font-weight: 700;
+.welcome-title-sm {
+  font-size: 1.5rem;
+  font-weight: 600;
   color: var(--color-text-primary);
-  margin-bottom: 1rem;
+  margin: 0;
   animation-delay: 0.1s;
-  line-height: 1.2;
-}
-
-.welcome-subtitle {
-  font-size: 1.125rem;
-  color: var(--color-text-secondary);
-  animation-delay: 0.2s;
+  line-height: 1.4;
 }
 
 @media (max-width: 640px) {
-  .welcome-section {
-    padding: 3rem 1rem 2rem;
+  .welcome-section.compact {
+    padding: 1.5rem 1rem 0.75rem;
   }
   
-  .welcome-title {
-    font-size: 2rem;
-  }
-  
-  .welcome-subtitle {
-    font-size: 1rem;
+  .welcome-title-sm {
+    font-size: 1.25rem;
   }
 }
 
 @media (min-width: 768px) {
-  .welcome-title {
-    font-size: 3.5rem;
+  .welcome-title-sm {
+    font-size: 1.75rem;
+  }
+}
+
+/* 快速导航 */
+.quick-nav-section {
+  padding: 1rem 0 2rem;
+}
+
+.quick-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .quick-nav {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  background: var(--color-bg-elevated, #ffffff);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.nav-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(217, 84, 104, 0.15);
+  background: var(--color-bg-hover, #fafafa);
+}
+
+.nav-item:active {
+  transform: translateY(-2px);
+}
+
+.nav-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.nav-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .nav-item {
+    padding: 1rem 0.5rem;
   }
   
-  .welcome-subtitle {
-    font-size: 1.25rem;
+  .nav-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .nav-text {
+    font-size: 0.75rem;
   }
 }
 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { login as loginApi, register as registerApi, logout as logoutApi } from '@/api/auth'
 
 /**
  * 用户状态管理 Store
@@ -23,46 +24,32 @@ export const useUserStore = defineStore('user', () => {
    */
   const login = async (loginData) => {
     try {
-      // TODO: 调用登录API
-      // const response = await loginApi(loginData)
+      // 调用登录API
+      const response = await loginApi({
+        username: loginData.account,
+        password: loginData.password
+      })
       
-      // 模拟登录成功
-      const mockResponse = {
-        token: 'mock_token_' + Date.now(),
-        refreshToken: 'mock_refresh_token_' + Date.now(),
-        user: {
-          id: 1,
-          username: loginData.account,
-          nickname: loginData.account === 'admin' ? '管理员' : '新用户',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + loginData.account,
-          email: loginData.account.includes('@') ? loginData.account : '',
-          phone: /^1[3-9]\d{9}$/.test(loginData.account) ? loginData.account : '',
-          gender: null,
-          birthday: null,
-          bio: '',
-          role: loginData.account === 'admin' ? 'admin' : 'user', // 添加角色字段
-          createdAt: Date.now()
+      if (response.code === 200) {
+        // 保存Token（后端返回的是 accessToken）
+        token.value = response.data.accessToken
+        
+        // 保存用户信息
+        userInfo.value = response.data.user
+        
+        // 存储到localStorage
+        localStorage.setItem('token', response.data.accessToken)
+        localStorage.setItem('userInfo', JSON.stringify(response.data.user))
+        
+        // 记住我
+        if (loginData.rememberMe) {
+          localStorage.setItem('rememberMe', 'true')
         }
+        
+        console.log('登录成功:', response.data.user)
+      } else {
+        throw new Error(response.message || '登录失败')
       }
-      
-      // 保存Token
-      token.value = mockResponse.token
-      refreshToken.value = mockResponse.refreshToken
-      
-      // 保存用户信息
-      userInfo.value = mockResponse.user
-      
-      // 存储到localStorage
-      localStorage.setItem('token', mockResponse.token)
-      localStorage.setItem('refreshToken', mockResponse.refreshToken)
-      localStorage.setItem('userInfo', JSON.stringify(mockResponse.user))
-      
-      // 记住我
-      if (loginData.rememberMe) {
-        localStorage.setItem('rememberMe', 'true')
-      }
-      
-      console.log('登录成功:', mockResponse.user)
       
     } catch (error) {
       console.error('登录失败:', error)
@@ -76,40 +63,28 @@ export const useUserStore = defineStore('user', () => {
    */
   const register = async (registerData) => {
     try {
-      // TODO: 调用注册API
-      // const response = await registerApi(registerData)
+      // 调用注册API
+      const response = await registerApi({
+        username: registerData.username,
+        email: registerData.email,
+        password: registerData.password
+      })
       
-      // 模拟注册成功
-      const mockResponse = {
-        token: 'mock_token_' + Date.now(),
-        refreshToken: 'mock_refresh_token_' + Date.now(),
-        user: {
-          id: Date.now(),
-          username: registerData.username,
-          nickname: registerData.username,
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + registerData.username,
-          email: registerData.email || '',
-          phone: registerData.phone || '',
-          gender: null,
-          birthday: null,
-          bio: '',
-          createdAt: Date.now()
-        }
+      if (response.code === 200) {
+        // 保存Token（后端返回的是 accessToken）
+        token.value = response.data.accessToken
+        
+        // 保存用户信息
+        userInfo.value = response.data.user
+        
+        // 存储到localStorage
+        localStorage.setItem('token', response.data.accessToken)
+        localStorage.setItem('userInfo', JSON.stringify(response.data.user))
+        
+        console.log('注册成功:', response.data.user)
+      } else {
+        throw new Error(response.message || '注册失败')
       }
-      
-      // 保存Token
-      token.value = mockResponse.token
-      refreshToken.value = mockResponse.refreshToken
-      
-      // 保存用户信息
-      userInfo.value = mockResponse.user
-      
-      // 存储到localStorage
-      localStorage.setItem('token', mockResponse.token)
-      localStorage.setItem('refreshToken', mockResponse.refreshToken)
-      localStorage.setItem('userInfo', JSON.stringify(mockResponse.user))
-      
-      console.log('注册成功:', mockResponse.user)
       
     } catch (error) {
       console.error('注册失败:', error)
@@ -120,19 +95,30 @@ export const useUserStore = defineStore('user', () => {
   /**
    * 退出登录
    */
-  const logout = () => {
-    // 清空状态
-    userInfo.value = null
-    token.value = ''
-    refreshToken.value = ''
-    
-    // 清空localStorage
-    localStorage.removeItem('token')
-    localStorage.removeItem('refreshToken')
-    localStorage.removeItem('userInfo')
-    localStorage.removeItem('rememberMe')
-    
-    console.log('已退出登录')
+  const logout = async () => {
+    try {
+      // 调用退出API（可选）
+      if (token.value) {
+        await logoutApi().catch(err => {
+          console.warn('退出登录API调用失败:', err)
+        })
+      }
+    } catch (error) {
+      console.error('退出登录失败:', error)
+    } finally {
+      // 清空状态
+      userInfo.value = null
+      token.value = ''
+      refreshToken.value = ''
+      
+      // 清空localStorage
+      localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('userInfo')
+      localStorage.removeItem('rememberMe')
+      
+      console.log('已退出登录')
+    }
   }
   
   /**

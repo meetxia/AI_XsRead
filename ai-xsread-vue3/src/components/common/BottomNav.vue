@@ -26,6 +26,18 @@
         <span class="text-xs">推荐</span>
       </router-link>
       
+      <!-- 书架 -->
+      <router-link 
+        to="/bookshelf" 
+        class="bottom-nav-item flex flex-col items-center space-y-1"
+        :class="{ 'active': isActive('/bookshelf') }"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+        </svg>
+        <span class="text-xs">书架</span>
+      </router-link>
+      
       <!-- 我的 -->
       <router-link 
         to="/profile" 
@@ -62,6 +74,8 @@ const isActive = (path) => {
   /* 安全区域适配 */
   padding-bottom: env(safe-area-inset-bottom);
   transition: all 0.3s ease;
+  /* 确保在最上层 */
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .bottom-nav-item {
@@ -69,6 +83,12 @@ const isActive = (path) => {
   transition: all 0.2s ease;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  /* 确保可点击 */
+  pointer-events: auto;
+  user-select: none;
+  /* 增加点击区域 */
+  padding: 0.5rem;
+  border-radius: 8px;
 }
 
 .bottom-nav-item.active {
@@ -77,6 +97,11 @@ const isActive = (path) => {
 
 .bottom-nav-item:active {
   transform: scale(0.95);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.bottom-nav-item:hover {
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
 /* 触摸反馈动画 */

@@ -42,7 +42,7 @@
           <div class="flex-shrink-0">
             <div 
               @click="previewCover" 
-              class="w-full md:w-48 aspect-[3/4] rounded-xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-shadow"
+              class="w-32 h-44 md:w-48 md:h-64 rounded-xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-shadow cover-card"
             >
               <img
                 v-if="novel.cover"
@@ -50,7 +50,7 @@
                 :alt="novel.title"
                 class="w-full h-full object-cover"
               />
-              <div v-else class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-500 text-white text-5xl font-bold">
+              <div v-else class="w-full h-full flex items-center justify-center text-white text-4xl md:text-5xl font-bold cover-fallback">
                 {{ novel.title.charAt(0) }}
               </div>
             </div>
@@ -122,10 +122,10 @@
             </div>
 
             <!-- 操作按钮 -->
-            <div class="flex flex-wrap gap-3">
+            <div class="flex flex-wrap gap-3 relative">
               <button 
                 @click="startReading"
-                class="flex-1 md:flex-none px-8 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold shadow-md hover:shadow-lg"
+                class="flex-1 md:flex-none px-8 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg read-primary-btn"
               >
                 {{ readingProgress ? '继续阅读' : '开始阅读' }}
               </button>
@@ -166,17 +166,17 @@
       </div>
 
       <!-- 评分系统 -->
-      <div class="detail-card rounded-2xl shadow-lg p-6 mb-6">
-        <RatingSystem :novel-id="novel.id" :initial-rating="novel.rating" />
+      <div v-if="novel && novel.id" class="detail-card rounded-2xl shadow-lg p-6 mb-6">
+        <RatingSystem :novel-id="novel.id" :initial-rating="novel.rating || 0" />
       </div>
 
       <!-- 章节列表 -->
-      <div class="detail-card rounded-2xl shadow-lg p-6 mb-6">
+      <div v-if="novel && novel.id" class="detail-card rounded-2xl shadow-lg p-6 mb-6">
         <ChapterList :novel-id="novel.id" @select-chapter="goToChapter" />
       </div>
 
       <!-- 评论区 -->
-      <div class="detail-card rounded-2xl shadow-lg p-6 mb-6">
+      <div v-if="novel && novel.id" class="detail-card rounded-2xl shadow-lg p-6 mb-6">
         <CommentSection :novel-id="novel.id" />
       </div>
 
@@ -248,8 +248,16 @@ async function loadNovelDetail() {
     loading.value = true
     error.value = null
     const id = route.params.id
+    
+    console.log('正在加载小说详情，ID:', id)
     const res = await getNovelDetail(id)
+    
+    if (!res || !res.data) {
+      throw new Error('小说数据为空')
+    }
+    
     novel.value = res.data
+    console.log('小说详情加载成功:', novel.value.title)
     
     // 加载相似推荐
     loadSimilarNovels()
@@ -258,7 +266,7 @@ async function loadNovelDetail() {
     checkReadingProgress()
   } catch (err) {
     console.error('加载小说详情失败:', err)
-    error.value = '加载失败，请稍后重试'
+    error.value = err.response?.status === 404 ? '小说不存在' : '加载失败，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -289,9 +297,29 @@ function checkReadingProgress() {
 }
 
 // 开始阅读
-function startReading() {
-  const chapterId = readingProgress.value?.chapterId || 1
-  router.push(`/reading/${novel.value.id}?chapter=${chapterId}`)
+async function startReading() {
+  try {
+    console.log('🚀 开始阅读，小说ID:', novel.value.id)
+    
+    // 尝试获取章节列表
+    const { getChapterList } = await import('@/api/novel')
+    const res = await getChapterList(novel.value.id, { pageSize: 1 })
+    
+    if (res.code === 200 && res.data && res.data.length > 0) {
+      // 有章节列表，跳转到第一章或保存的进度
+      const targetChapter = readingProgress.value?.chapterNumber || 1
+      console.log('✓ 跳转到章节:', targetChapter)
+      router.push(`/reading/${novel.value.id}?chapter=${targetChapter}`)
+    } else {
+      // 没有章节列表，可能是短篇，直接跳转
+      console.log('⚠ 没有章节列表，可能是短篇小说，直接跳转')
+      router.push(`/reading/${novel.value.id}`)
+    }
+  } catch (err) {
+    console.error('✗ 获取章节列表失败:', err)
+    // 出错时也尝试跳转，让阅读页自己处理
+    router.push(`/reading/${novel.value.id}`)
+  }
 }
 
 // 加入书架
@@ -355,7 +383,12 @@ function previewCover() {
 
 // 返回
 function goBack() {
-  router.back()
+  // 优先返回首页，避免返回到空白页面
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/')
+  }
 }
 
 // 格式化字数
@@ -408,6 +441,20 @@ onMounted(() => {
   background-color: var(--color-bg-card);
   color: var(--color-text-primary);
   transition: all 0.3s ease;
+}
+
+/* 移动端封面与按钮主题适配 */
+.cover-card {
+  background: var(--color-bg-card);
+}
+
+.cover-fallback {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+}
+
+.read-primary-btn {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  color: #fff;
 }
 
 /* 骨架屏 */

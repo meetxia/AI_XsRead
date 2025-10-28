@@ -27,34 +27,47 @@
       @scroll="handleScroll"
     >
       <div class="chapter-container" v-if="!loading && chapterContent">
-        <h2 class="chapter-heading">{{ chapterContent.title }}</h2>
+        <!-- 标题：只在多章节时显示章节标题 -->
+        <h2 v-if="totalChapters > 1" class="chapter-heading">{{ chapterContent.title }}</h2>
+        <h2 v-else class="novel-heading">{{ novelTitle }}</h2>
+        
+        <!-- 元信息 -->
         <div class="chapter-meta">
           <span>字数：{{ chapterContent.word_count || 0 }}</span>
           <span>更新时间：{{ formatDate(chapterContent.updated_at) }}</span>
         </div>
+        
+        <!-- 正文内容 -->
         <div class="chapter-text" v-html="formattedContent"></div>
         
-        <!-- 章节导航 -->
-        <div class="chapter-nav">
+        <!-- 章节导航：只在多章节时显示 -->
+        <div v-if="totalChapters > 1" class="chapter-nav">
           <button 
             class="nav-btn prev-btn"
-            @click="loadPrevChapter"
+            @click.stop="loadPrevChapter"
             :disabled="!hasPrevChapter"
           >
             上一章
           </button>
           <button 
             class="nav-btn catalog-btn"
-            @click="showCatalog = true"
+            @click.stop="showCatalog = true"
           >
             目录
           </button>
           <button 
             class="nav-btn next-btn"
-            @click="loadNextChapter"
+            @click.stop="loadNextChapter"
             :disabled="!hasNextChapter"
           >
             下一章
+          </button>
+        </div>
+        
+        <!-- 单章节/短篇：显示返回按钮 -->
+        <div v-else class="single-chapter-nav">
+          <button class="nav-btn back-to-detail" @click.stop="goBackToDetail">
+            返回详情页
           </button>
         </div>
       </div>
@@ -74,7 +87,8 @@
 
     <!-- 底部工具栏 -->
     <div class="reading-footer" :class="{ 'show': showFooter }">
-      <div class="progress-bar">
+      <!-- 进度条：只在多章节时显示 -->
+      <div v-if="totalChapters > 1" class="progress-bar">
         <input 
           type="range" 
           min="1" 
@@ -85,14 +99,15 @@
         >
         <span class="progress-text">{{ currentChapterNumber }} / {{ totalChapters }}</span>
       </div>
-      <div class="toolbar-actions">
-        <button @click="showCatalog = true" class="action-btn">
+      
+      <div class="toolbar-actions" :class="{ 'single-row': totalChapters <= 1 }">
+        <button v-if="totalChapters > 1" @click.stop="showCatalog = true" class="action-btn">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
           </svg>
           <span>目录</span>
         </button>
-        <button @click="toggleDarkMode" class="action-btn">
+        <button @click.stop="toggleDarkMode" class="action-btn">
           <svg v-if="!isDarkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
           </svg>
@@ -101,14 +116,14 @@
           </svg>
           <span>{{ isDarkMode ? '日间' : '夜间' }}</span>
         </button>
-        <button @click="showSettings = true" class="action-btn">
+        <button @click.stop="showSettings = true" class="action-btn">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
           <span>设置</span>
         </button>
-        <button @click="addToBookshelf" class="action-btn">
+        <button @click.stop="addToBookshelf" class="action-btn">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
           </svg>
@@ -117,12 +132,12 @@
       </div>
     </div>
 
-    <!-- 目录抽屉 -->
+    <!-- 目录抽屉：只在多章节时显示 -->
     <Teleport to="body">
-      <div v-if="showCatalog" class="catalog-drawer" @click.self="showCatalog = false">
+      <div v-if="showCatalog && totalChapters > 1" class="catalog-drawer" @click.self="showCatalog = false">
         <div class="catalog-content">
           <div class="catalog-header">
-            <h3>目录</h3>
+            <h3>目录 (共{{ totalChapters }}章)</h3>
             <button @click="showCatalog = false" class="close-btn">×</button>
           </div>
           <div class="catalog-list">
@@ -138,6 +153,9 @@
               <span v-if="!chapter.is_free" class="vip-badge">VIP</span>
             </div>
             <div v-if="loadingChapters" class="loading-more">加载中...</div>
+            <div v-if="chapterList.length === 0 && !loadingChapters" class="empty-catalog">
+              <p>暂无章节</p>
+            </div>
           </div>
         </div>
       </div>
@@ -277,9 +295,17 @@ async function loadChapterList() {
     if (res.code === 200) {
       chapterList.value = res.data || []
       totalChapters.value = chapterList.value.length
+      
+      // 如果没有章节，提示用户
+      if (chapterList.value.length === 0) {
+        console.warn('该小说没有章节，可能是短篇或数据缺失')
+      }
     }
   } catch (err) {
     console.error('加载章节列表失败:', err)
+    // 即使加载失败，也继续尝试加载内容
+    chapterList.value = []
+    totalChapters.value = 0
   } finally {
     loadingChapters.value = false
   }
@@ -291,12 +317,23 @@ async function loadChapter(chapterId) {
     loading.value = true
     error.value = null
     
-    const res = await getChapterContent(chapterId || currentChapterId.value)
-    if (res.code === 200) {
+    const targetChapterId = chapterId || currentChapterId.value
+    console.log('🔄 正在加载章节内容，章节ID:', targetChapterId)
+    
+    const res = await getChapterContent(targetChapterId)
+    console.log('📖 章节数据响应:', res)
+    
+    if (res && res.code === 200 && res.data) {
       chapterContent.value = res.data
       currentChapterId.value = res.data.id
       currentChapterTitle.value = res.data.title
-      currentChapterNumber.value = res.data.chapter_number
+      currentChapterNumber.value = res.data.chapter_number || 1
+      
+      console.log('✓ 章节内容加载成功:', {
+        title: currentChapterTitle.value,
+        chapterNumber: currentChapterNumber.value,
+        contentLength: res.data.content?.length || 0
+      })
       
       // 滚动到顶部
       if (contentArea.value) {
@@ -305,10 +342,25 @@ async function loadChapter(chapterId) {
       
       // 保存阅读进度
       saveReadingProgress()
+    } else {
+      throw new Error(res?.message || '章节数据格式错误')
     }
   } catch (err) {
-    console.error('加载章节失败:', err)
-    error.value = '章节加载失败，请重试'
+    console.error('✗ 加载章节失败:', err)
+    console.error('错误详情:', {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status
+    })
+    
+    // 根据错误类型显示不同的错误信息
+    if (err.response?.status === 404) {
+      error.value = '章节不存在，请返回重试'
+    } else if (err.response?.status === 403) {
+      error.value = '该章节需要VIP权限才能阅读'
+    } else {
+      error.value = err.message || '章节加载失败，请重试'
+    }
   } finally {
     loading.value = false
   }
@@ -348,23 +400,33 @@ function onChapterChange() {
 }
 
 // 切换工具栏
-function toggleToolbar() {
+function toggleToolbar(event) {
+  // 只在点击内容区域时切换，不响应按钮点击
+  if (event && event.target.tagName === 'BUTTON') {
+    return
+  }
   showHeader.value = !showHeader.value
   showFooter.value = !showFooter.value
 }
 
 // 滚动处理
 let scrollTimer = null
+let isScrolling = false
+
 function handleScroll() {
   // 滚动时隐藏工具栏
-  showHeader.value = false
-  showFooter.value = false
+  if (!isScrolling) {
+    showHeader.value = false
+    showFooter.value = false
+    isScrolling = true
+  }
   
   clearTimeout(scrollTimer)
   scrollTimer = setTimeout(() => {
     showHeader.value = true
     showFooter.value = true
-  }, 1000)
+    isScrolling = false
+  }, 1500)
 }
 
 // 切换夜间模式
@@ -413,7 +475,18 @@ function addToBookshelf() {
 
 // 返回
 function goBack() {
-  router.back()
+  // 优先返回到小说详情页或首页
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    // 如果没有历史记录，返回到小说详情页
+    router.push(`/novel/${novelId.value}`)
+  }
+}
+
+// 返回详情页（短篇小说专用）
+function goBackToDetail() {
+  router.push(`/novel/${novelId.value}`)
 }
 
 // 格式化日期
@@ -425,39 +498,113 @@ function formatDate(date) {
 
 // 初始化
 onMounted(async () => {
-  await loadNovelInfo()
-  await loadChapterList()
+  console.log('📖 ReadingPage 初始化，小说ID:', novelId.value)
+  console.log('📖 路由信息:', { 
+    path: route.path, 
+    query: route.query, 
+    params: route.params 
+  })
   
-  // 从URL或本地存储获取要阅读的章节
-  const chapterParam = route.query.chapter
-  if (chapterParam) {
-    currentChapterId.value = parseInt(chapterParam)
-  } else {
-    // 尝试从本地存储恢复进度
-    const savedProgress = localStorage.getItem(`reading_progress_${novelId.value}`)
-    if (savedProgress) {
-      const progress = JSON.parse(savedProgress)
-      currentChapterId.value = progress.chapterId
+  try {
+    loading.value = true
+    error.value = null
+    
+    // 加载小说信息
+    await loadNovelInfo()
+    console.log('✓ 小说信息加载完成:', novelTitle.value, '总章节数:', totalChapters.value)
+    
+    // 加载章节列表
+    await loadChapterList()
+    console.log('✓ 章节列表加载完成，实际章节数:', chapterList.value.length)
+    
+    // 从URL或本地存储获取要阅读的章节
+    // 支持两种URL格式：
+    // 1. /reading/:id?chapter=1 (查询参数)
+    // 2. /read/:id/:chapter (路径参数)
+    const chapterFromQuery = route.query.chapter
+    const chapterFromParams = route.params.chapter
+    const chapterParam = chapterFromQuery || chapterFromParams
+    
+    console.log('📖 章节参数:', chapterParam)
+    
+    // 如果有章节列表
+    if (chapterList.value.length > 0) {
+      let targetChapterId = null
+      
+      if (chapterParam) {
+        // 如果URL中有章节参数，根据章节号找到章节ID
+        const chapterNum = parseInt(chapterParam)
+        const chapter = chapterList.value.find(ch => ch.chapter_number === chapterNum)
+        if (chapter) {
+          targetChapterId = chapter.id
+          console.log('✓ 找到指定章节:', chapter.title, 'ID:', chapter.id)
+        } else {
+          // 如果没找到，尝试作为章节ID使用
+          targetChapterId = chapterNum
+          console.log('⚠ 未找到章节号，尝试使用章节ID:', chapterNum)
+        }
+      } else {
+        // 尝试从本地存储恢复进度
+        const savedProgress = localStorage.getItem(`reading_progress_${novelId.value}`)
+        if (savedProgress) {
+          try {
+            const progress = JSON.parse(savedProgress)
+            targetChapterId = progress.chapterId
+            console.log('✓ 恢复阅读进度，章节ID:', targetChapterId)
+          } catch (e) {
+            console.warn('⚠ 解析阅读进度失败:', e)
+          }
+        }
+        
+        // 如果没有进度，默认加载第一章
+        if (!targetChapterId) {
+          targetChapterId = chapterList.value[0].id
+          console.log('✓ 加载第一章，ID:', targetChapterId)
+        }
+      }
+      
+      if (targetChapterId) {
+        currentChapterId.value = targetChapterId
+        await loadChapter(targetChapterId)
+        console.log('✓ 章节内容加载成功')
+      } else {
+        throw new Error('无法确定要加载的章节')
+      }
     } else {
-      // 默认加载第一章
-      if (chapterList.value.length > 0) {
-        currentChapterId.value = chapterList.value[0].id
+      // 没有章节列表，可能是短篇小说，尝试直接加载内容
+      console.warn('⚠ 该小说没有章节列表，可能是短篇小说')
+      
+      // 尝试使用小说ID作为章节ID加载
+      try {
+        console.log('🔄 尝试直接加载小说内容，使用小说ID:', novelId.value)
+        currentChapterId.value = parseInt(novelId.value)
+        await loadChapter(currentChapterId.value)
+        console.log('✓ 直接加载成功（短篇小说）')
+      } catch (loadErr) {
+        console.error('✗ 直接加载失败:', loadErr)
+        error.value = '该小说暂无章节内容，可能还在创作中或数据格式不正确'
+        loading.value = false
       }
     }
-  }
-  
-  if (currentChapterId.value) {
-    loadChapter(currentChapterId.value)
+  } catch (err) {
+    console.error('✗ ReadingPage 初始化失败:', err)
+    error.value = err.message || '页面加载失败，请刷新重试'
+    loading.value = false
   }
   
   // 加载保存的阅读设置
-  const savedSettings = localStorage.getItem('reading_settings')
-  if (savedSettings) {
-    const settings = JSON.parse(savedSettings)
-    fontSize.value = settings.fontSize || 18
-    lineHeight.value = settings.lineHeight || 1.8
-    bgColor.value = settings.bgColor || '#f5f5f5'
-    isDarkMode.value = settings.isDarkMode || false
+  try {
+    const savedSettings = localStorage.getItem('reading_settings')
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings)
+      fontSize.value = settings.fontSize || 18
+      lineHeight.value = settings.lineHeight || 1.8
+      bgColor.value = settings.bgColor || '#f5f5f5'
+      isDarkMode.value = settings.isDarkMode || false
+      console.log('✓ 阅读设置加载成功')
+    }
+  } catch (err) {
+    console.error('⚠ 加载阅读设置失败:', err)
   }
 })
 
@@ -559,14 +706,14 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 /* 阅读内容区 */
 .reading-content {
   min-height: 100vh;
-  padding: 2rem 1rem 6rem;
+  padding: 1rem 1rem 6rem;
   overflow-y: auto;
   transition: all 0.3s ease;
 }
 
 @media (min-width: 768px) {
   .reading-content {
-    padding: 3rem 2rem 6rem;
+    padding: 1.5rem 2rem 6rem;
   }
 }
 
@@ -579,7 +726,35 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
+  margin-top: 1rem;
   text-align: center;
+  line-height: 1.6;
+}
+
+.novel-heading {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  margin-top: 1rem;
+  text-align: center;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+
+.dark-mode .novel-heading {
+  color: #e0e0e0;
+}
+
+@media (max-width: 640px) {
+  .chapter-heading {
+    font-size: 1.25rem;
+    margin-top: 0.5rem;
+  }
+  
+  .novel-heading {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
 }
 
 .chapter-meta {
@@ -642,6 +817,40 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 
 .catalog-btn {
   background: #6366f1;
+}
+
+/* 单章节导航 */
+.single-chapter-nav {
+  display: flex;
+  justify-content: center;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.dark-mode .single-chapter-nav {
+  border-top-color: rgba(255,255,255,0.1);
+}
+
+.back-to-detail {
+  min-width: 200px;
+  background: #10b981;
+}
+
+.back-to-detail:hover {
+  background: #059669;
+}
+
+/* 工具栏单行布局 */
+.toolbar-actions.single-row {
+  justify-content: center;
+  gap: 2rem;
+}
+
+@media (max-width: 640px) {
+  .toolbar-actions.single-row {
+    gap: 1rem;
+  }
 }
 
 /* 底部工具栏 */
@@ -913,16 +1122,28 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-weight: 600;
 }
 
 .size-control button:hover {
   border-color: #4f46e5;
   color: #4f46e5;
+  background: #f0f0ff;
+}
+
+.size-control button:active {
+  transform: scale(0.95);
 }
 
 .dark-mode .size-control button {
   background: #3d3d3d;
   border-color: #555;
+  color: #e0e0e0;
+}
+
+.dark-mode .size-control button:hover {
+  background: #4a4a4a;
+  border-color: #6366f1;
 }
 
 .size-control span {
@@ -1004,5 +1225,15 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   padding: 1rem;
   color: #999;
   font-size: 0.875rem;
+}
+
+.empty-catalog {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #999;
+}
+
+.empty-catalog p {
+  font-size: 0.9375rem;
 }
 </style>

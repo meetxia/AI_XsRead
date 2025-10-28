@@ -130,6 +130,15 @@ export const applyThemeToDOM = (theme, mode) => {
   root.style.setProperty('--color-border', themeColors.border)
   root.style.setProperty('--color-shadow', themeColors.shadow)
   
+  // 设置额外的背景变量（确保所有组件都能正确显示）
+  root.style.setProperty('--color-bg-base', mode === 'dark' ? '#1a1a1a' : '#fefefe')
+  root.style.setProperty('--color-bg-elevated', mode === 'dark' ? '#2d2d2d' : '#ffffff')
+  root.style.setProperty('--color-bg-hover', mode === 'dark' ? '#3a3a3a' : '#f8f8f8')
+  
+  // 设置主色调的变体
+  root.style.setProperty('--color-primary-dark', mode === 'dark' ? '#ff5569' : '#c23d52')
+  root.style.setProperty('--color-primary-light', mode === 'dark' ? '#ff8191' : '#ff6b7f')
+  
   // 设置可选颜色
   if (themeColors.tertiary) {
     root.style.setProperty('--color-tertiary', themeColors.tertiary)
@@ -143,10 +152,14 @@ export const applyThemeToDOM = (theme, mode) => {
   document.body.style.color = themeColors.textPrimary
   document.body.style.minHeight = '100vh'
   
-  // 添加主题和模式类
+  // 添加主题和模式类到根元素和body
+  root.className = mode === 'dark' ? 'dark' : ''
   document.body.className = `theme-${theme} mode-${mode}`
   
-  console.log(`✓ 主题已应用: ${theme} (${mode})`)
+  console.log(`✓ 主题已应用: ${theme} (${mode})`, {
+    textPrimary: themeColors.textPrimary,
+    bgCard: themeColors.bgCard
+  })
 }
 
 /**

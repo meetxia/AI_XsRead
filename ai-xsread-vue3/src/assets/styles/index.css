@@ -4,17 +4,76 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap');
 
-/* CSS变量定义 - 主题系统 */
+/* CSS变量定义 - 优化后的主题系统 */
 :root {
+  /* 主色调 - 提升对比度 */
   --color-primary: #d95468;
+  --color-primary-dark: #c23d52;
+  --color-primary-light: #ff6b7f;
   --color-secondary: #ed7654;
   --color-accent: #FFBAAC;
+  
+  /* 文字颜色 - 提升可读性 */
+  --color-text-primary: #2d2d2d;
+  --color-text-secondary: #5a5a5a;
+  --color-text-muted: #8c8c8c;
+  
+  /* 背景色 - 增加层次 */
+  --color-bg-base: #fefefe;
+  --color-bg-elevated: #ffffff;
+  --color-bg-hover: #f8f8f8;
   --color-bg-card: #ffffff;
-  --color-text-primary: #1a202c;
-  --color-text-secondary: #4a5568;
-  --color-text-muted: #718096;
-  --color-border: #e2e8f0;
-  --color-shadow: rgba(0, 0, 0, 0.1);
+  
+  /* 边框和阴影 */
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+  --color-shadow: rgba(0, 0, 0, 0.08);
+  --color-shadow-strong: rgba(0, 0, 0, 0.15);
+}
+
+/* 暗色模式优化 */
+:root.dark {
+  /* 背景 - 更柔和 */
+  --color-bg-base: #1a1a1a;
+  --color-bg-elevated: #2d2d2d;
+  --color-bg-hover: #3a3a3a;
+  --color-bg-card: #2d2d2d;
+  
+  /* 文字 - 提升亮度 */
+  --color-text-primary: #e8e8e8;
+  --color-text-secondary: #b8b8b8;
+  --color-text-muted: #8c8c8c;
+  
+  /* 主色 - 暗色模式下调整 */
+  --color-primary: #ff6b7f;
+  --color-primary-dark: #ff5569;
+  --color-primary-light: #ff8191;
+  
+  /* 边框和阴影 */
+  --color-border: #404040;
+  --color-border-light: #353535;
+  --color-shadow: rgba(0, 0, 0, 0.3);
+  --color-shadow-strong: rgba(0, 0, 0, 0.5);
+}
+
+/* 高对比度模式 - 无障碍访问 */
+@media (prefers-contrast: high) {
+  :root {
+    --color-text-primary: #000000;
+    --color-text-secondary: #333333;
+    --color-bg-base: #ffffff;
+    --color-bg-elevated: #ffffff;
+    --color-border: #000000;
+    --color-shadow: rgba(0, 0, 0, 0.2);
+  }
+  
+  body {
+    font-weight: 500;
+  }
+  
+  .btn, .card, .input {
+    border: 2px solid var(--color-border);
+  }
 }
 
 body {

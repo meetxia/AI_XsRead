@@ -316,36 +316,10 @@ const currentBooks = computed(() => {
   }
 })
 
-// 过滤后的书籍列表（使用模拟数据）
+// 过滤后的书籍列表（不使用模拟数据）
 const filteredBooks = computed(() => {
-  if (currentBooks.value && currentBooks.value.length > 0) {
-    return currentBooks.value
-  }
-  // 返回模拟数据
-  return getMockBooks()
+  return currentBooks.value || []
 })
-
-// 生成模拟书籍数据
-function getMockBooks() {
-  const books = []
-  const count = activeTab.value === 'reading' ? 4 : activeTab.value === 'finished' ? 2 : 2
-  const titles = ['时光里的温柔相遇', '长安月下，归人未归', '雨夜迷雾中的真相', '操场上的秘密约定']
-  const authors = ['温柔笔触', '墨染流年', '悬疑女王', '青春记忆']
-  
-  for (let i = 0; i < count; i++) {
-    books.push({
-      id: i + 1,
-      title: titles[i] || `小说标题 ${i + 1}`,
-      author: authors[i] || `作者 ${i + 1}`,
-      coverGradient: gradients[i % gradients.length],
-      currentChapter: [3, 15, 8, 20][i] || 1,
-      progress: [35, 60, 25, 80][i] || 50,
-      finishDays: [2, 5][i] || 1
-    })
-  }
-  
-  return books
-}
 
 // 切换标签
 function handleTabChange(tab) {
@@ -446,17 +420,44 @@ async function loadStats() {
     }
   } catch (error) {
     console.error('获取统计数据失败:', error)
+    // 统计数据失败不影响页面显示，保持默认值
+    stats.value = {
+      totalBooks: 0,
+      readingBooks: 0,
+      finishedBooks: 0,
+      totalReadTime: 0
+    }
   }
 }
 
 // 初始化
 onMounted(async () => {
+  // 检查登录状态
+  const token = localStorage.getItem('token')
+  if (!token) {
+    console.warn('未登录，跳转到登录页')
+    router.push('/login?redirect=/bookshelf')
+    return
+  }
+
   loading.value = true
-  await Promise.all([
-    bookshelfStore.fetchBookshelf(),
-    loadStats()
-  ])
-  loading.value = false
+  try {
+    await Promise.all([
+      bookshelfStore.fetchBookshelf(),
+      loadStats()
+    ])
+  } catch (error) {
+    console.error('加载书架数据失败:', error)
+    // 如果是401错误，说明token无效，跳转到登录页
+    if (error.response?.status === 401 || error.message?.includes('401')) {
+      console.warn('Token无效或已过期，跳转到登录页')
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      router.push('/login?redirect=/bookshelf')
+    }
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -495,6 +496,13 @@ onMounted(async () => {
 .page-subtitle {
   font-size: 1.125rem;
   color: var(--color-text-secondary);
+}
+
+/* 移动端优化：隐藏标题 */
+@media (max-width: 767px) {
+  .page-header {
+    display: none;
+  }
 }
 
 /* 统计卡片 */
@@ -558,6 +566,49 @@ onMounted(async () => {
   margin-top: 0.25rem;
 }
 
+/* 移动端统计卡片优化 */
+@media (max-width: 767px) {
+  .stats-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-grid {
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    padding: 0.75rem;
+    gap: 0.625rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 4px var(--color-shadow);
+  }
+
+  .stat-card:hover {
+    transform: none;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+  }
+
+  .stat-icon svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .stat-number {
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .stat-label {
+    font-size: 0.625rem;
+    margin-top: 0.125rem;
+  }
+}
+
 /* 标签切换和工具栏 */
 .tabs-section {
   margin-bottom: 3rem;
@@ -613,6 +664,36 @@ onMounted(async () => {
 
 .tab-btn.active .tab-badge {
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* 移动端标签优化 */
+@media (max-width: 767px) {
+  .tabs-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .tabs-header {
+    gap: 0.5rem;
+  }
+
+  .tabs-container {
+    padding: 0.2rem;
+    box-shadow: 0 2px 4px var(--color-shadow);
+  }
+
+  .tab-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .tab-badge {
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 0.25rem;
+    margin-left: 0.25rem;
+    font-size: 0.625rem;
+    line-height: 1rem;
+  }
 }
 
 /* 工具栏 */
@@ -680,6 +761,31 @@ onMounted(async () => {
   border-color: var(--color-primary);
 }
 
+/* 移动端工具栏优化 */
+@media (max-width: 767px) {
+  .toolbar {
+    gap: 0.5rem;
+  }
+
+  .tool-btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    border-radius: 0.375rem;
+  }
+
+  .tool-btn svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .sort-dropdown {
+    padding: 0.375rem 1.75rem 0.375rem 0.625rem;
+    font-size: 0.8125rem;
+    border-radius: 0.375rem;
+    background-size: 0.875rem;
+  }
+}
+
 /* 加载状态 */
 .loading-container {
   text-align: center;
@@ -703,6 +809,51 @@ onMounted(async () => {
 .loading-text {
   margin-top: 1rem;
   color: var(--color-text-muted);
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 5rem 2rem;
+}
+
+.empty-icon {
+  width: 8rem;
+  height: 8rem;
+  margin: 0 auto 1.5rem;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.empty-hint {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 2rem;
+}
+
+.discover-btn {
+  padding: 0.75rem 2rem;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 9999px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.discover-btn:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* 书籍网格 */
@@ -735,12 +886,53 @@ onMounted(async () => {
 }
 
 .book-card {
+  position: relative;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
+.book-card.edit-mode {
+  padding-top: 2rem;
+}
+
 .book-card:hover {
   transform: scale(1.05);
+}
+
+.book-card.edit-mode:hover {
+  transform: none;
+}
+
+/* 选择框 */
+.select-checkbox {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  border: 2px solid var(--color-border);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.checkbox.checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.check-icon {
+  width: 1rem;
+  height: 1rem;
+  color: white;
 }
 
 .book-cover {
@@ -755,6 +947,37 @@ onMounted(async () => {
 
 .book-card:hover .book-cover {
   box-shadow: 0 10px 25px -5px var(--color-shadow);
+}
+
+/* 操作按钮 */
+.book-actions {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.book-card:hover .book-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  background: #ef4444;
 }
 
 .book-cover-content {
@@ -778,11 +1001,18 @@ onMounted(async () => {
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   color: white;
   font-size: 0.75rem;
   padding: 0.5rem;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.book-progress-badge .mr-1 {
+  margin-right: 0.25rem;
 }
 
 .book-finished-badge {
@@ -842,6 +1072,200 @@ onMounted(async () => {
   font-size: 0.75rem;
   color: var(--color-text-muted);
   margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+}
+
+/* 快捷操作按钮 */
+.quick-actions {
+  margin-top: 0.5rem;
+}
+
+.quick-btn {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.quick-btn.primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.quick-btn.primary:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.quick-btn svg {
+  flex-shrink: 0;
+}
+
+/* 模态框 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: fadeIn 0.2s ease-in;
+}
+
+.modal-content {
+  background: var(--color-bg-card);
+  border-radius: 1rem;
+  max-width: 28rem;
+  width: calc(100% - 2rem);
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.modal-close {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-body p {
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.modal-hint {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modal-btn.cancel {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.modal-btn.cancel:hover {
+  background: var(--color-bg-hover);
+}
+
+.modal-btn.confirm {
+  background: #ef4444;
+  color: white;
+}
+
+.modal-btn.confirm:hover {
+  background: #dc2626;
+}
+
+/* 工具类 */
+.w-3 {
+  width: 0.75rem;
+}
+
+.h-3 {
+  height: 0.75rem;
+}
+
+.w-4 {
+  width: 1rem;
+}
+
+.h-4 {
+  height: 1rem;
+}
+
+.w-5 {
+  width: 1.25rem;
+}
+
+.h-5 {
+  height: 1.25rem;
+}
+
+.w-6 {
+  width: 1.5rem;
+}
+
+.h-6 {
+  height: 1.5rem;
+}
+
+.inline {
+  display: inline;
+}
+
+.mr-1 {
+  margin-right: 0.25rem;
 }
 
 /* 淡入动画 */
@@ -857,6 +1281,207 @@ onMounted(async () => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 移动端书籍卡片和布局优化 */
+@media (max-width: 767px) {
+  /* 整体内边距 */
+  .main-content {
+    padding: 0 0.75rem;
+  }
+
+  .bookshelf-page {
+    padding-top: 3.5rem;
+  }
+
+  /* 书籍网格间距 */
+  .books-grid {
+    gap: 0.75rem;
+  }
+
+  /* 书籍封面 */
+  .book-cover {
+    border-radius: 0.375rem;
+    box-shadow: 0 2px 4px var(--color-shadow);
+    margin-bottom: 0.5rem;
+  }
+
+  .book-card:hover .book-cover {
+    box-shadow: 0 4px 8px var(--color-shadow);
+  }
+
+  /* 书籍封面标题 */
+  .book-cover-title {
+    font-size: 0.9375rem;
+  }
+
+  /* 书籍信息 */
+  .book-info {
+    padding: 0;
+  }
+
+  .book-title {
+    font-size: 0.875rem;
+    margin-bottom: 0.125rem;
+  }
+
+  .book-author {
+    font-size: 0.75rem;
+    margin-bottom: 0.375rem;
+  }
+
+  /* 进度徽章 */
+  .book-progress-badge {
+    font-size: 0.625rem;
+    padding: 0.375rem;
+  }
+
+  .book-progress-badge svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  /* 完成徽章 */
+  .book-finished-badge {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  /* 进度条 */
+  .book-progress {
+    margin-top: 0.375rem;
+  }
+
+  .progress-bar {
+    height: 0.25rem;
+  }
+
+  .progress-text {
+    font-size: 0.625rem;
+    margin-top: 0.125rem;
+  }
+
+  .book-finish-time {
+    font-size: 0.625rem;
+    margin-top: 0.125rem;
+  }
+
+  /* 快捷操作按钮 */
+  .quick-actions {
+    margin-top: 0.375rem;
+  }
+
+  .quick-btn {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.6875rem;
+  }
+
+  .quick-btn svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    padding: 3rem 1rem;
+  }
+
+  .empty-icon {
+    width: 5rem;
+    height: 5rem;
+    margin-bottom: 1rem;
+  }
+
+  .empty-text {
+    font-size: 1rem;
+  }
+
+  .empty-hint {
+    font-size: 0.8125rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .discover-btn {
+    padding: 0.625rem 1.5rem;
+    font-size: 0.875rem;
+  }
+
+  /* 加载状态 */
+  .loading-container {
+    padding: 3rem 0;
+  }
+
+  .loading-spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  /* 模态框 */
+  .modal-content {
+    width: calc(100% - 1.5rem);
+  }
+
+  .modal-header {
+    padding: 1rem;
+  }
+
+  .modal-title {
+    font-size: 1rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .modal-body p {
+    font-size: 0.875rem;
+  }
+
+  .modal-hint {
+    font-size: 0.8125rem;
+  }
+
+  .modal-footer {
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+
+  .modal-btn {
+    padding: 0.625rem;
+    font-size: 0.875rem;
+  }
+
+  /* 选择框 */
+  .select-checkbox {
+    top: 0.375rem;
+    left: 0.375rem;
+  }
+
+  .checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .check-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  /* 操作按钮 */
+  .book-actions {
+    top: 0.375rem;
+    right: 0.375rem;
+  }
+
+  .action-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .action-btn svg {
+    width: 0.875rem;
+    height: 0.875rem;
   }
 }
 </style>

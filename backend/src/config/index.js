@@ -3,7 +3,7 @@ require('dotenv').config();
 module.exports = {
   // 服务器配置
   server: {
-    port: process.env.PORT || 8000,
+    port: process.env.PORT || 8005,
     env: process.env.NODE_ENV || 'development'
   },
 
@@ -45,9 +45,9 @@ module.exports = {
   // JWT配置
   jwt: {
     secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production-2025',
-    expiresIn: process.env.JWT_EXPIRES_IN || '2h',
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d', // 改为7天
     refreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key-change-in-production-2025',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' // 改为30天
   },
 
   // CORS配置

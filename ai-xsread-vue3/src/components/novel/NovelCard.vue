@@ -46,6 +46,8 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+
 const props = defineProps({
   novel: {
     type: Object,
@@ -58,10 +60,13 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['click', 'read', 'add-shelf'])
+const router = useRouter()
 
 // 点击事件处理
 function handleClick() {
   emit('click', props.novel)
+  // 跳转到小说详情页
+  router.push(`/novel/${props.novel.id}`)
 }
 
 // 格式化字数
