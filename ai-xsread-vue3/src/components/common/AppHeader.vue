@@ -70,9 +70,10 @@
                 class="user-avatar-btn"
               >
                 <img 
-                  :src="userStore.userInfo?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'" 
+                  :src="getUserAvatar()" 
                   alt="头像" 
                   class="user-avatar"
+                  @error="handleAvatarError"
                 />
               </button>
               
@@ -169,9 +170,10 @@
           <div v-if="userStore.isLogin" class="mobile-user-menu">
             <button @click.stop="toggleUserMenu" class="mobile-avatar-btn">
               <img 
-                :src="userStore.userInfo?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'" 
+                :src="getUserAvatar()" 
                 alt="头像" 
                 class="mobile-avatar"
+                @error="handleAvatarError"
               />
             </button>
             
@@ -246,6 +248,39 @@ const handleLogout = () => {
   userStore.logout()
   showUserMenu.value = false
   router.push('/')
+}
+
+// 获取用户头像
+const getUserAvatar = () => {
+  const avatar = userStore.userInfo?.avatar
+  
+  // 如果没有头像，返回默认头像
+  if (!avatar) {
+    return '/default-avatar.svg'
+  }
+  
+  // 如果是完整URL（http/https开头），直接返回
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+    return avatar
+  }
+  
+  // 如果是相对路径，拼接API基础路径
+  if (avatar.startsWith('/uploads/')) {
+    const baseAPI = import.meta.env.VITE_APP_BASE_API || 'http://localhost:3000'
+    return `${baseAPI}${avatar}`
+  }
+  
+  // 其他情况直接返回
+  return avatar
+}
+
+// 头像加载失败处理
+const handleAvatarError = (event) => {
+  console.warn('头像加载失败，使用默认头像', event.target.src)
+  // 防止无限循环
+  if (!event.target.src.includes('default-avatar.svg')) {
+    event.target.src = '/default-avatar.svg'
+  }
 }
 
 // 点击外部关闭菜单

@@ -6,8 +6,10 @@
     <div class="main-content">
       <!-- 页面标题 -->
       <div class="page-header fade-in">
-        <h1 class="page-title">编辑精选</h1>
-        <p class="page-subtitle">作者心声，精选故事，创作心路</p>
+        <div class="container">
+          <h1 class="page-title">编辑精选</h1>
+          <p class="page-subtitle">作者心声，精选故事，创作心路</p>
+        </div>
       </div>
 
       <!-- 加载状态 -->
@@ -19,11 +21,12 @@
       <div v-else class="content-wrapper">
         <!-- 本周必读 -->
         <section class="weekly-pick-section fade-in">
-          <h2 class="section-title">
-            <span class="title-accent"></span>
-            本周必读
-          </h2>
-          <div class="weekly-pick-card">
+          <div class="container">
+            <h2 class="section-title">
+              <span class="title-accent"></span>
+              本周必读
+            </h2>
+            <div class="weekly-pick-card">
             <div class="weekly-pick-cover">
               <h3 class="weekly-pick-title">时光里的温柔相遇</h3>
             </div>
@@ -46,15 +49,17 @@
               <button @click="handleRead({ id: 1 })" class="read-btn">立即阅读</button>
             </div>
           </div>
+          </div>
         </section>
 
         <!-- 热门榜单 -->
         <section class="hot-rank-section fade-in" style="animation-delay: 0.1s">
-          <h2 class="section-title">
-            <span class="title-accent-secondary"></span>
-            热门榜单
-          </h2>
-          <div class="rank-grid">
+          <div class="container">
+            <h2 class="section-title">
+              <span class="title-accent-secondary"></span>
+              热门榜单
+            </h2>
+            <div class="rank-grid">
             <div v-for="(book, index) in hotRankList.slice(0, 4)" :key="book.id" 
                  class="rank-card" @click="handleNovelClick(book)">
               <div class="rank-number" :class="`rank-${index + 1}`">{{ index + 1 }}</div>
@@ -69,15 +74,17 @@
               </div>
             </div>
           </div>
+          </div>
         </section>
 
         <!-- 作者心声 -->
         <section class="author-voice-section fade-in" style="animation-delay: 0.2s">
-          <h2 class="section-title">
-            <span class="title-accent-purple"></span>
-            作者心声
-          </h2>
-          <div class="author-grid">
+          <div class="container">
+            <h2 class="section-title">
+              <span class="title-accent-purple"></span>
+              作者心声
+            </h2>
+            <div class="author-grid">
             <div v-for="author in authorVoices" :key="author.id" class="author-card">
               <div class="author-header">
                 <div class="author-avatar" :style="{ background: author.avatarGradient }"></div>
@@ -89,15 +96,17 @@
               <p class="author-quote">{{ author.quote }}</p>
             </div>
           </div>
+          </div>
         </section>
 
         <!-- 分类精选 -->
         <section class="category-section fade-in" style="animation-delay: 0.3s">
-          <h2 class="section-title">
-            <span class="title-accent-pink"></span>
-            分类精选
-          </h2>
-          <div class="category-grid">
+          <div class="container">
+            <h2 class="section-title">
+              <span class="title-accent-pink"></span>
+              分类精选
+            </h2>
+            <div class="category-grid">
             <div v-for="category in categories.slice(0, 4)" :key="category.id" 
                  class="category-card" :style="{ background: category.gradient }"
                  @click="handleCategorySelect(category)">
@@ -105,6 +114,7 @@
               <h3 class="category-name">{{ category.name }}</h3>
               <p class="category-count">{{ category.count }}部作品</p>
             </div>
+          </div>
           </div>
         </section>
       </div>
@@ -402,9 +412,19 @@ onMounted(async () => {
 }
 
 .main-content {
+  width: 100%;
+}
+
+.container {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 1rem;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 0.75rem;
+  }
 }
 
 /* 页面头部 */
@@ -807,10 +827,6 @@ onMounted(async () => {
 
 /* 移动端优化 */
 @media (max-width: 640px) {
-  .main-content {
-    padding: 0 0.75rem;
-  }
-  
   /* 页面头部 */
   .page-header {
     padding: 2rem 0 1.5rem;

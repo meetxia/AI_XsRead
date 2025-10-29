@@ -7,7 +7,9 @@
     <main class="main-content">
       <!-- 精简欢迎语 -->
       <section class="welcome-section compact">
-        <h1 class="welcome-title-sm fade-in">故事入境，杂念自消</h1>
+        <div class="container">
+          <h1 class="welcome-title-sm fade-in">故事入境，杂念自消</h1>
+        </div>
       </section>
       
       <!-- 快速导航 -->
@@ -295,7 +297,7 @@ onMounted(() => {
 
 /* 精简欢迎区域 */
 .welcome-section.compact {
-  padding: 2rem 1rem 1rem;
+  padding: 2rem 0 1rem;
   text-align: center;
 }
 
@@ -310,7 +312,7 @@ onMounted(() => {
 
 @media (max-width: 640px) {
   .welcome-section.compact {
-    padding: 1rem 1rem 0.5rem;
+    padding: 1rem 0 0.5rem;
   }
   
   .welcome-title-sm {

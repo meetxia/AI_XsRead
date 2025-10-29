@@ -6,13 +6,16 @@
     <div class="main-content">
       <!-- 页面标题 -->
       <div class="page-header fade-in">
-        <h1 class="page-title">我的书架</h1>
-        <p class="page-subtitle">书架是港湾，每本书都等待重逢</p>
+        <div class="container">
+          <h1 class="page-title">我的书架</h1>
+          <p class="page-subtitle">书架是港湾，每本书都等待重逢</p>
+        </div>
       </div>
 
       <!-- 阅读统计 -->
       <section class="stats-section fade-in mt-xl" style="animation-delay: 0.1s">
-        <div class="stats-grid">
+        <div class="container">
+          <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
               <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -58,12 +61,14 @@
             </div>
           </div>
         </div>
+        </div>
       </section>
 
       <!-- 书架标签和操作栏 -->
       <section class="tabs-section fade-in" style="animation-delay: 0.2s">
-        <div class="tabs-header">
-          <div class="tabs-container">
+        <div class="container">
+          <div class="tabs-header">
+            <div class="tabs-container">
             <button
               v-for="tab in tabs"
               :key="tab.key"
@@ -118,6 +123,7 @@
             </div>
           </div>
         </div>
+        </div>
       </section>
 
       <!-- 书籍展示区 -->
@@ -127,8 +133,9 @@
       </div>
 
       <section v-else class="books-section fade-in" style="animation-delay: 0.3s">
-        <!-- 空状态 -->
-        <div v-if="filteredBooks.length === 0" class="empty-state">
+        <div class="container">
+          <!-- 空状态 -->
+          <div v-if="filteredBooks.length === 0" class="empty-state">
           <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
           </svg>
@@ -221,6 +228,7 @@
               </div>
             </div>
           </div>
+        </div>
         </div>
       </section>
 
@@ -475,9 +483,19 @@ onMounted(async () => {
 }
 
 .main-content {
+  width: 100%;
+}
+
+.container {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 1rem;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 0.75rem;
+  }
 }
 
 /* 页面头部 */

@@ -14,10 +14,10 @@
             <!-- 头像 -->
             <div class="avatar-container">
               <img 
-                :src="userInfo?.avatar || defaultAvatar" 
+                :src="getUserAvatarUrl(userInfo)" 
                 :alt="userInfo?.nickname || '用户'"
                 class="user-avatar"
-                @error="handleAvatarError"
+                @error="onAvatarError"
               />
               <button class="avatar-edit-btn" @click="handleEditAvatar">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,6 +164,7 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import BottomNav from '@/components/common/BottomNav.vue'
 import ReadingStatsChart from '@/components/profile/ReadingStatsChart.vue'
 import AchievementSystem from '@/components/profile/AchievementSystem.vue'
+import { getUserAvatarUrl, handleAvatarError } from '@/utils/avatar'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -171,9 +172,6 @@ const bookshelfStore = useBookshelfStore()
 
 // 用户信息
 const userInfo = computed(() => userStore.userInfo)
-
-// 默认头像
-const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
 
 // 最近阅读的书籍
 const recentBooks = ref([
@@ -313,8 +311,8 @@ function formatDate(timestamp) {
 }
 
 // 头像加载错误处理
-function handleAvatarError(e) {
-  e.target.src = defaultAvatar
+const onAvatarError = (e) => {
+  handleAvatarError(e)
 }
 
 // 编辑头像
