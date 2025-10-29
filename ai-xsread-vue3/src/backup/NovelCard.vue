@@ -136,11 +136,6 @@ function getPublishTime() {
 
 // 获取多层次艺术渐变（模拟照片质感）
 function getCoverGradient() {
-  // 安全检查
-  if (!props.novel) {
-    return { background: 'linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)' }
-  }
-  
   // 多色渐变系统 - 模拟摄影作品的色彩过渡
   const lightModeGradients = [
     // 温暖日落系 - 米黄到浅橙粉
@@ -252,12 +247,12 @@ function getCoverGradient() {
   ]
   
   // 根据小说ID选择渐变
-  const index = props.novel.id ? props.novel.id % 5 : 0  // 修改为 % 5，因为只有5个渐变
+  const index = props.novel.id ? props.novel.id % 10 : 0
   
-  // 暂时只使用浅色渐变，确保在浅色主题下显示正常
-  // TODO: 后续可以根据页面实际主题（而非系统设置）来切换深色/浅色渐变
-  const gradients = lightModeGradients
-  const gradient = gradients[index] || gradients[0]  // 添加默认值防止 undefined
+  // 检测深色模式
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const gradients = isDarkMode ? darkModeGradients : lightModeGradients
+  const gradient = gradients[index]
   
   // 构建多色渐变字符串
   const colorStops = gradient.colors.map((color, i) => 

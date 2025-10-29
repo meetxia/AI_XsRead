@@ -36,15 +36,13 @@
         </div>
       </section>
 
-      <!-- 小说列表 - 瀑布流 -->
+      <!-- 小说列表 - 杂志风格 -->
       <section class="novels-section">
         <div class="container">
-          <MasonryLayout
+          <MagazineLayout
             :novels="displayNovels"
             :loading="loading"
             :has-more="hasMore"
-            :columns="3"
-            :show-description="true"
             :auto-load="true"
             @load-more="loadMoreNovels"
           />
@@ -69,7 +67,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import BottomNav from '@/components/common/BottomNav.vue'
-import MasonryLayout from '@/components/novel/MasonryLayout.vue'
+import MagazineLayout from '@/components/novel/MagazineLayout.vue'
 import SvgIcon from '@/components/common/SvgIcon.vue'
 import { getNovels } from '@/api/novel'
 
