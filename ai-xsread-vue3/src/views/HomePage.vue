@@ -235,14 +235,14 @@ const generateMockNovels = (page, size) => {
   ]
   
   const descriptions = [
-    '那年春天，我在图书馆的角落遇见了他。阳光透过窗棂洒在他的书页上，恰好照亮了我的心房...',
-    '宫墙深深，月色清冷。她站在长安城楼上，等待一个永远不会回来的人。三年了，那个许诺要回来娶她的少年郎，再无音讯...',
-    '雨夜，老宅，消失的遗嘱。三个女人，一个秘密。当真相浮出水面，所有人都沉默了...',
-    '在城市的角落开了一家小咖啡馆。每天，不同的客人带来不同的故事，温暖而治愈...',
-    '这是一个关于修真的故事，主人公历经磨难，最终成就无上大道...',
-    '江湖险恶，侠之大者。一段快意恩仇的武侠传奇就此展开...',
-    '在浩瀚的星海中，人类的命运将何去何从？一场史诗般的星际冒险即将开始...',
-    '穿越回大明王朝，看他如何在历史的长河中留下浓墨重彩的一笔...'
+    '那年春天，我在图书馆的角落遇见了他。阳光透过窗棂洒在他的书页上，恰好照亮了我的心房。这是一个关于相遇与重逢的温柔故事...',
+    '宫墙深深，月色清冷。她站在长安城楼上，等待一个永远不会回来的人。三年了，那个许诺要回来娶她的少年郎，再无音讯。长安的月色依旧，只是少了一个人...',
+    '雨夜，老宅，消失的遗嘱。三个女人，一个秘密。当真相浮出水面，所有人都沉默了。这不是一个简单的遗产纠纷，而是一段埋藏了二十年的往事...',
+    '在城市的角落开了一家小咖啡馆。每天，不同的客人带来不同的故事，温暖而治愈。这里没有喧嚣，只有咖啡的香气和治愈人心的故事...',
+    '这是一个关于修真的故事，主人公历经磨难，最终成就无上大道。从一介凡人到修仙界巅峰，见证一段波澜壮阔的修真之旅...',
+    '江湖险恶，侠之大者。一段快意恩仇的武侠传奇就此展开。刀光剑影中，是非恩怨，谁能笑傲江湖？...',
+    '在浩瀚的星海中，人类的命运将何去何从？一场史诗般的星际冒险即将开始。面对未知的宇宙，人类将书写属于自己的传奇...',
+    '穿越回大明王朝，看他如何在历史的长河中留下浓墨重彩的一笔。权谋、战争、改革，一个现代人在古代的奋斗史...'
   ]
   
   const novels = []
@@ -310,11 +310,11 @@ onMounted(() => {
 
 @media (max-width: 640px) {
   .welcome-section.compact {
-    padding: 1rem 0 0.5rem;
+    padding: 0.625rem 0 0.375rem;  /* 进一步减小padding */
   }
   
   .welcome-title-sm {
-    font-size: 1.125rem;
+    font-size: 1rem;  /* 减小字体 */
   }
 }
 
@@ -339,12 +339,12 @@ onMounted(() => {
 
 @media (max-width: 640px) {
   .quick-nav-section {
-    padding: 0.75rem 0 1rem;
+    padding: 0.5rem 0 0.75rem;  /* 减小padding */
   }
   
   .quick-nav {
     grid-template-columns: repeat(4, 1fr);
-    gap: 0.5rem;
+    gap: 0.375rem;  /* 减小gap */
   }
 }
 
@@ -389,19 +389,19 @@ onMounted(() => {
 
 @media (max-width: 640px) {
   .nav-item {
-    padding: 0.75rem 0.375rem;
-    border-radius: 12px;
+    padding: 0.5rem 0.25rem;  /* 减小padding */
+    border-radius: 10px;
   }
   
   .nav-item .nav-icon {
-    margin-bottom: 0.25rem;
-    font-size: 1.25rem;
-    width: 1.25rem;
-    height: 1.25rem;
+    margin-bottom: 0.1875rem;
+    font-size: 1.125rem;  /* 减小图标尺寸 */
+    width: 1.125rem;
+    height: 1.125rem;
   }
   
   .nav-text {
-    font-size: 0.6875rem;
+    font-size: 0.625rem;  /* 减小字体 */
   }
 }
 
@@ -424,7 +424,7 @@ onMounted(() => {
 
 @media (max-width: 640px) {
   .novels-section {
-    padding: 0.5rem 0 2rem;
+    padding: 0.25rem 0 1.5rem;  /* 进一步减小padding */
   }
 }
 

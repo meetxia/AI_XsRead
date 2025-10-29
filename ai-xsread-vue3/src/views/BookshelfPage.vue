@@ -482,6 +482,7 @@ onMounted(async () => {
   }
 }
 
+/* ===== 主内容区域 - 确保左右边距一致 ===== */
 .main-content {
   width: 100%;
 }
@@ -490,11 +491,12 @@ onMounted(async () => {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 @media (max-width: 640px) {
   .container {
-    padding: 0 0.75rem;
+    padding: 0 1rem;
   }
 }
 
@@ -1304,13 +1306,15 @@ onMounted(async () => {
 
 /* 移动端书籍卡片和布局优化 */
 @media (max-width: 767px) {
-  /* 整体内边距 */
+  /* 整体内边距 - 移除额外的padding，使用container的padding */
   .main-content {
-    padding: 0 0.75rem;
+    padding: 0;
   }
+
   .mt-xl {
-  margin-top: 1rem;
-}
+    margin-top: 1rem;
+  }
+
   .bookshelf-page {
     padding-top: 3.5rem;
   }

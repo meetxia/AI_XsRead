@@ -31,9 +31,6 @@
     <!-- 标题 -->
     <h3 class="card-title">{{ novel.title }}</h3>
 
-      <!-- 作者 -->
-      <p class="card-author">{{ novel.author || '佚名' }}</p>
-
     <!-- 描述 -->
     <p v-if="showDescription" class="card-description">
       {{ novel.description || '这是一个精彩的故事，讲述了一段动人的情节...' }}
@@ -307,8 +304,11 @@ function getCategoryStyle() {
     0 2px 8px rgba(0, 0, 0, 0.02);
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   
-  /* 大量留白，增加呼吸感 */
+  /* 关键：让卡片填充整个网格区域 */
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .novel-card.magazine-style:hover {
@@ -412,7 +412,11 @@ function getCategoryStyle() {
 /* 内容区域 - 大量留白 */
 .card-content {
   position: relative;
-  padding: 2rem 1.75rem 1.5rem;
+  padding: 1.5rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 /* 卡片头部 */
@@ -420,13 +424,14 @@ function getCategoryStyle() {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 1.25rem;
-  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .category-tag {
-  padding: 0.375rem 0.875rem;
-  font-size: 0.6875rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.625rem;
   border-radius: 9999px;
   font-weight: 500;
   letter-spacing: 0.03em;
@@ -435,7 +440,7 @@ function getCategoryStyle() {
 }
 
 .publish-time {
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   color: var(--color-text-muted);
   opacity: 0.65;
   letter-spacing: 0.02em;
@@ -444,12 +449,13 @@ function getCategoryStyle() {
 
 /* 卡片标题 - 杂志式大标题 */
 .card-title {
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
+  margin-bottom: 0.375rem;
+  line-height: 1.35;
   letter-spacing: -0.02em;
+  flex-shrink: 0;
   
   /* 限制行数 */
   display: -webkit-box;
@@ -461,42 +467,45 @@ function getCategoryStyle() {
 
 /* 作者 - 细线体 */
 .card-author {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--color-text-secondary);
-  margin-bottom: 1rem;
+  margin-bottom: 0.625rem;
   font-weight: 400;
   letter-spacing: 0.01em;
   opacity: 0.8;
+  flex-shrink: 0;
 }
 
 /* 卡片描述 - 优雅段落 */
 .card-description {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.8;
-  margin-bottom: 1.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  margin-bottom: 0.875rem;
   letter-spacing: 0.01em;
   opacity: 0.85;
+  flex: 1;
   
   /* 限制行数，保持留白 */
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
 /* 装饰引用线 - 杂志元素 */
 .decorative-quote {
-  width: 40px;
-  height: 2px;
+  width: 30px;
+  height: 1.5px;
   background: linear-gradient(
     90deg,
     var(--color-primary),
     transparent
   );
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
   opacity: 0.4;
+  flex-shrink: 0;
 }
 
 /* 卡片底部 */
@@ -504,8 +513,10 @@ function getCategoryStyle() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.8125rem;
-  padding-top: 1rem;
+  flex-shrink: 0;
+  margin-top: auto;
+  font-size: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
 
@@ -662,67 +673,232 @@ function getCategoryStyle() {
   }
 }
 
+/* ===== 卡片尺寸适配（智能内容调整）===== */
+
+/* 小卡片 - 2行高度，紧凑布局 */
+.card-size-small .card-content {
+  padding: 1rem 1rem 0.875rem;
+}
+
+.card-size-small .card-header {
+  margin-bottom: 0.5rem;
+}
+
+.card-size-small .card-title {
+  font-size: 0.9375rem;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  margin-bottom: 0.25rem;
+}
+
+.card-size-small .card-author {
+  font-size: 0.6875rem;
+  margin-bottom: 0.375rem;
+}
+
+.card-size-small .card-description {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  margin-bottom: 0.5rem;
+}
+
+.card-size-small .decorative-quote {
+  display: none;
+}
+
+.card-size-small .card-footer {
+  font-size: 0.6875rem;
+  padding-top: 0.5rem;
+}
+
+.card-size-small .meta-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.card-size-small .read-btn {
+  font-size: 0.6875rem;
+  padding: 0.25rem 0.625rem;
+}
+
+/* 正常卡片 - 3行高度，标准布局 */
+.card-size-normal .card-content {
+  padding: 1.5rem 1.25rem 1.25rem;
+}
+
+.card-size-normal .card-title {
+  font-size: 1.125rem;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.card-size-normal .card-description {
+  font-size: 0.8125rem;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* 大卡片 - 4行高度，宽敞布局 */
+.card-size-large .card-content {
+  padding: 1.75rem 1.5rem 1.5rem;
+}
+
+.card-size-large .card-header {
+  margin-bottom: 1rem;
+}
+
+.card-size-large .card-title {
+  font-size: 1.375rem;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.card-size-large .card-author {
+  font-size: 0.875rem;
+  margin-bottom: 0.875rem;
+}
+
+.card-size-large .card-description {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  margin-bottom: 1.25rem;
+}
+
+.card-size-large .decorative-quote {
+  width: 50px;
+  height: 2px;
+  margin-bottom: 1rem;
+}
+
+.card-size-large .card-footer {
+  font-size: 0.875rem;
+  padding-top: 1.25rem;
+}
+
+/* 特色卡片 - 2列2行，横向强调 */
+.card-size-featured .card-cover {
+  height: 50px;
+}
+
+.card-size-featured .card-content {
+  padding: 1.75rem 2rem 1.5rem;
+}
+
+.card-size-featured .card-header {
+  margin-bottom: 0.875rem;
+}
+
+.card-size-featured .card-title {
+  font-size: 1.5rem;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  margin-bottom: 0.625rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.card-size-featured .card-author {
+  font-size: 0.9375rem;
+  margin-bottom: 1rem;
+}
+
+.card-size-featured .card-description {
+  font-size: 1rem;
+  line-height: 1.75;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  margin-bottom: 1.25rem;
+}
+
+.card-size-featured .decorative-quote {
+  width: 60px;
+  height: 2.5px;
+  margin-bottom: 1.125rem;
+}
+
+.card-size-featured .card-footer {
+  font-size: 0.9375rem;
+  padding-top: 1.25rem;
+}
+
+.card-size-featured .category-tag {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.6875rem;
+}
+
 /* ===== 移动端优化 ===== */
 @media (max-width: 640px) {
   .novel-card.magazine-style {
-    border-radius: 1rem;
+    border-radius: 0.875rem;  /* 减小圆角 */
   }
   
   .card-cover {
-    height: 35px;
+    height: 25px;  /* 减小封面高度从 35px 到 25px */
   }
   
   .novel-card.magazine-style:hover .card-cover {
-    height: 35px; /* 移动端不改变高度 */
+    height: 25px; /* 移动端不改变高度 */
   }
 
   .card-content {
-    padding: 1.5rem 1.25rem 1.25rem;
+    padding: 1rem 1rem 0.875rem;  /* 减小内边距 */
   }
 
   .card-header {
-    margin-bottom: 0.875rem;
-    gap: 0.5rem;
+    margin-bottom: 0.5rem;  /* 减小间距 */
+    gap: 0.375rem;
   }
 
   .card-title {
-    font-size: 1.125rem;
-    margin-bottom: 0.375rem;
-    line-height: 1.45;
+    font-size: 1rem;  /* 减小字体从 1.125rem 到 1rem */
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
     -webkit-line-clamp: 2;
     line-clamp: 2;
   }
   
   .card-author {
-    font-size: 0.75rem;
-    margin-bottom: 0.75rem;
+    font-size: 0.6875rem;  /* 减小字体 */
+    margin-bottom: 0.5rem;
   }
 
   .card-description {
-    font-size: 0.8125rem;
-    line-height: 1.7;
-    margin-bottom: 1rem;
+    font-size: 0.75rem;  /* 减小字体从 0.8125rem 到 0.75rem */
+    line-height: 1.55;  /* 减小行高 */
+    margin-bottom: 0.625rem;  /* 减小间距 */
     -webkit-line-clamp: 2;
     line-clamp: 2;
   }
   
   .decorative-quote {
-    width: 30px;
-    margin-bottom: 1rem;
+    width: 24px;  /* 减小宽度 */
+    height: 1px;  /* 减小高度 */
+    margin-bottom: 0.5rem;  /* 减小间距 */
   }
 
   .card-footer {
-    font-size: 0.75rem;
-    padding-top: 0.875rem;
+    font-size: 0.6875rem;  /* 减小字体 */
+    padding-top: 0.625rem;  /* 减小间距 */
   }
   
   .card-meta {
-    gap: 0.875rem;
+    gap: 0.75rem;  /* 减小间距 */
+  }
+  
+  .meta-icon {
+    width: 0.8125rem;  /* 减小图标 */
+    height: 0.8125rem;
   }
   
   .read-btn {
-    font-size: 0.75rem;
-    padding: 0.4375rem 0.875rem;
+    font-size: 0.6875rem;  /* 减小字体 */
+    padding: 0.375rem 0.75rem;  /* 减小内边距 */
   }
   
   /* 移动端触摸反馈 */
@@ -735,19 +911,45 @@ function getCategoryStyle() {
   .card-size-normal .card-cover,
   .card-size-large .card-cover,
   .card-size-featured .card-cover {
-    height: 35px;
+    height: 25px;
   }
   
   .card-size-small .card-content,
   .card-size-normal .card-content,
   .card-size-large .card-content,
   .card-size-featured .card-content {
-    padding: 1.5rem 1.25rem 1.25rem;
+    padding: 1rem 1rem 0.875rem;
   }
   
   .card-size-large .card-title,
   .card-size-featured .card-title {
-    font-size: 1.25rem;
+    font-size: 1.125rem;  /* 大卡片稍大一点 */
+  }
+  
+  /* 小卡片更紧凑 */
+  .card-size-small .card-content {
+    padding: 0.875rem 0.875rem 0.75rem;
+  }
+  
+  .card-size-small .card-header {
+    margin-bottom: 0.375rem;
+  }
+  
+  .card-size-small .card-title {
+    font-size: 0.9375rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .card-size-small .card-description {
+    font-size: 0.6875rem;
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+    -webkit-line-clamp: 1;  /* 小卡片只显示1行描述 */
+    line-clamp: 1;
+  }
+  
+  .card-size-small .card-footer {
+    padding-top: 0.5rem;
   }
 }
 </style>

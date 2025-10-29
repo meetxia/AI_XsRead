@@ -74,31 +74,57 @@ const props = defineProps({
 
 const emit = defineEmits(['load-more'])
 
-// 卡片尺寸模式（创建视觉节奏感）
-const sizePatterns = [
-  // 第一组：大-中-中
-  ['featured', 'normal', 'normal'],
-  // 第二组：中-中-大
-  ['normal', 'normal', 'large'],
-  // 第三组：小-中-中
-  ['small', 'normal', 'normal'],
-  // 第四组：中-大-中
-  ['normal', 'large', 'normal'],
-  // 第五组：中-中-中
-  ['normal', 'normal', 'normal']
+// 随机种子（每次刷新页面都不同）
+const randomSeed = ref(Date.now())
+
+// 预定义的卡片尺寸组合模式（确保视觉平衡）
+const sizePatternGroups = [
+  // 组1: 特色开场，平衡混合
+  ['featured', 'normal', 'large', 'normal', 'small', 'normal'],
+  // 组2: 均衡分布
+  ['normal', 'large', 'normal', 'small', 'normal', 'large'],
+  // 组3: 大卡片点缀
+  ['normal', 'normal', 'large', 'featured', 'normal', 'small'],
+  // 组4: 节奏感
+  ['large', 'normal', 'small', 'normal', 'normal', 'large'],
+  // 组5: 特色居中
+  ['normal', 'small', 'normal', 'featured', 'normal', 'large'],
+  // 组6: 平稳过渡
+  ['normal', 'normal', 'large', 'normal', 'small', 'normal'],
+  // 组7: 大开大合
+  ['featured', 'small', 'normal', 'large', 'normal', 'normal'],
+  // 组8: 均衡变化
+  ['normal', 'large', 'small', 'normal', 'normal', 'large']
 ]
 
-// 获取卡片尺寸（根据索引决定）
-function getCardSize(index) {
-  const patternIndex = Math.floor(index / 3) % sizePatterns.length
-  const positionInPattern = index % 3
-  return sizePatterns[patternIndex][positionInPattern]
+// 打乱数组的函数（使用种子确保每次刷新不同）
+function shuffleArray(array, seed) {
+  const arr = [...array]
+  let currentSeed = seed
+  for (let i = arr.length - 1; i > 0; i--) {
+    currentSeed = (currentSeed * 9301 + 49297) % 233280
+    const j = Math.floor((currentSeed / 233280) * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
 }
 
-// 获取骨架屏尺寸
+// 生成打乱后的模式列表（页面加载时一次性生成）
+const shuffledPatterns = shuffleArray(sizePatternGroups, randomSeed.value)
+
+// 获取卡片尺寸（智能分组策略）
+function getCardSize(index) {
+  // 确定在哪一组
+  const groupIndex = Math.floor(index / 6) % shuffledPatterns.length
+  // 确定在组内的位置
+  const positionInGroup = index % 6
+  
+  return shuffledPatterns[groupIndex][positionInGroup]
+}
+
+// 获取骨架屏尺寸（使用相同的随机逻辑）
 function getSkeletonSize(index) {
-  const sizes = ['normal', 'large', 'normal', 'normal', 'featured', 'normal']
-  return sizes[(index - 1) % sizes.length]
+  return getCardSize(index - 1)  // 复用卡片尺寸逻辑
 }
 
 // 滚动监听（自动加载更多）
@@ -138,52 +164,57 @@ onUnmounted(() => {
 .magazine-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem 1.5rem;
+  gap: 1.25rem;  /* 统一上下左右间距 */
   max-width: 1400px;
   margin: 0 auto;
   
   /* 关键：自动填充空白区域，让卡片紧密排列 */
   grid-auto-flow: dense;
   
-  /* 移除固定行高，让卡片自适应内容 */
-  grid-auto-rows: auto;
+  /* 固定行高 - 确保间距一致 */
+  grid-auto-rows: 120px;
 }
 
 /* 卡片网格项定位 */
 .magazine-grid-item {
-  /* 移除最小高度限制 */
-  align-self: start;
+  /* 让卡片填充整个网格区域 */
+  align-self: stretch;
+  height: 100%;
 }
 
-/* 小卡片 */
+/* 小卡片 - 1列2行 */
 .grid-item-small {
   grid-column: span 1;
+  grid-row: span 2;
 }
 
-/* 正常卡片 */
+/* 正常卡片 - 1列3行 */
 .grid-item-normal {
   grid-column: span 1;
+  grid-row: span 3;
 }
 
-/* 大卡片 */
+/* 大卡片 - 1列4行 */
 .grid-item-large {
   grid-column: span 1;
+  grid-row: span 4;
 }
 
-/* 特色卡片 - 横跨两列 */
+/* 特色卡片 - 横跨2列2行 */
 .grid-item-featured {
   grid-column: span 2;
+  grid-row: span 2;
 }
 
 /* ===== 骨架屏加载 ===== */
 .loading-skeleton {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem 1.5rem;
+  gap: 1.25rem;
   max-width: 1400px;
   margin: 0 auto;
   grid-auto-flow: dense;
-  grid-auto-rows: auto;
+  grid-auto-rows: 120px;  /* 与主网格相同 */
 }
 
 .skeleton-card {
@@ -191,19 +222,27 @@ onUnmounted(() => {
   border-radius: 1.25rem;
   overflow: hidden;
   animation: pulse 1.5s ease-in-out infinite;
-  align-self: start;
+  height: 100%;
+}
+
+.skeleton-small {
+  grid-column: span 1;
+  grid-row: span 2;
 }
 
 .skeleton-normal {
   grid-column: span 1;
+  grid-row: span 3;
 }
 
 .skeleton-large {
   grid-column: span 1;
+  grid-row: span 4;
 }
 
 .skeleton-featured {
   grid-column: span 2;
+  grid-row: span 2;
 }
 
 .skeleton-cover {
@@ -361,13 +400,31 @@ onUnmounted(() => {
   .magazine-grid,
   .loading-skeleton {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem 1.25rem;
+    gap: 1rem;  /* 统一间距 */
     grid-auto-flow: dense;
+    grid-auto-rows: 110px;  /* 平板端稍小的行高 */
   }
 
   .grid-item-featured,
   .skeleton-featured {
     grid-column: span 2;
+    grid-row: span 2;
+  }
+  
+  /* 平板端保持相同的行跨越 */
+  .grid-item-small,
+  .skeleton-small {
+    grid-row: span 2;
+  }
+  
+  .grid-item-normal,
+  .skeleton-normal {
+    grid-row: span 3;
+  }
+  
+  .grid-item-large,
+  .skeleton-large {
+    grid-row: span 4;
   }
 }
 
@@ -380,33 +437,64 @@ onUnmounted(() => {
   .magazine-grid,
   .loading-skeleton {
     grid-template-columns: 1fr;
-    gap: 0.875rem;
+    gap: 0.625rem;  /* 减小间距从 0.875rem 到 0.625rem */
     grid-auto-flow: dense;
+    grid-auto-rows: 60px;  /* 大幅减小行高从 100px 到 60px */
   }
 
-  /* 移动端所有卡片单列显示 */
+  /* 移动端所有卡片单列显示，但保持不同高度 */
   .grid-item-small,
   .grid-item-normal,
   .grid-item-large,
   .grid-item-featured,
+  .skeleton-small,
   .skeleton-normal,
   .skeleton-large,
   .skeleton-featured {
     grid-column: span 1;
   }
-
-  .magazine-grid-item {
-    min-height: auto;
+  
+  /* 移动端的行跨越 - 减小每种卡片占用的行数 */
+  .grid-item-small,
+  .skeleton-small {
+    grid-row: span 3;  /* 从 2 增加到 3，因为行高减小了 */
+  }
+  
+  .grid-item-normal,
+  .skeleton-normal {
+    grid-row: span 4;  /* 从 3 增加到 4 */
+  }
+  
+  .grid-item-large,
+  .grid-item-featured,
+  .skeleton-large,
+  .skeleton-featured {
+    grid-row: span 5;  /* 从 4 增加到 5 */
   }
 
   .skeleton-cover,
   .skeleton-featured .skeleton-cover,
   .skeleton-large .skeleton-cover {
-    height: 35px;
+    height: 25px;  /* 匹配移动端卡片封面高度 */
   }
 
   .skeleton-content {
-    padding: 1.5rem 1.25rem;
+    padding: 1rem 1rem;  /* 匹配移动端卡片内边距 */
+  }
+  
+  .skeleton-line {
+    height: 10px;  /* 减小骨架屏线条高度 */
+    margin-bottom: 0.5rem;  /* 减小间距 */
+  }
+  
+  .skeleton-title {
+    height: 16px;  /* 减小标题高度 */
+    margin-bottom: 0.5rem;
+  }
+  
+  .skeleton-author {
+    height: 12px;  /* 减小作者高度 */
+    margin-bottom: 0.5rem;
   }
 
   .loading-more {

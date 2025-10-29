@@ -272,84 +272,103 @@ const sendCode = async () => {
 </script>
 
 <style scoped>
+/* ===== 页面容器 - 禁用滚动，固定高度 ===== */
 .login-page {
-  min-height: 100vh;
-  padding-top: 4rem;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
+/* ===== 登录容器 - 居中对齐，对称边距 ===== */
 .login-container {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 4rem);
-  padding: 2rem 1rem;
+  padding: 1.5rem;
+  overflow-y: auto;
 }
 
+/* ===== 登录卡片 - 优化阴影和圆角 ===== */
 .login-card {
   width: 100%;
   max-width: 450px;
   background-color: var(--color-bg-card);
   border-radius: 1.5rem;
   padding: 2.5rem;
-  box-shadow: 0 10px 40px var(--color-shadow);
+  box-shadow: 0 4px 20px rgba(217, 84, 104, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin: auto;
 }
 
-/* 头部 */
+/* ===== 头部 ===== */
 .login-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .logo-icon {
-  width: 4rem;
-  height: 4rem;
+  width: 3.5rem;
+  height: 3.5rem;
   color: var(--color-primary);
   margin: 0 auto 1rem;
+  filter: drop-shadow(0 2px 4px rgba(217, 84, 104, 0.15));
 }
 
 .login-header h1 {
-  font-size: 1.75rem;
+  font-size: 1.625rem;
   font-weight: 700;
   color: var(--color-text-primary);
   margin-bottom: 0.5rem;
+  letter-spacing: 0.02em;
 }
 
 .login-header p {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
+  letter-spacing: 0.01em;
 }
 
-/* 标签切换 */
+/* ===== 标签切换 - 优化视觉效果 ===== */
 .login-tabs {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  background-color: var(--color-accent);
-  border-radius: 0.75rem;
-  padding: 0.25rem;
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+  background-color: rgba(255, 186, 172, 0.15);
+  border-radius: 0.875rem;
+  padding: 0.375rem;
+  border: none;
 }
 
 .tab-btn {
   flex: 1;
   padding: 0.75rem;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--color-text-secondary);
   background-color: transparent;
-  transition: all 0.3s;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-btn:hover:not(.active) {
+  background-color: rgba(255, 186, 172, 0.25);
+  color: var(--color-primary);
 }
 
 .tab-btn.active {
-  background-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(217, 84, 104, 0.25);
 }
 
-/* 表单 */
+/* ===== 表单 ===== */
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .form-group {
@@ -362,33 +381,54 @@ const sendCode = async () => {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-text-primary);
+  padding-left: 0.25rem;
 }
 
+/* ===== 输入框 - 移除黑色边框，使用柔和样式，修复超出边界 ===== */
 .form-input {
   width: 100%;
   padding: 0.875rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border: 1.5px solid rgba(217, 84, 104, 0.15);
+  border-radius: 0.75rem;
   font-size: 0.9375rem;
   color: var(--color-text-primary);
-  background-color: transparent;
-  transition: all 0.3s;
+  background-color: rgba(255, 186, 172, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.form-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.form-input:hover {
+  border-color: rgba(217, 84, 104, 0.25);
+  background-color: rgba(255, 186, 172, 0.08);
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(217, 84, 104, 0.1);
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(217, 84, 104, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .error-message {
   font-size: 0.8125rem;
   color: #ef4444;
+  padding-left: 0.25rem;
 }
 
-/* 密码输入 */
+/* ===== 密码输入 - 修复容器宽度 ===== */
 .password-input {
   position: relative;
+  width: 100%;
+}
+
+.password-input .form-input {
+  padding-right: 3rem;
 }
 
 .toggle-password {
@@ -397,42 +437,65 @@ const sendCode = async () => {
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.2s;
+  z-index: 1;
 }
 
-/* 验证码输入 */
+.toggle-password:hover {
+  color: var(--color-primary);
+}
+
+/* ===== 验证码输入 - 优化按钮样式，修复超出边界 ===== */
 .code-input {
   display: flex;
   gap: 0.75rem;
+  width: 100%;
+}
+
+.code-input .form-input {
+  flex: 1;
+  min-width: 0;
 }
 
 .send-code-btn {
   flex-shrink: 0;
   padding: 0.875rem 1.25rem;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  background-color: transparent;
+  border: 1.5px solid var(--color-primary);
+  background-color: rgba(255, 186, 172, 0.05);
   white-space: nowrap;
-  transition: all 0.3s;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
 .send-code-btn:hover:not(:disabled) {
-  background-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
   color: white;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(217, 84, 104, 0.25);
+  transform: translateY(-1px);
 }
 
 .send-code-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
-/* 选项 */
+/* ===== 选项 ===== */
 .form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: -0.25rem;
 }
 
 .remember-me {
@@ -442,33 +505,53 @@ const sendCode = async () => {
   font-size: 0.875rem;
   color: var(--color-text-secondary);
   cursor: pointer;
+  user-select: none;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1.5px solid rgba(217, 84, 104, 0.3);
+  cursor: pointer;
+  accent-color: var(--color-primary);
 }
 
 .forgot-link {
   font-size: 0.875rem;
   color: var(--color-primary);
+  font-weight: 500;
+  transition: color 0.2s;
 }
 
 .forgot-link:hover {
+  color: var(--color-secondary);
   text-decoration: underline;
 }
 
-/* 登录按钮 */
+/* ===== 登录按钮 - 优化渐变和阴影 ===== */
 .login-btn {
   width: 100%;
   padding: 1rem;
-  border-radius: 0.75rem;
+  border-radius: 0.875rem;
   font-size: 1rem;
   font-weight: 600;
   color: white;
-  background-color: var(--color-primary);
-  transition: all 0.3s;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(217, 84, 104, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .login-btn:hover:not(:disabled) {
-  background-color: var(--color-secondary);
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(217, 84, 104, 0.3);
+  box-shadow: 0 6px 20px rgba(217, 84, 104, 0.35);
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(217, 84, 104, 0.25);
 }
 
 .login-btn:disabled {
@@ -494,36 +577,127 @@ const sendCode = async () => {
   }
 }
 
-/* 注册链接 */
+/* ===== 注册链接 ===== */
 .register-link {
   text-align: center;
-  margin-top: 1.5rem;
   font-size: 0.875rem;
   color: var(--color-text-secondary);
+  padding-top: 0.5rem;
 }
 
 .register-link a {
   color: var(--color-primary);
   font-weight: 500;
   margin-left: 0.25rem;
+  transition: color 0.2s;
 }
 
 .register-link a:hover {
+  color: var(--color-secondary);
   text-decoration: underline;
 }
 
-/* 移动端优化 */
+/* ===== 移动端优化 - 减少上下边距，确保不超出边界 ===== */
 @media (max-width: 640px) {
+  .login-container {
+    padding: 1rem;
+  }
+
   .login-card {
-    padding: 2rem 1.5rem;
+    padding: 1.75rem 1.25rem;
+    border-radius: 1.25rem;
+    box-sizing: border-box;
+  }
+
+  .login-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .logo-icon {
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 0.75rem;
   }
 
   .login-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.375rem;
   }
 
-  .social-login {
+  .login-header p {
+    font-size: 0.8125rem;
+  }
+
+  .login-tabs {
+    margin-bottom: 1.25rem;
+  }
+
+  .login-form {
     gap: 1rem;
+  }
+
+  .form-input {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  .password-input .form-input {
+    padding-right: 2.75rem;
+  }
+
+  .code-input {
+    gap: 0.5rem;
+  }
+
+  .send-code-btn {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.75rem;
+  }
+
+  .login-btn {
+    padding: 0.875rem;
+    font-size: 0.9375rem;
+  }
+
+  .register-link {
+    font-size: 0.8125rem;
+    padding-top: 0.25rem;
+  }
+}
+
+/* ===== 超小屏幕优化 ===== */
+@media (max-width: 375px) {
+  .login-container {
+    padding: 0.75rem;
+  }
+
+  .login-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .login-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .form-input {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .password-input .form-input {
+    padding-right: 2.5rem;
+  }
+
+  .toggle-password {
+    right: 0.75rem;
+  }
+
+  .code-input {
+    gap: 0.375rem;
+  }
+
+  .send-code-btn {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.6875rem;
   }
 }
 </style>

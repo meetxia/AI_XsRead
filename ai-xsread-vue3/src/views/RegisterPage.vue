@@ -265,54 +265,65 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
+/* ===== 页面容器 - 禁用滚动，固定高度 ===== */
 .register-page {
-  min-height: 100vh;
-  padding-top: 4rem;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
+/* ===== 注册容器 - 居中对齐，对称边距 ===== */
 .register-container {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 4rem);
-  padding: 2rem 1rem;
+  padding: 1.5rem;
+  overflow-y: auto;
 }
 
+/* ===== 注册卡片 - 优化阴影和圆角 ===== */
 .register-card {
   width: 100%;
   max-width: 500px;
   background-color: var(--color-bg-card);
   border-radius: 1.5rem;
   padding: 2.5rem;
-  box-shadow: 0 10px 40px var(--color-shadow);
+  box-shadow: 0 4px 20px rgba(217, 84, 104, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin: auto;
+  box-sizing: border-box;
 }
 
-/* 头部 */
+/* ===== 头部 ===== */
 .register-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .logo-icon {
-  width: 4rem;
-  height: 4rem;
+  width: 3.5rem;
+  height: 3.5rem;
   color: var(--color-primary);
   margin: 0 auto 1rem;
+  filter: drop-shadow(0 2px 4px rgba(217, 84, 104, 0.15));
 }
 
 .register-header h1 {
-  font-size: 1.75rem;
+  font-size: 1.625rem;
   font-weight: 700;
   color: var(--color-text-primary);
   margin-bottom: 0.5rem;
+  letter-spacing: 0.02em;
 }
 
 .register-header p {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
+  letter-spacing: 0.01em;
 }
 
-/* 表单 */
+/* ===== 表单 ===== */
 .register-form {
   display: flex;
   flex-direction: column;
@@ -329,43 +340,60 @@ const handleRegister = async () => {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-text-primary);
+  padding-left: 0.25rem;
 }
 
 .required {
   color: #ef4444;
 }
 
+/* ===== 输入框 - 移除黑色边框，使用柔和样式，修复超出边界 ===== */
 .form-input {
   width: 100%;
   padding: 0.875rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border: 1.5px solid rgba(217, 84, 104, 0.15);
+  border-radius: 0.75rem;
   font-size: 0.9375rem;
   color: var(--color-text-primary);
-  background-color: transparent;
-  transition: all 0.3s;
+  background-color: rgba(255, 186, 172, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.form-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.form-input:hover {
+  border-color: rgba(217, 84, 104, 0.25);
+  background-color: rgba(255, 186, 172, 0.08);
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(217, 84, 104, 0.1);
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(217, 84, 104, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .form-hint {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
-  margin-top: -0.25rem;
+  padding-left: 0.25rem;
 }
 
 .error-message {
   font-size: 0.8125rem;
   color: #ef4444;
+  padding-left: 0.25rem;
 }
 
-/* 密码输入 */
+/* ===== 密码输入 ===== */
 .password-input {
   position: relative;
+  width: 100%;
 }
 
 .toggle-password {
@@ -374,9 +402,18 @@ const handleRegister = async () => {
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.2s;
 }
 
-/* 密码强度 */
+.toggle-password:hover {
+  color: var(--color-primary);
+}
+
+/* ===== 密码强度 ===== */
 .password-strength {
   display: flex;
   align-items: center;
@@ -386,14 +423,14 @@ const handleRegister = async () => {
 .strength-bar {
   flex: 1;
   height: 4px;
-  background-color: var(--color-border);
+  background-color: rgba(217, 84, 104, 0.15);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .strength-fill {
   height: 100%;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .strength-fill.weak {
@@ -411,6 +448,7 @@ const handleRegister = async () => {
 .strength-text {
   font-size: 0.8125rem;
   font-weight: 500;
+  min-width: 1.5rem;
 }
 
 .strength-text.weak {
@@ -425,7 +463,7 @@ const handleRegister = async () => {
   color: #10b981;
 }
 
-/* 协议 */
+/* ===== 协议 ===== */
 .agreement {
   display: flex;
   align-items: flex-start;
@@ -433,38 +471,55 @@ const handleRegister = async () => {
   font-size: 0.875rem;
   color: var(--color-text-secondary);
   cursor: pointer;
+  user-select: none;
 }
 
-.agreement input {
+.agreement input[type="checkbox"] {
   margin-top: 0.25rem;
   flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1.5px solid rgba(217, 84, 104, 0.3);
+  cursor: pointer;
+  accent-color: var(--color-primary);
 }
 
 .agreement a {
   color: var(--color-primary);
+  font-weight: 500;
+  transition: color 0.2s;
 }
 
 .agreement a:hover {
+  color: var(--color-secondary);
   text-decoration: underline;
 }
 
-/* 注册按钮 */
+/* ===== 注册按钮 - 优化渐变和阴影 ===== */
 .register-btn {
   width: 100%;
   padding: 1rem;
-  border-radius: 0.75rem;
+  border-radius: 0.875rem;
   font-size: 1rem;
   font-weight: 600;
   color: white;
-  background-color: var(--color-primary);
-  transition: all 0.3s;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(217, 84, 104, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 0.5rem;
 }
 
 .register-btn:hover:not(:disabled) {
-  background-color: var(--color-secondary);
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(217, 84, 104, 0.3);
+  box-shadow: 0 6px 20px rgba(217, 84, 104, 0.35);
+}
+
+.register-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(217, 84, 104, 0.25);
 }
 
 .register-btn:disabled {
@@ -490,32 +545,87 @@ const handleRegister = async () => {
   }
 }
 
-/* 登录链接 */
+/* ===== 登录链接 ===== */
 .login-link {
   text-align: center;
-  margin-top: 1rem;
   font-size: 0.875rem;
   color: var(--color-text-secondary);
+  padding-top: 0.5rem;
 }
 
 .login-link a {
   color: var(--color-primary);
   font-weight: 500;
   margin-left: 0.25rem;
+  transition: color 0.2s;
 }
 
 .login-link a:hover {
+  color: var(--color-secondary);
   text-decoration: underline;
 }
 
-/* 移动端优化 */
+/* ===== 移动端优化 - 减少上下边距 ===== */
 @media (max-width: 640px) {
+  .register-container {
+    padding: 1rem;
+  }
+
   .register-card {
-    padding: 2rem 1.5rem;
+    padding: 1.75rem 1.25rem;
+    border-radius: 1.25rem;
+  }
+
+  .register-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .logo-icon {
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 0.75rem;
   }
 
   .register-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.375rem;
+  }
+
+  .register-header p {
+    font-size: 0.8125rem;
+  }
+
+  .register-form {
+    gap: 1rem;
+  }
+
+  .form-input {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  .register-btn {
+    padding: 0.875rem;
+    font-size: 0.9375rem;
+  }
+
+  .login-link {
+    font-size: 0.8125rem;
+    padding-top: 0.25rem;
+  }
+}
+
+/* ===== 超小屏幕优化 ===== */
+@media (max-width: 375px) {
+  .register-container {
+    padding: 0.75rem;
+  }
+
+  .register-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .register-header h1 {
+    font-size: 1.25rem;
   }
 }
 </style>
