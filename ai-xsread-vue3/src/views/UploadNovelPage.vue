@@ -156,7 +156,7 @@
         </div>
         
         <div class="tips">
-          <h4>💡 温馨提示</h4>
+          <h4><i class="bi bi-lightbulb-fill"></i> 温馨提示</h4>
           <ul>
             <li>支持批量上传，最多50个文件</li>
             <li>单个文件大小限制：10MB</li>

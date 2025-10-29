@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto">
       <!-- 页面标题 -->
       <div class="mb-8">
-        <h1 class="page-title">🔍 搜索</h1>
+        <h1 class="page-title"><i class="bi bi-search icon-xl"></i> 搜索</h1>
         <p class="page-subtitle">发现你想要的好书</p>
       </div>
 

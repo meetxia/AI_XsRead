@@ -8,34 +8,35 @@ import Toast from '@/components/common/Toast.vue'
 // 情感化的消息模板
 const messageTemplates = {
   success: {
-    addToBookshelf: '已加入书架，开始温柔的阅读旅程吧 ✨',
-    like: '感谢你的喜欢 ❤️',
-    comment: '评论发表成功，期待更多交流 💬',
-    collect: '收藏成功，可以在书架找到它哦 📚',
-    login: '欢迎回来 👋',
-    register: '注册成功，开启阅读之旅吧 🎉',
-    update: '更新成功 ✓',
+    addToBookshelf: '已加入书架，开始温柔的阅读旅程吧',
+    like: '感谢你的喜欢',
+    comment: '评论发表成功，期待更多交流',
+    collect: '收藏成功，可以在书架找到它哦',
+    login: '欢迎回来',
+    register: '注册成功，开启阅读之旅吧',
+    update: '更新成功',
     delete: '删除成功',
-    save: '保存成功 💾'
+    save: '保存成功',
+    refresh: '刷新成功'
   },
   error: {
-    network: '网络似乎开了小差，请稍后再试 😊',
-    notFound: '抱歉，这本书找不到了 😢',
-    forbidden: '需要登录才能继续哦 🔐',
-    server: '服务器君累了，请稍后再试 😴',
-    timeout: '请求超时了，请检查网络 ⏱️',
-    validation: '请检查输入的信息 📝',
-    loginFailed: '用户名或密码错误 🔒'
+    network: '网络似乎开了小差，请稍后再试',
+    notFound: '抱歉，这本书找不到了',
+    forbidden: '需要登录才能继续哦',
+    server: '服务器君累了，请稍后再试',
+    timeout: '请求超时了，请检查网络',
+    validation: '请检查输入的信息',
+    loginFailed: '用户名或密码错误'
   },
   warning: {
-    unsaved: '有未保存的更改，确定要离开吗？ ⚠️',
-    duplicated: '这本书已经在书架里了 📚',
-    limit: '已达到上限 ⚡'
+    unsaved: '有未保存的更改，确定要离开吗？',
+    duplicated: '这本书已经在书架里了',
+    limit: '已达到上限'
   },
   info: {
-    loading: '正在加载中... ⏳',
-    processing: '处理中，请稍候... ⚙️',
-    syncing: '正在同步数据... 🔄'
+    loading: '正在加载中...',
+    processing: '处理中，请稍候...',
+    syncing: '正在同步数据...'
   }
 }
 

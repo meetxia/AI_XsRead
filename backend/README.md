@@ -297,6 +297,10 @@ Authorization: Bearer <accessToken>
 
 ```powershell
 npm run dev
+cd ai-xsread-vue3 ; npm run dev
+
+cd backend ; npm run dev
+
 ```
 
 修改代码后会自动重启服务器。

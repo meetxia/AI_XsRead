@@ -101,7 +101,7 @@
             <div v-for="category in categories.slice(0, 4)" :key="category.id" 
                  class="category-card" :style="{ background: category.gradient }"
                  @click="handleCategorySelect(category)">
-              <div class="category-icon">{{ category.icon }}</div>
+              <div class="category-icon"><i :class="category.icon"></i></div>
               <h3 class="category-name">{{ category.name }}</h3>
               <p class="category-count">{{ category.count }}部作品</p>
             </div>
@@ -338,10 +338,10 @@ function getMockEditorPicks() {
 
 function getMockCategories() {
   return [
-    { id: 1, name: '都市言情', icon: '💕', count: 328, gradient: 'linear-gradient(to bottom right, #fce7f3, #fbcfe8)' },
-    { id: 2, name: '古风穿越', icon: '🏮', count: 256, gradient: 'linear-gradient(to bottom right, #fef3c7, #fed7aa)' },
-    { id: 3, name: '悬疑推理', icon: '🔍', count: 189, gradient: 'linear-gradient(to bottom right, #e9d5ff, #ddd6fe)' },
-    { id: 4, name: '治愈系', icon: '🌸', count: 412, gradient: 'linear-gradient(to bottom right, #d1fae5, #a7f3d0)' }
+    { id: 1, name: '都市言情', icon: 'bi-heart-fill', count: 328, gradient: 'linear-gradient(to bottom right, #fce7f3, #fbcfe8)' },
+    { id: 2, name: '古风穿越', icon: 'bi-lantern-fill', count: 256, gradient: 'linear-gradient(to bottom right, #fef3c7, #fed7aa)' },
+    { id: 3, name: '悬疑推理', icon: 'bi-search', count: 189, gradient: 'linear-gradient(to bottom right, #e9d5ff, #ddd6fe)' },
+    { id: 4, name: '治愈系', icon: 'bi-flower1', count: 412, gradient: 'linear-gradient(to bottom right, #d1fae5, #a7f3d0)' }
   ]
 }
 
@@ -771,6 +771,10 @@ onMounted(async () => {
   margin-bottom: 0.5rem;
 }
 
+.category-icon i {
+  font-size: 2rem;
+}
+
 .category-name {
   font-weight: 600;
   color: var(--color-text-primary);
@@ -959,6 +963,10 @@ onMounted(async () => {
   .category-icon {
     font-size: 1.75rem;
     margin-bottom: 0.375rem;
+  }
+
+  .category-icon i {
+    font-size: 1.75rem;
   }
   
   .category-name {

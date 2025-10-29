@@ -7,7 +7,7 @@
 
     <!-- 1. 涟漪效果演示 -->
     <section class="demo-section">
-      <h2>🌊 涟漪效果 (Ripple Effect)</h2>
+      <h2><i class="bi bi-water"></i> 涟漪效果 (Ripple Effect)</h2>
       <div class="demo-content">
         <ripple-effect>
           <button class="demo-button primary">
@@ -31,7 +31,7 @@
 
     <!-- 2. v-feedback指令演示 -->
     <section class="demo-section">
-      <h2>📳 触觉反馈指令 (v-feedback)</h2>
+      <h2><i class="bi bi-phone-vibrate"></i> 触觉反馈指令 (v-feedback)</h2>
       <div class="demo-content">
         <button v-feedback class="demo-button primary">
           完整反馈（涟漪+触觉+缩放）
@@ -60,12 +60,12 @@
 
     <!-- 3. 手势交互演示 -->
     <section class="demo-section">
-      <h2>👆 手势交互 (Gestures)</h2>
+      <h2><i class="bi bi-hand-index"></i> 手势交互 (Gestures)</h2>
       
       <!-- 滑动手势 -->
       <div class="gesture-demo-box" ref="swipeBox">
         <div class="gesture-hint">
-          <p>👈 👉 在此区域滑动</p>
+          <p><i class="bi bi-arrow-left-right"></i> 在此区域滑动</p>
           <p class="gesture-result">{{ swipeResult }}</p>
         </div>
       </div>
@@ -73,7 +73,7 @@
       <!-- 双击手势 -->
       <div class="gesture-demo-box" ref="doubleTapBox">
         <div class="gesture-hint">
-          <p>👆👆 双击此区域</p>
+          <p><i class="bi bi-hand-index"></i><i class="bi bi-hand-index"></i> 双击此区域</p>
           <p class="gesture-result">{{ doubleTapResult }}</p>
         </div>
       </div>
@@ -81,7 +81,7 @@
       <!-- 长按手势 -->
       <div class="gesture-demo-box" ref="longPressBox">
         <div class="gesture-hint">
-          <p>👇 长按此区域</p>
+          <p><i class="bi bi-hand-index-fill"></i> 长按此区域</p>
           <p class="gesture-result">{{ longPressResult }}</p>
         </div>
       </div>
@@ -89,7 +89,7 @@
 
     <!-- 4. 下拉刷新演示 -->
     <section class="demo-section">
-      <h2>🔄 下拉刷新 (Pull to Refresh)</h2>
+      <h2><i class="bi bi-arrow-repeat"></i> 下拉刷新 (Pull to Refresh)</h2>
       <div class="pull-refresh-demo">
         <pull-to-refresh @refresh="handleRefresh">
           <div class="content-list">
@@ -98,7 +98,7 @@
               :key="item.id"
               class="content-item"
             >
-              <div class="item-icon">📖</div>
+              <div class="item-icon"><i class="bi bi-book"></i></div>
               <div class="item-text">{{ item.text }}</div>
             </div>
           </div>
@@ -108,7 +108,7 @@
 
     <!-- 5. 进度条演示 -->
     <section class="demo-section">
-      <h2>📊 进度条 (Progress Bar)</h2>
+      <h2><i class="bi bi-bar-chart"></i> 进度条 (Progress Bar)</h2>
       <div class="demo-content">
         <!-- 普通进度条 -->
         <div class="progress-demo-item">
@@ -156,7 +156,7 @@
 
     <!-- 6. 加载状态演示 -->
     <section class="demo-section">
-      <h2>⏳ 加载状态 (Loading)</h2>
+      <h2><i class="bi bi-hourglass-split"></i> 加载状态 (Loading)</h2>
       <div class="demo-content loading-demos">
         <div class="loading-demo-item">
           <h3>圆圈旋转</h3>
@@ -187,7 +187,7 @@
 
     <!-- 7. Toast消息演示 -->
     <section class="demo-section">
-      <h2>💬 Toast消息</h2>
+      <h2><i class="bi bi-chat-dots"></i> Toast消息</h2>
       <div class="demo-content">
         <button @click="showSuccessToast" class="demo-button success">
           成功消息
@@ -206,7 +206,7 @@
 
     <!-- 8. 点赞按钮演示 -->
     <section class="demo-section">
-      <h2>❤️ 点赞按钮</h2>
+      <h2><i class="bi bi-heart-fill"></i> 点赞按钮</h2>
       <div class="demo-content">
         <like-button 
           :liked="liked1" 
@@ -269,22 +269,22 @@ onMounted(() => {
   // 滑动手势
   useSwipe(swipeBox, {
     onSwipeLeft: () => {
-      swipeResult.value = '👈 向左滑动'
+      swipeResult.value = '← 向左滑动'
     },
     onSwipeRight: () => {
-      swipeResult.value = '👉 向右滑动'
+      swipeResult.value = '→ 向右滑动'
     },
     onSwipeUp: () => {
-      swipeResult.value = '👆 向上滑动'
+      swipeResult.value = '↑ 向上滑动'
     },
     onSwipeDown: () => {
-      swipeResult.value = '👇 向下滑动'
+      swipeResult.value = '↓ 向下滑动'
     }
   })
 
   // 双击手势
   useDoubleTap(doubleTapBox, () => {
-    doubleTapResult.value = '✨ 双击成功！'
+    doubleTapResult.value = '✓ 双击成功！'
     setTimeout(() => {
       doubleTapResult.value = '等待双击...'
     }, 2000)
@@ -292,7 +292,7 @@ onMounted(() => {
 
   // 长按手势
   useLongPress(longPressBox, () => {
-    longPressResult.value = '🎯 长按触发！'
+    longPressResult.value = '✓ 长按触发！'
     setTimeout(() => {
       longPressResult.value = '等待长按...'
     }, 2000)
@@ -310,7 +310,7 @@ async function handleRefresh() {
   }
   refreshItems.value.unshift(newItem)
   
-  toast.success('refresh', { message: '刷新成功 ✨' })
+  toast.success('refresh', { message: '刷新成功' })
 }
 
 // Toast演示
@@ -504,6 +504,10 @@ function handleUnlike2() {
 }
 
 .item-icon {
+  font-size: 1.5rem;
+}
+
+.item-icon i {
   font-size: 1.5rem;
 }
 

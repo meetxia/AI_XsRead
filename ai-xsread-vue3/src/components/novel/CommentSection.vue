@@ -78,14 +78,15 @@
               style="max-height: 200px; overflow-y: auto;"
               @click.stop
             >
-              <div class="grid grid-cols-8 gap-2">
+              <div class="grid grid-cols-5 gap-2">
                 <button
                   v-for="emoji in emojiList"
-                  :key="emoji"
-                  @click="insertEmoji(emoji)"
-                  class="text-2xl hover:bg-gray-100 rounded p-1 transition-colors"
+                  :key="emoji.icon"
+                  @click="insertEmoji(emoji.text)"
+                  class="text-2xl hover:bg-gray-100 rounded p-2 transition-colors"
+                  :title="emoji.text"
                 >
-                  {{ emoji }}
+                  <i :class="emoji.icon"></i>
                 </button>
               </div>
             </div>
@@ -331,21 +332,28 @@ const showEmojiPicker = ref(false)
 const uploadedImages = ref([])
 const imageInput = ref(null)
 
-// 常用表情列表
+// 常用表情图标列表 (使用 Bootstrap Icons)
 const emojiList = [
-  '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
-  '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩',
-  '😘', '😗', '😚', '😙', '🥲', '😋', '😛', '😜',
-  '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐',
-  '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬',
-  '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒',
-  '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '😶‍🌫️', '😵',
-  '😵‍💫', '🤯', '🤠', '🥳', '🥸', '😎', '🤓', '🧐',
-  '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳',
-  '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭',
-  '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱',
-  '👍', '👎', '👏', '🙌', '👌', '✌️', '🤞', '🤝',
-  '🙏', '💪', '❤️', '💔', '💕', '💖', '💗', '💓'
+  { icon: 'bi-emoji-smile', text: '😀' },
+  { icon: 'bi-emoji-laughing', text: '😄' },
+  { icon: 'bi-emoji-grin', text: '😁' },
+  { icon: 'bi-emoji-wink', text: '😉' },
+  { icon: 'bi-emoji-heart-eyes', text: '😍' },
+  { icon: 'bi-emoji-kiss', text: '😘' },
+  { icon: 'bi-emoji-sunglasses', text: '😎' },
+  { icon: 'bi-emoji-neutral', text: '😐' },
+  { icon: 'bi-emoji-frown', text: '🙁' },
+  { icon: 'bi-emoji-angry', text: '😠' },
+  { icon: 'bi-emoji-dizzy', text: '😵' },
+  { icon: 'bi-emoji-expressionless', text: '😑' },
+  { icon: 'bi-emoji-tear', text: '😢' },
+  { icon: 'bi-hand-thumbs-up', text: '👍' },
+  { icon: 'bi-hand-thumbs-down', text: '👎' },
+  { icon: 'bi-heart-fill', text: '❤️' },
+  { icon: 'bi-heart-break', text: '💔' },
+  { icon: 'bi-star-fill', text: '⭐' },
+  { icon: 'bi-fire', text: '🔥' },
+  { icon: 'bi-balloon-heart', text: '💕' }
 ]
 
 // 计算过滤后的评论

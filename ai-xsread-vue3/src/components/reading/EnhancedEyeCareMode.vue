@@ -18,7 +18,7 @@
           @click="applyPreset(preset.id)"
           v-feedback
         >
-          <div class="preset-icon">{{ preset.icon }}</div>
+          <div class="preset-icon"><i :class="preset.icon"></i></div>
           <div class="preset-name">{{ preset.name }}</div>
           <div class="preset-desc">{{ preset.desc }}</div>
         </div>
@@ -244,7 +244,7 @@
           :key="tip.id"
           class="tip-item"
         >
-          <div class="tip-icon">{{ tip.icon }}</div>
+          <div class="tip-icon"><i :class="tip.icon"></i></div>
           <div class="tip-text">{{ tip.text }}</div>
         </div>
       </div>
@@ -271,7 +271,7 @@ const presets = [
     id: 'comfort',
     name: '舒适模式',
     desc: '日常阅读推荐',
-    icon: '☀️',
+    icon: 'bi-sun-fill',
     settings: {
       eyeCareMode: true,
       blueFilterIntensity: 30,
@@ -284,7 +284,7 @@ const presets = [
     id: 'night',
     name: '夜间模式',
     desc: '深夜阅读护眼',
-    icon: '🌙',
+    icon: 'bi-moon-fill',
     settings: {
       eyeCareMode: true,
       blueFilterIntensity: 60,
@@ -297,7 +297,7 @@ const presets = [
     id: 'strong',
     name: '强效护眼',
     desc: '长时间阅读',
-    icon: '🛡️',
+    icon: 'bi-shield-fill-check',
     settings: {
       eyeCareMode: true,
       blueFilterIntensity: 80,
@@ -310,18 +310,18 @@ const presets = [
     id: 'custom',
     name: '自定义',
     desc: '按需调整',
-    icon: '⚙️',
+    icon: 'bi-gear-fill',
     settings: {}
   }
 ]
 
 // 护眼小贴士
 const eyeCareTips = [
-  { id: 1, icon: '👁️', text: '每20分钟远眺20秒，放松眼睛' },
-  { id: 2, icon: '💡', text: '保持适当的阅读距离（30-40cm）' },
-  { id: 3, icon: '🌟', text: '避免在过暗或过亮的环境阅读' },
-  { id: 4, icon: '💧', text: '多眨眼，保持眼睛湿润' },
-  { id: 5, icon: '😊', text: '感到眼睛疲劳时，及时休息' }
+  { id: 1, icon: 'bi-eye', text: '每20分钟远眺20秒，放松眼睛' },
+  { id: 2, icon: 'bi-lightbulb', text: '保持适当的阅读距离（30-40cm）' },
+  { id: 3, icon: 'bi-stars', text: '避免在过暗或过亮的环境阅读' },
+  { id: 4, icon: 'bi-droplet', text: '多眨眼，保持眼睛湿润' },
+  { id: 5, icon: 'bi-emoji-smile', text: '感到眼睛疲劳时，及时休息' }
 ]
 
 // 本地设置
@@ -376,7 +376,7 @@ function applyPreset(presetId) {
   if (preset && preset.settings && Object.keys(preset.settings).length > 0) {
     Object.assign(localSettings.value, preset.settings)
     currentPreset.value = presetId
-    toast.success(`已应用${preset.name} ✨`)
+    toast.success(`已应用${preset.name}`)
   } else {
     currentPreset.value = 'custom'
   }
@@ -385,7 +385,7 @@ function applyPreset(presetId) {
 // 处理护眼模式变化
 function handleEyeCareModeChange() {
   if (localSettings.value.eyeCareMode) {
-    toast.success('护眼模式已开启 👁️')
+    toast.success('护眼模式已开启')
     applyEyeCareFilter()
   } else {
     toast.info('护眼模式已关闭')
@@ -634,6 +634,13 @@ onBeforeUnmount(() => {
 }
 
 .preset-icon {
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preset-icon i {
   font-size: 2rem;
 }
 
@@ -985,6 +992,13 @@ input:checked + .slider:before {
 .tip-icon {
   font-size: 1.25rem;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tip-icon i {
+  font-size: 1.25rem;
 }
 
 .tip-text {

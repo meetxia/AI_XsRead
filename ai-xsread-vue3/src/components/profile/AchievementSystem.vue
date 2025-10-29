@@ -3,7 +3,7 @@
     <!-- 成就概览 -->
     <div class="achievement-summary">
       <div class="summary-card">
-        <div class="summary-icon">🏆</div>
+        <div class="summary-icon"><i class="bi bi-trophy-fill"></i></div>
         <div class="summary-content">
           <div class="summary-number">{{ summary.unlocked }}</div>
           <div class="summary-label">已解锁</div>
@@ -11,7 +11,7 @@
       </div>
       
       <div class="summary-card">
-        <div class="summary-icon">🎯</div>
+        <div class="summary-icon"><i class="bi bi-bullseye"></i></div>
         <div class="summary-content">
           <div class="summary-number">{{ summary.total }}</div>
           <div class="summary-label">总成就</div>
@@ -19,7 +19,7 @@
       </div>
       
       <div class="summary-card wide">
-        <div class="summary-icon">📈</div>
+        <div class="summary-icon"><i class="bi bi-graph-up-arrow"></i></div>
         <div class="summary-content">
           <div class="summary-label">完成度</div>
           <div class="progress-bar">
@@ -38,7 +38,7 @@
         :class="['tab-btn', { active: currentTab === tab.key }]"
         @click="currentTab = tab.key"
       >
-        {{ tab.icon }} {{ tab.label }}
+        <i :class="tab.icon"></i> {{ tab.label }}
       </button>
     </div>
 
@@ -51,16 +51,12 @@
       >
         <!-- 成就图标 -->
         <div class="achievement-icon">
-          <span class="icon-emoji">{{ achievement.icon }}</span>
+          <i :class="achievement.icon" class="icon-bi"></i>
           <div v-if="achievement.unlocked" class="unlock-badge">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-            </svg>
+            <i class="bi bi-check-lg"></i>
           </div>
           <div v-else class="lock-badge">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
-            </svg>
+            <i class="bi bi-lock-fill"></i>
           </div>
         </div>
 
@@ -88,10 +84,10 @@
         <!-- 解锁状态 -->
         <div class="achievement-status">
           <span v-if="achievement.unlocked" class="status-unlocked">
-            ✓ 已解锁
+            <i class="bi bi-check-lg"></i> 已解锁
           </span>
           <span v-else class="status-locked">
-            🔒 未解锁
+            <i class="bi bi-lock-fill"></i> 未解锁
           </span>
         </div>
       </div>
@@ -121,11 +117,11 @@ const summary = ref({
 const currentTab = ref('all')
 
 const tabs = [
-  { key: 'all', label: '全部', icon: '🎯' },
-  { key: 'bookshelf', label: '书架', icon: '📚' },
-  { key: 'reading', label: '阅读', icon: '📖' },
-  { key: 'habit', label: '习惯', icon: '🔥' },
-  { key: 'milestone', label: '里程碑', icon: '🏆' }
+  { key: 'all', label: '全部', icon: 'bi-bullseye' },
+  { key: 'bookshelf', label: '书架', icon: 'bi-bookshelf' },
+  { key: 'reading', label: '阅读', icon: 'bi-book' },
+  { key: 'habit', label: '习惯', icon: 'bi-fire' },
+  { key: 'milestone', label: '里程碑', icon: 'bi-trophy-fill' }
 ]
 
 // 筛选成就
@@ -196,6 +192,10 @@ onMounted(() => {
 .summary-icon {
   font-size: 2.5rem;
   flex-shrink: 0;
+}
+
+.summary-icon i {
+  font-size: 2.5rem;
 }
 
 .summary-content {
@@ -319,7 +319,7 @@ onMounted(() => {
   background: var(--color-bg-secondary);
 }
 
-.icon-emoji {
+.icon-bi {
   font-size: 2rem;
 }
 
@@ -335,6 +335,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   border: 2px solid var(--color-bg-card);
+}
+
+.unlock-badge i,
+.lock-badge i {
+  font-size: 0.75rem;
 }
 
 .unlock-badge {
@@ -480,6 +485,10 @@ onMounted(() => {
     font-size: 1.5rem;
   }
 
+  .summary-icon i {
+    font-size: 1.5rem;
+  }
+
   .summary-number {
     font-size: 1.25rem;
     margin-bottom: 0;
@@ -527,7 +536,7 @@ onMounted(() => {
     border-radius: 10px;
   }
 
-  .icon-emoji {
+  .icon-bi {
     font-size: 1.25rem;
   }
 

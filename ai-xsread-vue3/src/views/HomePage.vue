@@ -34,25 +34,16 @@
         </div>
       </section>
 
-      <!-- 小说列表 - 瀑布流 -->
+      <!-- 小说列表 - 杂志式布局 -->
       <section class="novels-section">
         <div class="container">
-          <MasonryLayout
+          <MagazineLayout
             :novels="displayNovels"
             :loading="loading"
             :has-more="hasMore"
-            :columns="3"
-            :show-description="true"
             :auto-load="true"
             @load-more="loadMoreNovels"
           />
-          
-          <!-- 加载更多按钮 -->
-          <div v-if="!loading && hasMore" class="load-more-container">
-            <button @click="loadMoreNovels" class="load-more-btn">
-              发现更多故事
-            </button>
-          </div>
         </div>
       </section>
     </main>
@@ -67,7 +58,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import BottomNav from '@/components/common/BottomNav.vue'
-import MasonryLayout from '@/components/novel/MasonryLayout.vue'
+import MagazineLayout from '@/components/novel/MagazineLayout.vue'
 import { getNovels } from '@/api/novel'
 
 const router = useRouter()
@@ -414,41 +405,13 @@ onMounted(() => {
 
 /* 小说列表区域 */
 .novels-section {
-  padding: 2rem 0 3rem;
+  padding: 1rem 0 3rem;
 }
 
 @media (max-width: 640px) {
   .novels-section {
     padding: 0.5rem 0 2rem;
   }
-}
-
-/* 加载更多按钮 */
-.load-more-container {
-  text-align: center;
-  margin-top: 3rem;
-}
-
-.load-more-btn {
-  padding: 0.875rem 2.5rem;
-  color: white;
-  background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
-  border: none;
-  border-radius: 9999px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow: 0 10px 25px -5px rgba(217, 84, 104, 0.3);
-  transition: all 0.3s ease;
-}
-
-.load-more-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 35px -5px rgba(217, 84, 104, 0.4);
-}
-
-.load-more-btn:active {
-  transform: translateY(0);
 }
 
 /* 淡入动画 */
