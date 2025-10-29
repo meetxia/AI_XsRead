@@ -23,8 +23,8 @@
           <div class="relative h-full flex items-center px-8 md:px-16">
             <div class="max-w-2xl text-white">
               <div class="mb-4">
-                <span class="inline-block px-4 py-1 bg-yellow-500 text-white text-sm font-bold rounded-full">
-                  <i class="bi bi-star-fill"></i> 本周必读
+                <span class="inline-block px-4 py-1 bg-yellow-500 text-white text-sm font-bold rounded-full banner-badge">
+                  <SvgIcon name="star-fill" class="badge-icon" /> 本周必读
                 </span>
               </div>
               <h2 class="text-4xl md:text-5xl font-bold mb-4">{{ item.title }}</h2>
@@ -97,6 +97,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import SvgIcon from '@/components/common/SvgIcon.vue'
 
 const props = defineProps({
   items: {
@@ -178,6 +179,12 @@ onUnmounted(() => {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.badge-icon {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
 }
 </style>
 

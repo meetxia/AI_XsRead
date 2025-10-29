@@ -41,7 +41,7 @@
               <div class="novel-meta">
                 <span>作者：温柔笔触</span>
                 <span>12.8万字</span>
-                <span class="likes"><i class="bi bi-heart-fill"></i> 2.3k</span>
+                <span class="likes"><SvgIcon name="heart-fill" class="icon-inline" /> 2.3k</span>
               </div>
               <button @click="handleRead({ id: 1 })" class="read-btn">立即阅读</button>
             </div>
@@ -64,7 +64,7 @@
                 <div class="rank-meta">
                   <span>{{ book.author }}</span>
                   <span>{{ book.category || '都市言情' }}</span>
-                  <span class="rank-likes"><i class="bi bi-heart-fill"></i> {{ formatNumber(book.hotValue) }}</span>
+                  <span class="rank-likes"><SvgIcon name="heart-fill" class="icon-inline" /> {{ formatNumber(book.hotValue) }}</span>
                 </div>
               </div>
             </div>
@@ -121,6 +121,7 @@ import { useRouter } from 'vue-router'
 import { useBookshelfStore } from '@/stores/bookshelf'
 import AppHeader from '@/components/common/AppHeader.vue'
 import BottomNav from '@/components/common/BottomNav.vue'
+import SvgIcon from '@/components/common/SvgIcon.vue'
 import {
   getWeeklyPicks,
   getHotRankList,
@@ -587,6 +588,12 @@ onMounted(async () => {
 
 .likes {
   color: var(--color-primary);
+}
+
+.icon-inline {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
 }
 
 .read-btn {

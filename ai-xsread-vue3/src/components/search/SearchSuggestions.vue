@@ -95,7 +95,7 @@
             class="preview-cover"
           />
           <div v-else class="preview-cover-placeholder">
-            <i class="bi bi-book-fill"></i>
+            <SvgIcon name="book-fill" class="placeholder-book-icon" color="white" />
           </div>
           <div class="preview-info">
             <div class="preview-title">{{ novel.title }}</div>
@@ -109,6 +109,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import SvgIcon from '@/components/common/SvgIcon.vue'
 
 const props = defineProps({
   keyword: {
@@ -374,7 +375,11 @@ function deleteHistory(id) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+}
+
+.placeholder-book-icon {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .preview-info {

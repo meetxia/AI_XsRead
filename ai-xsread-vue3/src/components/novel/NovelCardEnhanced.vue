@@ -16,7 +16,7 @@
         loading="lazy"
       />
       <div v-else class="cover-placeholder">
-        <i class="bi bi-book-fill placeholder-icon"></i>
+        <SvgIcon name="book-fill" class="placeholder-icon" color="rgba(255, 255, 255, 0.9)" />
       </div>
       
       <!-- 状态标签 -->
@@ -29,7 +29,7 @@
       
       <!-- VIP标记 -->
       <div v-if="novel.isVip" class="vip-mark">
-        <i class="bi bi-trophy-fill vip-icon"></i>
+        <SvgIcon name="trophy-fill" class="vip-icon" />
         <span class="vip-text">VIP</span>
       </div>
     </div>
@@ -130,6 +130,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import SvgIcon from '@/components/common/SvgIcon.vue'
 
 const props = defineProps({
   novel: {
@@ -265,9 +266,10 @@ function timeAgo(time) {
 }
 
 .placeholder-icon {
-  font-size: 2.5rem;
-  color: rgba(255, 255, 255, 0.9);
+  width: 2.5rem;
+  height: 2.5rem;
 }
+
 
 /* 状态标签 */
 .status-badges {
@@ -326,8 +328,10 @@ function timeAgo(time) {
 }
 
 .vip-icon {
-  font-size: 12px;
+  width: 12px;
+  height: 12px;
 }
+
 
 .vip-text {
   font-size: 10px;

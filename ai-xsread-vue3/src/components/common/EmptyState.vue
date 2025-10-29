@@ -3,7 +3,7 @@
     <!-- 插图 -->
     <div class="empty-illustration">
       <div class="illustration-wrapper">
-        <i :class="['bi', iconClass, 'illustration-icon']"></i>
+        <SvgIcon :name="iconName" class="illustration-icon" />
       </div>
     </div>
     
@@ -26,6 +26,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import SvgIcon from './SvgIcon.vue'
 
 const props = defineProps({
   type: {
@@ -51,49 +52,49 @@ const emit = defineEmits(['action'])
 // 预设的空状态文案
 const presets = {
   'bookshelf-empty': {
-    icon: 'bi-bookshelf',
+    icon: 'bookshelf',
     title: '书架空空如也',
     message: '快去发现喜欢的小说吧',
     actionText: '去首页看看'
   },
   'search-no-results': {
-    icon: 'bi-search',
+    icon: 'search',
     title: '没有找到相关小说',
     message: '换个关键词试试？或者看看推荐的书',
     actionText: '查看推荐'
   },
   'comments-empty': {
-    icon: 'bi-chat-dots',
+    icon: 'chat-dots',
     title: '还没有评论',
     message: '成为第一个发表评论的人吧',
     actionText: '发表评论'
   },
   'network-error': {
-    icon: 'bi-wifi-off',
+    icon: 'wifi-off',
     title: '网络开小差了',
     message: '请检查网络连接后重试',
     actionText: '重新加载'
   },
   'no-data': {
-    icon: 'bi-inbox',
+    icon: 'inbox',
     title: '暂无数据',
     message: '这里还没有内容哦',
     actionText: ''
   },
   'reading-history-empty': {
-    icon: 'bi-book',
+    icon: 'book',
     title: '还没有阅读记录',
     message: '开始你的第一次阅读吧',
     actionText: '去看看小说'
   },
   'favorites-empty': {
-    icon: 'bi-heart',
+    icon: 'heart',
     title: '还没有收藏',
-    message: '收藏你喜欢的小说，方便下次阅读',
+    message: '收藏你喜欢的小说,方便下次阅读',
     actionText: '去发现'
   },
   '404': {
-    icon: 'bi-compass',
+    icon: 'compass',
     title: '页面走丢了',
     message: '我们找不到你要访问的页面',
     actionText: '返回首页'
@@ -105,7 +106,7 @@ const currentPreset = computed(() => {
   return presets[props.type] || presets['no-data']
 })
 
-const iconClass = computed(() => {
+const iconName = computed(() => {
   return currentPreset.value.icon
 })
 
@@ -146,9 +147,11 @@ const currentMessage = computed(() => {
 }
 
 .illustration-icon {
-  font-size: 4rem;
   line-height: 1;
   color: var(--color-primary);
+  font-size: 4rem;
+  width: 4rem;
+  height: 4rem;
 }
 
 /* 浮动动画 */
@@ -215,6 +218,8 @@ const currentMessage = computed(() => {
   
   .illustration-icon {
     font-size: 3rem;
+    width: 3rem;
+    height: 3rem;
   }
   
   .empty-title {

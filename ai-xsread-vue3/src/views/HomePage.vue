@@ -15,19 +15,19 @@
         <div class="container">
           <div class="quick-nav">
             <div class="nav-item" @click="navigateTo('hot')">
-              <i class="bi bi-fire nav-icon"></i>
+              <SvgIcon name="fire" class="nav-icon" />
               <span class="nav-text">本周热门</span>
             </div>
             <div class="nav-item" @click="navigateTo('new')">
-              <i class="bi bi-stars nav-icon"></i>
+              <SvgIcon name="stars" class="nav-icon" />
               <span class="nav-text">新书上架</span>
             </div>
             <div class="nav-item" @click="navigateTo('finished')">
-              <i class="bi bi-check-circle nav-icon"></i>
+              <SvgIcon name="check-circle" class="nav-icon" />
               <span class="nav-text">完结好书</span>
             </div>
             <div class="nav-item" @click="navigateTo('recommend')">
-              <i class="bi bi-star-fill nav-icon"></i>
+              <SvgIcon name="star-fill" class="nav-icon" />
               <span class="nav-text">编辑推荐</span>
             </div>
           </div>
@@ -68,6 +68,7 @@ import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import BottomNav from '@/components/common/BottomNav.vue'
 import MasonryLayout from '@/components/novel/MasonryLayout.vue'
+import SvgIcon from '@/components/common/SvgIcon.vue'
 import { getNovels } from '@/api/novel'
 
 const router = useRouter()
@@ -371,10 +372,12 @@ onMounted(() => {
 }
 
 .nav-icon {
-  font-size: 2rem;
   margin-bottom: 0.5rem;
   display: block;
   color: var(--color-primary);
+  font-size: 2rem;
+  width: 2rem;
+  height: 2rem;
 }
 
 .nav-text {
@@ -390,9 +393,11 @@ onMounted(() => {
     border-radius: 12px;
   }
   
-  .nav-icon {
-    font-size: 1.25rem;
+  .nav-item .nav-icon {
     margin-bottom: 0.25rem;
+    font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
   }
   
   .nav-text {
