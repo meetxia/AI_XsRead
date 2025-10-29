@@ -450,7 +450,7 @@ const getUserProfile = async (req, res) => {
     const userId = req.user.id;
 
     const [users] = await pool.query(
-      `SELECT id, username, email, avatar, created_at, updated_at
+      `SELECT id, username, email, avatar, nickname, bio, gender, birthday, created_at, updated_at
        FROM users
        WHERE id = ?`,
       [userId]
@@ -475,7 +475,7 @@ const getUserProfile = async (req, res) => {
 
     // 获取基础统计（使用正确的表名）
     const [stats] = await pool.query(
-      `SELECT 
+      `SELECT
         (SELECT COUNT(*) FROM bookshelf WHERE user_id = ?) as total_books,
         (SELECT COUNT(*) FROM user_likes WHERE user_id = ?) as total_likes,
         (SELECT COUNT(*) FROM bookshelf WHERE user_id = ? AND type = 'collected') as total_collections,
@@ -498,6 +498,75 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+/**
+ * 更新用户个人资料
+ */
+const updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { nickname, bio, gender, birthday } = req.body;
+
+    // 构建更新字段
+    const updates = [];
+    const values = [];
+
+    if (nickname !== undefined) {
+      updates.push('nickname = ?');
+      values.push(nickname);
+    }
+
+    if (bio !== undefined) {
+      updates.push('bio = ?');
+      values.push(bio);
+    }
+
+    if (gender !== undefined) {
+      // 验证性别值：0-保密, 1-女, 2-男
+      if (![0, 1, 2].includes(parseInt(gender))) {
+        return Response.error(res, '性别值无效', 400);
+      }
+      updates.push('gender = ?');
+      values.push(parseInt(gender));
+    }
+
+    if (birthday !== undefined) {
+      // 验证日期格式 YYYY-MM-DD
+      if (birthday && !/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
+        return Response.error(res, '生日格式无效，应为 YYYY-MM-DD', 400);
+      }
+      updates.push('birthday = ?');
+      values.push(birthday || null);
+    }
+
+    if (updates.length === 0) {
+      return Response.error(res, '没有需要更新的字段', 400);
+    }
+
+    // 添加更新时间
+    updates.push('updated_at = NOW()');
+    values.push(userId);
+
+    // 执行更新
+    await pool.query(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    // 获取更新后的用户信息
+    const [users] = await pool.query(
+      `SELECT id, username, email, avatar, nickname, bio, gender, birthday, created_at, updated_at
+       FROM users
+       WHERE id = ?`,
+      [userId]
+    );
+
+    return Response.success(res, users[0], '更新成功');
+  } catch (error) {
+    console.error('Update user profile error:', error);
+    return Response.error(res, '更新用户资料失败', 500);
+  }
+};
+
 module.exports = {
   getBookshelf,
   addToBookshelf,
@@ -508,6 +577,7 @@ module.exports = {
   getUserStatistics,
   getUserAchievements,
   getUserProfile,
+  updateUserProfile,
   async updateBookshelfItem(req, res) {
     try {
       const userId = req.user.id;

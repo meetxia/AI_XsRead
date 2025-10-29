@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { login as loginApi, register as registerApi, logout as logoutApi } from '@/api/auth'
-import { uploadAvatarApi } from '@/api/user'
+import { uploadAvatarApi, updateUserProfile as updateUserProfileApi } from '@/api/user'
 
 /**
  * 用户状态管理 Store
@@ -161,20 +161,25 @@ export const useUserStore = defineStore('user', () => {
    */
   const updateUserInfo = async (data) => {
     try {
-      // TODO: 调用更新用户信息API
-      // const response = await updateUserInfoApi(data)
-      
-      // 模拟更新成功
-      userInfo.value = {
-        ...userInfo.value,
-        ...data
+      // 调用更新用户信息API
+      const response = await updateUserProfileApi(data)
+
+      if (response.code === 200) {
+        // 更新本地用户信息
+        userInfo.value = {
+          ...userInfo.value,
+          ...response.data
+        }
+
+        // 更新localStorage
+        localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+
+        console.log('用户信息已更新:', userInfo.value)
+        return response.data
+      } else {
+        throw new Error(response.message || '更新失败')
       }
-      
-      // 更新localStorage
-      localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
-      
-      console.log('用户信息已更新:', userInfo.value)
-      
+
     } catch (error) {
       console.error('更新用户信息失败:', error)
       throw error

@@ -31,6 +31,17 @@ export const getUserProfile = () => {
 }
 
 /**
+ * 更新用户资料
+ */
+export const updateUserProfile = (data) => {
+  return request({
+    url: '/user/profile',
+    method: 'put',
+    data
+  })
+}
+
+/**
  * 获取用户书架
  */
 export const getBookshelf = (params) => {

@@ -152,6 +152,13 @@
     
     <!-- 底部导航 -->
     <BottomNav />
+
+    <!-- 编辑资料弹窗 -->
+    <EditProfileModal
+      v-model:visible="showEditModal"
+      :user-info="userInfo"
+      @success="handleEditSuccess"
+    />
   </div>
 </template>
 
@@ -164,7 +171,9 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import BottomNav from '@/components/common/BottomNav.vue'
 import ReadingStatsChart from '@/components/profile/ReadingStatsChart.vue'
 import AchievementSystem from '@/components/profile/AchievementSystem.vue'
+import EditProfileModal from '@/components/profile/EditProfileModal.vue'
 import { getUserAvatarUrl, handleAvatarError } from '@/utils/avatar'
+import message from '@/utils/message'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -172,6 +181,9 @@ const bookshelfStore = useBookshelfStore()
 
 // 用户信息
 const userInfo = computed(() => userStore.userInfo)
+
+// 编辑弹窗显示状态
+const showEditModal = ref(false)
 
 // 最近阅读的书籍
 const recentBooks = ref([
@@ -325,10 +337,10 @@ function handleEditAvatar() {
     if (file) {
       try {
         await userStore.uploadAvatar(file)
-        // 可选：轻提示
-        console.log('头像上传成功')
+        message.success('头像上传成功')
       } catch (error) {
         console.error('头像上传失败:', error)
+        message.error(error.message || '头像上传失败')
       }
     }
   }
@@ -337,8 +349,12 @@ function handleEditAvatar() {
 
 // 编辑资料
 function handleEditProfile() {
-  // TODO: 跳转到编辑资料页面
-  console.log('编辑资料')
+  showEditModal.value = true
+}
+
+// 编辑成功回调
+function handleEditSuccess() {
+  message.success('资料更新成功')
 }
 
 // 去书架
