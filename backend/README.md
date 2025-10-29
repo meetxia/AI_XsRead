@@ -297,7 +297,7 @@ Authorization: Bearer <accessToken>
 
 ```powershell
 npm run dev
-cd ai-xsread-vue3 ; npm run dev
+cd ai-xsread-vue3 ; pnpm run dev
 
 cd backend ; npm run dev
 
