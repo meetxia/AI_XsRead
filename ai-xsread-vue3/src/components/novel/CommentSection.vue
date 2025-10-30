@@ -246,7 +246,9 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { getComments, submitComment as apiSubmitComment, likeComment as apiLikeComment, submitReply as apiSubmitReply } from '@/api/novel'
+import { useUserStore } from '@/stores/user'
 
 const props = defineProps({
   novelId: {
@@ -254,6 +256,9 @@ const props = defineProps({
     required: true
   }
 })
+
+const router = useRouter()
+const userStore = useUserStore()
 
 const comments = ref([])
 const loading = ref(true)
@@ -416,6 +421,14 @@ function insertEmoji(emoji) {
 async function submitComment() {
   if (!newComment.value.trim()) return
 
+  // 检查登录状态
+  if (!userStore.isLogin) {
+    if (confirm('请先登录后再发表评论，是否前往登录页面?')) {
+      router.push('/login')
+    }
+    return
+  }
+
   try {
     submitting.value = true
     await apiSubmitComment(props.novelId, {
@@ -440,6 +453,14 @@ async function submitComment() {
 
 // 点赞评论
 async function likeComment(comment) {
+  // 检查登录状态
+  if (!userStore.isLogin) {
+    if (confirm('请先登录后再点赞，是否前往登录页面?')) {
+      router.push('/login')
+    }
+    return
+  }
+
   try {
     await apiLikeComment(comment.id)
     comment.isLiked = !comment.isLiked
@@ -455,6 +476,14 @@ async function likeComment(comment) {
 
 // 切换回复显示
 function toggleReply(comment) {
+  // 检查登录状态
+  if (!userStore.isLogin) {
+    if (confirm('请先登录后再回复，是否前往登录页面?')) {
+      router.push('/login')
+    }
+    return
+  }
+
   comment.showReplies = !comment.showReplies
   comment.showReplyInput = !comment.showReplyInput
 }
@@ -463,6 +492,14 @@ function toggleReply(comment) {
 async function submitReply(comment) {
   const content = replyContent.value[comment.id]
   if (!content?.trim()) return
+
+  // 检查登录状态
+  if (!userStore.isLogin) {
+    if (confirm('请先登录后再回复，是否前往登录页面?')) {
+      router.push('/login')
+    }
+    return
+  }
 
   try {
     const response = await apiSubmitReply(comment.id, {

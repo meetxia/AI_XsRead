@@ -25,6 +25,11 @@
 ```powershell
 cd backend
 npm install
+npm install
+
+cd ai-xsread-vue3 ; npm run dev
+cd backend ; npm run dev
+
 ```
 
 ### 2. 配置环境变量

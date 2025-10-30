@@ -407,6 +407,24 @@ const hasNextChapter = computed(() => currentChapterNumber.value < totalChapters
 const hasPrevPage = computed(() => currentPage.value > 1)
 const hasNextPage = computed(() => currentPage.value < totalPages.value)
 
+// 滚动到顶部的通用函数
+function scrollToTop() {
+  if (contentArea.value) {
+    // 使用多种方式确保滚动生效
+    contentArea.value.scrollTop = 0
+    contentArea.value.scrollTo({
+      top: 0,
+      behavior: 'instant'
+    })
+    // 兼容性处理：同时滚动 window
+    window.scrollTo({
+      top: 0,
+      behavior: 'instant'
+    })
+    console.log('📍 页面已滚动到顶部')
+  }
+}
+
 function prevPage() {
   if (!hasPrevPage.value) return
   const target = Math.max(1, Number(currentPage.value) - 1)
@@ -486,13 +504,9 @@ async function loadChapter(chapterId) {
         contentLength: res.data.content?.length || 0
       })
 
-      // 滚动到顶部 - 立即滚动
-      if (contentArea.value) {
-        contentArea.value.scrollTo({
-          top: 0,
-          behavior: 'instant'
-        })
-      }
+      // 等待 DOM 更新后滚动到顶部
+      await nextTick()
+      scrollToTop()
 
       // 保存阅读进度
       saveReadingProgress()
@@ -531,13 +545,11 @@ async function loadPagedContent(page = 1) {
       currentPage.value = res.data.page
       totalPages.value = res.data.totalPages
       currentChapterTitle.value = ''
-      // 滚动到顶部 - 立即滚动
-      if (contentArea.value) {
-        contentArea.value.scrollTo({
-          top: 0,
-          behavior: 'instant'
-        })
-      }
+      
+      // 等待 DOM 更新后滚动到顶部
+      await nextTick()
+      scrollToTop()
+      
       saveReadingProgress()
     } else {
       throw new Error(res?.message || '分页数据格式错误')

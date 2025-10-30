@@ -19,6 +19,10 @@
 ✅ 质量等级: A+
 ✅ 开发时间: 5小时
 ```
+npm install
+
+cd ai-xsread-vue3 ; npm run dev
+cd backend ; npm run dev
 
 ---
 

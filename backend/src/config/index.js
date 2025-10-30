@@ -96,10 +96,12 @@ module.exports = {
 
   // CORS配置
   cors: {
-    origin: process.env.CORS_ORIGIN 
+    origin: process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
       : ['http://localhost:3008', 'http://127.0.0.1:3008'],
-    credentials: true
+    credentials: true,
+    exposedHeaders: ['Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   },
 
   // 文件上传配置

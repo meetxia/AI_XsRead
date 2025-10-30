@@ -49,19 +49,30 @@ request.interceptors.request.use(
   config => {
     // 取消之前的重复请求
     removePendingRequest(config)
-    
+
     // 添加当前请求到待处理队列
     addPendingRequest(config)
-    
+
     // 添加认证 Token
     const token = localStorage.getItem('token')
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
+      console.log('🔑 添加 Token 到请求头:', {
+        url: config.url,
+        method: config.method,
+        tokenPreview: token.substring(0, 20) + '...',
+        authHeader: config.headers['Authorization'].substring(0, 30) + '...'
+      })
+    } else {
+      console.log('⚠️ 未找到 Token:', {
+        url: config.url,
+        method: config.method
+      })
     }
-    
+
     // 添加请求时间戳（用于性能监控）
     config.metadata = { startTime: Date.now() }
-    
+
     return config
   },
   error => {
@@ -86,18 +97,22 @@ request.interceptors.response.use(
     // 统一错误处理（200-299 都是成功状态）
     if (res.code !== undefined && (res.code < 200 || res.code >= 300)) {
       console.error('API Error:', res.message)
-      
+
       // 特殊错误码处理
       if (res.code === 401) {
-        // Token 过期，清除本地存储
+        // Token 过期或无效，清除本地存储
+        console.log('🔒 Token 失效，清除登录信息')
         localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        // 跳转到登录页
+        localStorage.removeItem('userInfo')
+        localStorage.removeItem('refreshToken')
+
+        // 提示用户并跳转到登录页
         if (window.location.pathname !== '/login') {
+          alert('登录已失效，请重新登录')
           window.location.href = '/login'
         }
       }
-      
+
       return Promise.reject(new Error(res.message || 'Error'))
     }
     
