@@ -486,11 +486,11 @@ async function loadChapter(chapterId) {
         contentLength: res.data.content?.length || 0
       })
 
-      // 滚动到顶部 - 使用平滑滚动
+      // 滚动到顶部 - 立即滚动
       if (contentArea.value) {
         contentArea.value.scrollTo({
           top: 0,
-          behavior: 'smooth'
+          behavior: 'instant'
         })
       }
 
@@ -531,11 +531,11 @@ async function loadPagedContent(page = 1) {
       currentPage.value = res.data.page
       totalPages.value = res.data.totalPages
       currentChapterTitle.value = ''
-      // 滚动到顶部 - 使用平滑滚动
+      // 滚动到顶部 - 立即滚动
       if (contentArea.value) {
         contentArea.value.scrollTo({
           top: 0,
-          behavior: 'smooth'
+          behavior: 'instant'
         })
       }
       saveReadingProgress()
@@ -1242,19 +1242,22 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   bottom: 0;
   left: 0;
   right: 0;
+  width: 100%;
   background: linear-gradient(to top, rgba(255,255,255,0.98), rgba(255,255,255,0.95));
   backdrop-filter: blur(10px);
   transform: translateY(100%);
   transition: transform 0.3s ease;
   z-index: 100;
   box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+  box-sizing: border-box;
 }
 
 .footer-content {
   max-width: 800px;
   margin: 0 auto;
-  padding: 1rem 0.75rem;
+  padding: 0.75rem 0.5rem;
   width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 768px) {
@@ -1275,6 +1278,7 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 .footer-navigation {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
@@ -1282,25 +1286,27 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 .footer-nav-btn {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 1rem;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
   background: linear-gradient(135deg, #d95468 0%, #ed7654 100%);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: 500;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(217, 84, 104, 0.25);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(217, 84, 104, 0.2);
   min-height: 40px;
+  flex-shrink: 0;
   white-space: nowrap;
 }
 
 .footer-nav-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #c74458 0%, #dc6544 100%);
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(217, 84, 104, 0.35);
+  box-shadow: 0 3px 6px rgba(217, 84, 104, 0.3);
 }
 
 .footer-nav-btn:active:not(:disabled) {
@@ -1308,11 +1314,11 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 }
 
 .footer-nav-btn:disabled {
-  background: linear-gradient(135deg, #e0e0e0 0%, #d0d0d0 100%);
-  color: #999;
+  background: #e5e7eb;
+  color: #9ca3af;
   cursor: not-allowed;
   box-shadow: none;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .footer-nav-btn .nav-icon {
@@ -1329,9 +1335,10 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   }
 
   .footer-nav-btn {
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem;
     font-size: 0.8125rem;
     min-height: 36px;
+    min-width: 36px;
   }
 
   .footer-nav-btn span {
@@ -1347,12 +1354,15 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 .progress-bar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .progress-slider {
   flex: 1;
+  min-width: 0;
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
@@ -1366,19 +1376,34 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   appearance: none;
   width: 16px;
   height: 16px;
-  background: #4f46e5;
+  background: #d95468;
   border-radius: 50%;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.progress-slider::-webkit-slider-thumb:hover {
+  background: #c74458;
+  transform: scale(1.1);
 }
 
 .progress-text {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #666;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .dark-mode .progress-text {
   color: #999;
+}
+
+.dark-mode .progress-slider::-webkit-slider-thumb {
+  background: #ed7654;
+}
+
+.dark-mode .progress-slider::-webkit-slider-thumb:hover {
+  background: #dc6544;
 }
 
 .toolbar-actions {
