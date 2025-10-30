@@ -44,15 +44,27 @@ logger = logging.getLogger(__name__)
 # ============================================
 # 数据库配置
 # ============================================
+# 注意: 请使用环境变量配置数据库密码
+# 示例: export DB_PASSWORD=your_password (Linux/Mac)
+#      set DB_PASSWORD=your_password (Windows)
+import os
+
 DB_CONFIG = {
-    'host': 'localhost',
-    'port': 3306,
-    'user': 'root',
-    'password': 'root123',
-    'database': 'ai_xsread',
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'port': int(os.getenv('DB_PORT', 3306)),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD'),  # 必须从环境变量读取
+    'database': os.getenv('DB_DATABASE', 'ai_xsread'),
     'charset': 'utf8mb4',
     'autocommit': False
 }
+
+# 验证必需的配置
+if not DB_CONFIG['password']:
+    print('❌ 错误: 未配置数据库密码')
+    print('请设置环境变量 DB_PASSWORD')
+    print('示例: export DB_PASSWORD=your_password')
+    exit(1)
 
 # ============================================
 # 数据导入器类

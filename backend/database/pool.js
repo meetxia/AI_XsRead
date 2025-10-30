@@ -1,21 +1,38 @@
 /**
  * ============================================
- * 文字之境 - 数据库连接池管理
+ * 高级数据库连接池管理器
  * 开发者: 开发者C
  * 创建日期: 2025-10-27
- * 版本: v1.0
+ * 版本: v1.1
  * ============================================
- * 
+ *
+ * 用途: 提供高级数据库管理功能
+ *
  * 功能:
  * - 连接池配置优化
- * - 读写分离
+ * - 读写分离 (主从复制)
  * - 连接池监控
  * - 连接泄漏检测
  * - 故障转移
+ * - 负载均衡
+ *
+ * 配置来源: 环境变量 (.env)
+ *
+ * 与 src/config/database.js 的区别:
+ * - src/config/database.js: 简单连接池,适用于大多数场景
+ * - database/pool.js: 高级管理器,适用于需要读写分离、监控等场景
+ *
+ * 注意:
+ * - 所有配置从环境变量读取,确保安全性
+ * - 生产环境建议启用监控功能
+ * - 读写分离需要配置主从数据库
  */
 
 const mysql = require('mysql2/promise');
 const EventEmitter = require('events');
+
+// 加载环境变量
+require('dotenv').config();
 
 // ============================================
 // 配置
@@ -23,13 +40,13 @@ const EventEmitter = require('events');
 const CONFIG = {
   // 主库配置 (写)
   master: {
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: 'root123',
-    database: 'ai_xsread',
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD,  // 必须从环境变量读取
+    database: process.env.DB_DATABASE || 'ai_xsread',
     charset: 'utf8mb4',
-    connectionLimit: 50,         // 最大连接数
+    connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 50,  // 最大连接数
     queueLimit: 0,               // 队列限制 (0=无限制)
     waitForConnections: true,    // 等待可用连接
     acquireTimeout: 30000,       // 获取连接超时 (30s)
@@ -38,17 +55,17 @@ const CONFIG = {
     keepAliveInitialDelay: 0,
     multipleStatements: false,   // 禁止多语句查询 (安全)
   },
-  
-  // 从库配置 (读)
-  slaves: [
+
+  // 从库配置 (读) - 如果需要读写分离，请在环境变量中配置
+  slaves: process.env.DB_SLAVE_ENABLED === 'true' ? [
     {
-      host: 'localhost',         // 实际部署时配置从库地址
-      port: 3306,
-      user: 'readonly',          // 只读用户
-      password: 'readonly123',
-      database: 'ai_xsread',
+      host: process.env.DB_SLAVE_HOST || 'localhost',
+      port: parseInt(process.env.DB_SLAVE_PORT) || 3306,
+      user: process.env.DB_SLAVE_USER || 'readonly',
+      password: process.env.DB_SLAVE_PASSWORD,  // 从环境变量读取
+      database: process.env.DB_DATABASE || 'ai_xsread',
       charset: 'utf8mb4',
-      connectionLimit: 100,      // 从库可以有更多连接
+      connectionLimit: parseInt(process.env.DB_SLAVE_CONNECTION_LIMIT) || 100,
       queueLimit: 0,
       waitForConnections: true,
       acquireTimeout: 30000,
@@ -56,24 +73,31 @@ const CONFIG = {
       enableKeepAlive: true,
       keepAliveInitialDelay: 0,
     },
-  ],
-  
+  ] : [],
+
   // 监控配置
   monitor: {
-    enabled: true,
-    interval: 60000,             // 监控间隔: 1分钟
-    warningThreshold: 0.8,       // 连接使用率告警阈值: 80%
-    criticalThreshold: 0.9,      // 连接使用率严重告警: 90%
+    enabled: process.env.DB_MONITOR_ENABLED !== 'false',  // 默认启用
+    interval: parseInt(process.env.DB_MONITOR_INTERVAL) || 60000,  // 监控间隔: 1分钟
+    warningThreshold: parseFloat(process.env.DB_WARNING_THRESHOLD) || 0.8,  // 80%
+    criticalThreshold: parseFloat(process.env.DB_CRITICAL_THRESHOLD) || 0.9,  // 90%
   },
-  
+
   // 读写分离策略
   strategy: {
-    enabled: false,              // 是否启用读写分离 (需要配置从库)
-    loadBalance: 'round-robin',  // 负载均衡策略: round-robin, random
-    retryTimes: 3,               // 重试次数
-    retryDelay: 1000,            // 重试延迟 (ms)
+    enabled: process.env.DB_SLAVE_ENABLED === 'true',  // 是否启用读写分离
+    loadBalance: process.env.DB_LOAD_BALANCE || 'round-robin',  // 负载均衡策略
+    retryTimes: parseInt(process.env.DB_RETRY_TIMES) || 3,  // 重试次数
+    retryDelay: parseInt(process.env.DB_RETRY_DELAY) || 1000,  // 重试延迟 (ms)
   },
 };
+
+// 验证必需的数据库配置
+if (!CONFIG.master.password) {
+  console.error('❌ 错误: 未配置数据库密码');
+  console.error('请在 .env 文件中设置 DB_PASSWORD 环境变量');
+  process.exit(1);
+}
 
 // ============================================
 // 数据库管理器

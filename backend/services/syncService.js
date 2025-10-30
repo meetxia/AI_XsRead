@@ -17,32 +17,35 @@ const mysql = require('mysql2/promise');
 const Redis = require('ioredis');
 const EventEmitter = require('events');
 
+// 加载环境变量
+require('dotenv').config();
+
 // ============================================
 // 配置
 // ============================================
 const CONFIG = {
   // 主数据库
   masterDB: {
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: 'root123',
-    database: 'ai_xsread',
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD,  // 必须从环境变量读取
+    database: process.env.DB_DATABASE || 'ai_xsread',
     charset: 'utf8mb4',
-    connectionLimit: 10,
+    connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
     waitForConnections: true,
   },
-  
-  // 从数据库 (可选)
-  slaveDB: {
-    host: 'slave.db.com',
-    port: 3306,
-    user: 'readonly',
-    password: 'password',
-    database: 'ai_xsread',
+
+  // 从数据库 (可选) - 如果需要，请在环境变量中配置
+  slaveDB: process.env.DB_SLAVE_ENABLED === 'true' ? {
+    host: process.env.DB_SLAVE_HOST || 'localhost',
+    port: parseInt(process.env.DB_SLAVE_PORT) || 3306,
+    user: process.env.DB_SLAVE_USER || 'readonly',
+    password: process.env.DB_SLAVE_PASSWORD,  // 从环境变量读取
+    database: process.env.DB_DATABASE || 'ai_xsread',
     charset: 'utf8mb4',
-    connectionLimit: 20,
-  },
+    connectionLimit: parseInt(process.env.DB_SLAVE_CONNECTION_LIMIT) || 20,
+  } : null,
   
   // Redis配置
   redis: {

@@ -19,30 +19,33 @@ const path = require('path');
 const fs = require('fs');
 const mysql = require('mysql2/promise');
 
+// 加载环境变量
+require('dotenv').config();
+
 // ============================================
 // 配置
 // ============================================
 const CONFIG = {
   // 日志目录
-  logDir: './logs',
-  
+  logDir: process.env.LOG_DIR || './logs',
+
   // 日志级别
-  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  
+  level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+
   // 日志保留天数
-  maxFiles: '30d',
-  
+  maxFiles: process.env.LOG_MAX_FILES || '30d',
+
   // 单个日志文件最大大小
-  maxSize: '20m',
-  
-  // 数据库配置
+  maxSize: process.env.LOG_MAX_SIZE || '20m',
+
+  // 数据库配置 - 用于记录日志到数据库
   database: {
-    enabled: true,
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: 'root123',
-    database: 'ai_xsread',
+    enabled: process.env.LOG_DB_ENABLED === 'true',
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD,  // 必须从环境变量读取
+    database: process.env.DB_DATABASE || 'ai_xsread',
   },
 };
 

@@ -20,16 +20,19 @@ const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
 
+// 加载环境变量
+require('dotenv').config();
+
 // ============================================
 // 配置
 // ============================================
 const CONFIG = {
   database: {
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: 'root123',
-    database: 'ai_xsread',
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD,  // 必须从环境变量读取
+    database: process.env.DB_DATABASE || 'ai_xsread',
   },
   
   backup: {

@@ -11,13 +11,24 @@ async function initAdmin() {
   let connection;
 
   try {
+    // 验证必需的环境变量
+    const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+    if (missingVars.length > 0) {
+      console.error('❌ 缺少必需的环境变量:');
+      missingVars.forEach(varName => console.error(`  - ${varName}`));
+      console.error('\n请在 .env 文件中配置这些变量');
+      process.exit(1);
+    }
+
     // 连接数据库
     connection = await mysql.createConnection({
-      host: process.env.DB_HOST || '127.0.0.1',
+      host: process.env.DB_HOST,
       port: process.env.DB_PORT || 3306,
-      user: process.env.DB_USER || 'toefl_user',
-      password: process.env.DB_PASSWORD || 'mojz168168-',
-      database: process.env.DB_NAME || 'ai_xsread'
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME
     });
 
     console.log('✅ 数据库连接成功');

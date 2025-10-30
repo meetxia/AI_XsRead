@@ -2,26 +2,28 @@
   <div class="reading-page" :class="{ 'dark-mode': isDarkMode }">
     <!-- 顶部工具栏 -->
     <div class="reading-header" :class="{ 'show': showHeader }">
-      <button class="back-btn" @click="goBack">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-        </svg>
-      </button>
-      <div class="header-info flex-1">
-        <h1 class="novel-title">{{ novelTitle }}</h1>
-        <p class="chapter-title">{{ headerSubTitle }}</p>
+      <div class="header-content">
+        <button class="back-btn" @click="goBack">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div class="header-info flex-1">
+          <h1 class="novel-title">{{ novelTitle }}</h1>
+          <p class="chapter-title">{{ chapterList.length > 1 ? currentChapterTitle : '' }}</p>
+        </div>
+        <button class="menu-btn" @click="showSettings = !showSettings">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/>
+          </svg>
+        </button>
       </div>
-      <button class="menu-btn" @click="showSettings = !showSettings">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/>
-        </svg>
-      </button>
     </div>
 
     <!-- 阅读内容区 -->
-    <div 
+    <div
       ref="contentArea"
-      class="reading-content" 
+      class="reading-content"
       :class="{ 'dark-content': isContentDark }"
       :style="contentStyle"
       @click="toggleToolbar"
@@ -31,52 +33,16 @@
         <!-- 标题：只在多章节时显示章节标题 -->
         <h2 v-if="totalChapters > 1" class="chapter-heading">{{ chapterContent.title }}</h2>
         <h2 v-else class="novel-heading">{{ novelTitle }}</h2>
-        
+
         <!-- 元信息（分页或章节模式通用） -->
-        <div class="chapter-meta" v-if="displayWordCount || displayUpdatedAt">
-          <span v-if="displayWordCount">字数：{{ displayWordCount }}</span>
+        <div class="chapter-meta" v-if="displayWordCount || displayUpdatedAt || (chapterList.length <= 1 && totalPages > 1)">
+          <span v-if="chapterList.length <= 1 && totalPages > 1">第 {{ currentPage }} 页</span>
+          <span v-if="displayWordCount">共 {{ displayWordCount }} 字</span>
           <span v-if="displayUpdatedAt">更新时间：{{ displayUpdatedAt }}</span>
         </div>
-        
+
         <!-- 正文内容 -->
         <div class="chapter-text" v-html="formattedContent"></div>
-        
-        <!-- 章节导航：仅在确有章节时显示 -->
-        <div v-if="chapterList.length > 1" class="chapter-nav">
-          <button 
-            class="nav-btn prev-btn"
-            @click.stop="loadPrevChapter"
-            :disabled="!hasPrevChapter"
-          >
-            上一章
-          </button>
-          <button 
-            class="nav-btn catalog-btn"
-            @click.stop="showCatalog = true"
-          >
-            目录
-          </button>
-          <button 
-            class="nav-btn next-btn"
-            @click.stop="loadNextChapter"
-            :disabled="!hasNextChapter"
-          >
-            下一章
-          </button>
-        </div>
-        
-        <!-- 单章节/短篇：显示三按钮（上一页/下一页/返回首页） -->
-        <div v-if="chapterList.length <= 1" class="single-chapter-nav">
-          <button class="nav-btn prev-btn" @click.stop="prevPage" :disabled="!hasPrevPage">
-            上一页
-          </button>
-          <button class="nav-btn next-btn" @click.stop="nextPage" :disabled="!hasNextPage">
-            下一页
-          </button>
-          <button class="nav-btn back-to-detail" @click.stop="goHome">
-            返回首页
-          </button>
-        </div>
       </div>
 
       <!-- 加载状态 -->
@@ -90,70 +56,136 @@
         <p>{{ error }}</p>
         <button @click="retryLoad" class="retry-btn">重试</button>
       </div>
-      
+
       <!-- 评论区：正文末尾展示 -->
-      <div v-if="!loading" class="comments-wrapper">
+      <div v-if="!loading" ref="commentsSection" class="comments-wrapper">
         <CommentSection :novel-id="novelId" />
       </div>
     </div>
 
+    <!-- 悬浮工具栏（小红书风格） -->
+    <Transition name="float-toolbar">
+      <div v-if="showFloatToolbar" class="float-toolbar">
+        <div class="float-toolbar-content">
+          <!-- 评论输入框 -->
+          <div class="comment-input-wrapper" @click="openCommentEditor">
+            <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            <span class="input-placeholder">说说你的看法...</span>
+          </div>
+
+          <!-- 点赞按钮 -->
+          <button class="toolbar-action-btn" @click="toggleLike" :class="{ 'active': isLiked }">
+            <svg v-if="!isLiked" class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+            <svg v-else class="action-icon" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/>
+            </svg>
+            <span class="action-count" v-if="likeCount > 0">{{ formatCount(likeCount) }}</span>
+          </button>
+
+          <!-- 加入书架按钮 -->
+          <button class="toolbar-action-btn" @click="toggleBookshelf" :class="{ 'active': inBookshelf }">
+            <svg v-if="!inBookshelf" class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+            </svg>
+            <svg v-else class="action-icon" fill="currentColor" viewBox="0 0 24 24">
+              <path fill-rule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.583A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clip-rule="evenodd"/>
+            </svg>
+            <span class="action-text">{{ inBookshelf ? '已加入' : '书架' }}</span>
+          </button>
+        </div>
+      </div>
+    </Transition>
+
     <!-- 底部工具栏 -->
     <div class="reading-footer" :class="{ 'show': showFooter }">
-      <!-- 进度条：章节模式 -->
-      <div v-if="totalChapters > 1" class="progress-bar">
-        <input 
-          type="range" 
-          min="1" 
-          :max="totalChapters" 
-          v-model="currentChapterNumber"
-          @change="onChapterChange"
-          class="progress-slider"
-        >
-        <span class="progress-text">{{ currentChapterNumber }} / {{ totalChapters }}</span>
-      </div>
+      <div class="footer-content">
+        <!-- 翻页按钮区域 -->
+        <div class="footer-navigation">
+          <!-- 上一页/上一章按钮 -->
+          <button
+            class="footer-nav-btn prev-btn"
+            @click.stop="chapterList.length > 1 ? loadPrevChapter() : prevPage()"
+            :disabled="chapterList.length > 1 ? !hasPrevChapter : !hasPrevPage"
+          >
+            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            <span>{{ chapterList.length > 1 ? '上一章' : '上一页' }}</span>
+          </button>
 
-      <!-- 进度条：无章节分页模式 -->
-      <div v-else-if="totalPages > 1" class="progress-bar">
-        <input
-          type="range"
-          min="1"
-          :max="totalPages"
-          v-model="currentPage"
-          @change="onPageChange"
-          class="progress-slider"
-        >
-        <span class="progress-text">{{ currentPage }} / {{ totalPages }}</span>
-      </div>
-      
-      <div class="toolbar-actions" :class="{ 'single-row': totalChapters <= 1 && totalPages <= 1 }">
-        <button v-if="chapterList.length > 1" @click.stop="showCatalog = true" class="action-btn">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
-          </svg>
-          <span>目录</span>
-        </button>
-        <button @click.stop="toggleDarkMode" class="action-btn">
-          <svg v-if="!isDarkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-          </svg>
-          <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-          </svg>
-          <span>{{ isDarkMode ? '日间' : '夜间' }}</span>
-        </button>
-        <button @click.stop="showSettings = true" class="action-btn">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-          <span>设置</span>
-        </button>
-        <button @click.stop="addToBookshelf" class="action-btn">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
-          </svg>
-          <span>书架</span>
-        </button>
+          <!-- 进度条：章节模式 -->
+          <div v-if="totalChapters > 1" class="progress-bar">
+            <input
+              type="range"
+              min="1"
+              :max="totalChapters"
+              v-model="currentChapterNumber"
+              @change="onChapterChange"
+              class="progress-slider"
+            >
+            <span class="progress-text">{{ currentChapterNumber }} / {{ totalChapters }}</span>
+          </div>
+
+          <!-- 进度条：无章节分页模式 -->
+          <div v-else-if="totalPages > 1" class="progress-bar">
+            <input
+              type="range"
+              min="1"
+              :max="totalPages"
+              v-model="currentPage"
+              @change="onPageChange"
+              class="progress-slider"
+            >
+            <span class="progress-text">{{ currentPage }} / {{ totalPages }}</span>
+          </div>
+
+          <!-- 下一页/下一章按钮 -->
+          <button
+            class="footer-nav-btn next-btn"
+            @click.stop="chapterList.length > 1 ? loadNextChapter() : nextPage()"
+            :disabled="chapterList.length > 1 ? !hasNextChapter : !hasNextPage"
+          >
+            <span>{{ chapterList.length > 1 ? '下一章' : '下一页' }}</span>
+            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="toolbar-actions" :class="{ 'single-row': totalChapters <= 1 && totalPages <= 1 }">
+          <button v-if="chapterList.length > 1" @click.stop="showCatalog = true" class="action-btn">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+            </svg>
+            <span>目录</span>
+          </button>
+          <button @click.stop="toggleDarkMode" class="action-btn">
+            <svg v-if="!isDarkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <span>{{ isDarkMode ? '日间' : '夜间' }}</span>
+          </button>
+          <button @click.stop="showSettings = true" class="action-btn">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span>设置</span>
+          </button>
+          <button @click.stop="addToBookshelf" class="action-btn">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+            </svg>
+            <span>书架</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -166,8 +198,8 @@
             <button @click="showCatalog = false" class="close-btn">×</button>
           </div>
           <div class="catalog-list">
-            <div 
-              v-for="chapter in chapterList" 
+            <div
+              v-for="chapter in chapterList"
               :key="chapter.id"
               class="catalog-item"
               :class="{ 'active': chapter.id === currentChapterId }"
@@ -217,8 +249,8 @@
             <div class="setting-item">
               <label>背景色</label>
               <div class="color-palette">
-                <button 
-                  v-for="color in bgColors" 
+                <button
+                  v-for="color in bgColors"
                   :key="color.value"
                   class="color-btn"
                   :style="{ backgroundColor: color.value }"
@@ -245,11 +277,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getNovelDetail, getChapterList, getChapterContent, getNovelPages } from '@/api/novel'
+import { getNovelDetail, getChapterList, getChapterContent, getNovelPages, likeNovel } from '@/api/novel'
+import { addToBookshelf as apiAddToBookshelf, removeFromBookshelf } from '@/api/bookshelf'
 import CommentSection from '@/components/novel/CommentSection.vue'
 import { useTheme } from '@/composables/useTheme'
+import { message } from '@/utils/message'
 
 const route = useRoute()
 const router = useRouter()
@@ -279,6 +313,14 @@ const showFooter = ref(true)
 const showCatalog = ref(false)
 const showSettings = ref(false)
 const contentArea = ref(null)
+const commentsSection = ref(null)
+
+// 悬浮工具栏状态
+const showFloatToolbar = ref(false)
+const isLiked = ref(false)
+const likeCount = ref(0)
+const inBookshelf = ref(false)
+const novelDetail = ref(null)
 
 // 首次引导
 const showGuide = ref(false)
@@ -343,11 +385,7 @@ const formattedContent = computed(() => {
     .join('')
 })
 
-// 顶部副标题（章节标题或分页信息）
-const headerSubTitle = computed(() => {
-  if (chapterList.value.length > 1 && currentChapterTitle.value) return currentChapterTitle.value
-  return `第 ${currentPage.value} / ${totalPages.value} 页`
-})
+
 
 // 展示的字数/更新时间（分页模式优先）
 const displayWordCount = computed(() => {
@@ -386,8 +424,14 @@ async function loadNovelInfo() {
   try {
     const res = await getNovelDetail(novelId.value)
     if (res.code === 200) {
+      novelDetail.value = res.data
       novelTitle.value = res.data.title
       totalChapters.value = res.data.chapter_count || 0
+
+      // 获取点赞和书架状态
+      isLiked.value = res.data.isLiked || false
+      likeCount.value = res.data.likes || 0
+      inBookshelf.value = res.data.inBookshelf || false
     }
   } catch (err) {
     console.error('加载小说信息失败:', err)
@@ -402,7 +446,7 @@ async function loadChapterList() {
     if (res.code === 200) {
       chapterList.value = res.data || []
       totalChapters.value = chapterList.value.length
-      
+
       // 如果没有章节，提示用户
       if (chapterList.value.length === 0) {
         console.warn('该小说没有章节，可能是短篇或数据缺失')
@@ -423,30 +467,33 @@ async function loadChapter(chapterId) {
   try {
     loading.value = true
     error.value = null
-    
+
     const targetChapterId = chapterId || currentChapterId.value
     console.log('🔄 正在加载章节内容，章节ID:', targetChapterId)
-    
+
     const res = await getChapterContent(targetChapterId)
     console.log('📖 章节数据响应:', res)
-    
+
     if (res && res.code === 200 && res.data) {
       chapterContent.value = res.data
       currentChapterId.value = res.data.id
       currentChapterTitle.value = res.data.title
       currentChapterNumber.value = res.data.chapter_number || 1
-      
+
       console.log('✓ 章节内容加载成功:', {
         title: currentChapterTitle.value,
         chapterNumber: currentChapterNumber.value,
         contentLength: res.data.content?.length || 0
       })
-      
-      // 滚动到顶部
+
+      // 滚动到顶部 - 使用平滑滚动
       if (contentArea.value) {
-        contentArea.value.scrollTop = 0
+        contentArea.value.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        })
       }
-      
+
       // 保存阅读进度
       saveReadingProgress()
     } else {
@@ -459,7 +506,7 @@ async function loadChapter(chapterId) {
       response: err.response?.data,
       status: err.response?.status
     })
-    
+
     // 根据错误类型显示不同的错误信息
     if (err.response?.status === 404) {
       error.value = '章节不存在，请返回重试'
@@ -484,7 +531,13 @@ async function loadPagedContent(page = 1) {
       currentPage.value = res.data.page
       totalPages.value = res.data.totalPages
       currentChapterTitle.value = ''
-      if (contentArea.value) contentArea.value.scrollTop = 0
+      // 滚动到顶部 - 使用平滑滚动
+      if (contentArea.value) {
+        contentArea.value.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        })
+      }
       saveReadingProgress()
     } else {
       throw new Error(res?.message || '分页数据格式错误')
@@ -555,13 +608,34 @@ function handleScroll() {
     showFooter.value = false
     isScrolling = true
   }
-  
+
+  // 检测评论区是否可见
+  checkCommentsSectionVisible()
+
   clearTimeout(scrollTimer)
   scrollTimer = setTimeout(() => {
     showHeader.value = true
     showFooter.value = true
     isScrolling = false
   }, 1500)
+}
+
+// 检测评论区是否可见
+function checkCommentsSectionVisible() {
+  if (!commentsSection.value || !contentArea.value) {
+    showFloatToolbar.value = false
+    return
+  }
+
+  const commentRect = commentsSection.value.getBoundingClientRect()
+  const viewportHeight = window.innerHeight
+
+  // 当评论区顶部进入视口时显示悬浮工具栏
+  if (commentRect.top < viewportHeight && commentRect.bottom > 0) {
+    showFloatToolbar.value = true
+  } else {
+    showFloatToolbar.value = false
+  }
 }
 
 // 切换夜间模式
@@ -599,10 +673,84 @@ function saveReadingProgress() {
   localStorage.setItem(`reading_progress_${novelId.value}`, JSON.stringify(progress))
 }
 
-// 加入书架
+// 悬浮工具栏功能
+// 打开评论编辑器
+function openCommentEditor() {
+  // 滚动到评论区并聚焦输入框
+  if (commentsSection.value) {
+    commentsSection.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // 等待滚动完成后聚焦输入框
+    setTimeout(() => {
+      const textarea = commentsSection.value.querySelector('textarea')
+      if (textarea) {
+        textarea.focus()
+      }
+    }, 500)
+  }
+}
+
+// 格式化数字
+function formatCount(count) {
+  if (count >= 10000) {
+    return (count / 10000).toFixed(1) + 'w'
+  } else if (count >= 1000) {
+    return (count / 1000).toFixed(1) + 'k'
+  }
+  return count
+}
+
+// 切换点赞
+async function toggleLike() {
+  try {
+    if (isLiked.value) {
+      // 取消点赞 - 目前API只支持点赞，不支持取消
+      message.warning('暂不支持取消点赞')
+      return
+    }
+
+    await likeNovel(novelId.value)
+    isLiked.value = true
+    likeCount.value++
+    message.success('点赞成功')
+  } catch (err) {
+    console.error('点赞失败:', err)
+    if (err.response?.status === 401) {
+      message.warning('请先登录')
+      router.push('/login')
+    } else {
+      message.error(err.response?.data?.message || '点赞失败')
+    }
+  }
+}
+
+// 切换书架
+async function toggleBookshelf() {
+  try {
+    if (inBookshelf.value) {
+      // 从书架移除
+      await removeFromBookshelf(novelId.value)
+      inBookshelf.value = false
+      message.success('已从书架移除')
+    } else {
+      // 加入书架
+      await apiAddToBookshelf({ novelId: novelId.value })
+      inBookshelf.value = true
+      message.success('已加入书架')
+    }
+  } catch (err) {
+    console.error('书架操作失败:', err)
+    if (err.response?.status === 401) {
+      message.warning('请先登录')
+      router.push('/login')
+    } else {
+      message.error(err.response?.data?.message || '操作失败')
+    }
+  }
+}
+
+// 加入书架（底部工具栏使用）
 function addToBookshelf() {
-  // TODO: 实现书架功能
-  alert('已加入书架')
+  toggleBookshelf()
 }
 
 // 返回
@@ -648,20 +796,20 @@ function formatDate(date) {
 // 初始化
 onMounted(async () => {
   console.log('📖 ReadingPage 初始化，小说ID:', novelId.value)
-  console.log('📖 路由信息:', { 
-    path: route.path, 
-    query: route.query, 
-    params: route.params 
+  console.log('📖 路由信息:', {
+    path: route.path,
+    query: route.query,
+    params: route.params
   })
-  
+
   try {
     loading.value = true
     error.value = null
-    
+
     // 加载小说信息
     await loadNovelInfo()
     console.log('✓ 小说信息加载完成:', novelTitle.value, '总章节数:', totalChapters.value)
-    
+
     // 强制使用无章节分页模式
     const pageFromQuery = parseInt(route.query.page || route.params.chapter || 1)
     await loadPagedContent(pageFromQuery || 1)
@@ -674,13 +822,13 @@ onMounted(async () => {
     const chapterFromQuery = route.query.chapter
     const chapterFromParams = route.params.chapter
     const chapterParam = chapterFromQuery || chapterFromParams
-    
+
     console.log('📖 章节参数:', chapterParam)
-    
+
     // 如果有章节列表
     if (chapterList.value.length > 0) {
       let targetChapterId = null
-      
+
       if (chapterParam) {
         // 如果URL中有章节参数，根据章节号找到章节ID
         const chapterNum = parseInt(chapterParam)
@@ -710,14 +858,14 @@ onMounted(async () => {
             console.warn('⚠ 解析阅读进度失败:', e)
           }
         }
-        
+
         // 如果没有进度，默认加载第一章
         if (!targetChapterId) {
           targetChapterId = chapterList.value[0].id
           console.log('✓ 加载第一章，ID:', targetChapterId)
         }
       }
-      
+
       if (targetChapterId) {
         currentChapterId.value = targetChapterId
         await loadChapter(targetChapterId)
@@ -728,7 +876,7 @@ onMounted(async () => {
     } else {
       // 没有章节列表，可能是短篇小说，尝试直接加载内容
       console.warn('⚠ 该小说没有章节列表，可能是短篇小说')
-      
+
       // 尝试使用小说ID作为章节ID加载
       try {
         console.log('🔄 尝试直接加载小说内容，使用小说ID:', novelId.value)
@@ -746,7 +894,7 @@ onMounted(async () => {
     error.value = err.message || '页面加载失败，请刷新重试'
     loading.value = false
   }
-  
+
   // 加载保存的阅读设置
   try {
     const savedSettings = localStorage.getItem('reading_settings')
@@ -806,13 +954,28 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   height: 56px;
   background: linear-gradient(to bottom, rgba(255,255,255,0.98), rgba(255,255,255,0.95));
   backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  padding: 0 0.75rem;
   transform: translateY(-100%);
   transition: transform 0.3s ease;
   z-index: 100;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .header-content {
+    padding: 0 2rem;
+  }
 }
 
 .reading-header.show {
@@ -829,7 +992,21 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   border: none;
   cursor: pointer;
   color: #333;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  min-width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-btn:hover, .menu-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.back-btn:active, .menu-btn:active {
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .dark-mode .back-btn,
@@ -837,23 +1014,50 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   color: #e0e0e0;
 }
 
-.back-btn:hover, .menu-btn:hover {
-  background: rgba(0,0,0,0.05);
-  border-radius: 8px;
+.dark-mode .back-btn:hover,
+.dark-mode .menu-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.header-info { text-align: center; padding: 0 0.5rem; }
+.dark-mode .back-btn:active,
+.dark-mode .menu-btn:active {
+  background: rgba(255, 255, 255, 0.15);
+}
 
-.novel-title { font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-info {
+  text-align: center;
+  padding: 0 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
 
-.chapter-title { font-size: 0.8rem; font-weight: 500; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.novel-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.chapter-title {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
 
 .dark-mode .novel-title {
-  color: #999;
+  color: #e0e0e0;
 }
 
 .dark-mode .chapter-title {
-  color: #e0e0e0;
+  color: #999;
 }
 
 /* 阅读内容区 */
@@ -903,7 +1107,7 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
     font-size: 1.25rem;
     margin-top: 0.5rem;
   }
-  
+
   .novel-heading {
     font-size: 1.5rem;
     margin-bottom: 1rem;
@@ -1040,11 +1244,23 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   right: 0;
   background: linear-gradient(to top, rgba(255,255,255,0.98), rgba(255,255,255,0.95));
   backdrop-filter: blur(10px);
-  padding: 1rem;
   transform: translateY(100%);
   transition: transform 0.3s ease;
   z-index: 100;
   box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+}
+
+.footer-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem 0.75rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .footer-content {
+    padding: 1rem 2rem;
+  }
 }
 
 .reading-footer.show {
@@ -1053,6 +1269,79 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 
 .dark-mode .reading-footer {
   background: linear-gradient(to top, rgba(26,26,26,0.98), rgba(26,26,26,0.95));
+}
+
+/* 底部工具栏翻页按钮区域 */
+.footer-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.footer-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #d95468 0%, #ed7654 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(217, 84, 104, 0.25);
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.footer-nav-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c74458 0%, #dc6544 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(217, 84, 104, 0.35);
+}
+
+.footer-nav-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.footer-nav-btn:disabled {
+  background: linear-gradient(135deg, #e0e0e0 0%, #d0d0d0 100%);
+  color: #999;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.footer-nav-btn .nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* 移动端优化 */
+@media (max-width: 640px) {
+  .footer-navigation {
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .footer-nav-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    min-height: 36px;
+  }
+
+  .footer-nav-btn span {
+    display: none;
+  }
+
+  .footer-nav-btn .nav-icon {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 .progress-bar {
@@ -1506,6 +1795,206 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   margin-top: 1.25rem;
   padding-top: 0.75rem;
   border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+
+/* 悬浮工具栏样式（小红书风格） */
+.float-toolbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.98) 0%, rgba(255, 250, 250, 0.98) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(217, 84, 104, 0.1);
+  box-shadow: 0 -4px 16px rgba(217, 84, 104, 0.08);
+  z-index: 999;
+  padding: 0.75rem 0;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+}
+
+.dark-mode .float-toolbar {
+  background: linear-gradient(to top, rgba(30, 30, 30, 0.98) 0%, rgba(35, 30, 32, 0.98) 100%);
+  border-top-color: rgba(217, 84, 104, 0.2);
+}
+
+.float-toolbar-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .float-toolbar-content {
+    padding: 0 2rem;
+  }
+}
+
+/* 评论输入框 */
+.comment-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 250, 250, 0.8);
+  border: 2px solid rgba(217, 84, 104, 0.15);
+  border-radius: 24px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.comment-input-wrapper:hover {
+  background: rgba(255, 250, 250, 1);
+  border-color: rgba(217, 84, 104, 0.25);
+}
+
+.dark-mode .comment-input-wrapper {
+  background: rgba(40, 40, 40, 0.8);
+  border-color: rgba(217, 84, 104, 0.2);
+}
+
+.dark-mode .comment-input-wrapper:hover {
+  background: rgba(45, 45, 45, 0.9);
+  border-color: rgba(217, 84, 104, 0.3);
+}
+
+.input-icon {
+  width: 20px;
+  height: 20px;
+  color: #d95468;
+  flex-shrink: 0;
+}
+
+.input-placeholder {
+  font-size: 0.875rem;
+  color: #999;
+  user-select: none;
+}
+
+.dark-mode .input-placeholder {
+  color: #666;
+}
+
+/* 工具栏操作按钮 */
+.toolbar-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  min-width: 60px;
+}
+
+.toolbar-action-btn:hover {
+  background: rgba(217, 84, 104, 0.05);
+}
+
+.toolbar-action-btn.active {
+  background: linear-gradient(135deg, rgba(217, 84, 104, 0.1) 0%, rgba(237, 118, 84, 0.1) 100%);
+}
+
+.action-icon {
+  width: 24px;
+  height: 24px;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.toolbar-action-btn.active .action-icon {
+  color: #d95468;
+}
+
+.dark-mode .action-icon {
+  color: #999;
+}
+
+.dark-mode .toolbar-action-btn.active .action-icon {
+  color: #ed7654;
+}
+
+.action-count,
+.action-text {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.toolbar-action-btn.active .action-count,
+.toolbar-action-btn.active .action-text {
+  color: #d95468;
+}
+
+.dark-mode .action-count,
+.dark-mode .action-text {
+  color: #999;
+}
+
+.dark-mode .toolbar-action-btn.active .action-count,
+.dark-mode .toolbar-action-btn.active .action-text {
+  color: #ed7654;
+}
+
+/* 悬浮工具栏动画 */
+.float-toolbar-enter-active,
+.float-toolbar-leave-active {
+  transition: all 0.3s ease;
+}
+
+.float-toolbar-enter-from,
+.float-toolbar-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* 移动端优化 */
+@media (max-width: 640px) {
+  .float-toolbar {
+    padding: 0.5rem 0.75rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+
+  .float-toolbar-content {
+    gap: 0.5rem;
+  }
+
+  .comment-input-wrapper {
+    padding: 0.4rem 0.75rem;
+  }
+
+  .toolbar-action-btn {
+    min-width: 50px;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .action-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .input-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .input-placeholder {
+    font-size: 0.8rem;
+  }
+
+  .action-count,
+  .action-text {
+    font-size: 0.7rem;
+  }
 }
 
 .dark-mode .comments-wrapper {

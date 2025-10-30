@@ -119,5 +119,8 @@ export const message = {
   info: (text, duration) => showMessage(text, 'info', duration)
 }
 
+// 同时导出 showMessage 函数供直接使用
+export { showMessage }
+
 export default message
 
