@@ -370,11 +370,17 @@ function toggleSelect(id) {
   }
 }
 
-// 点击书籍
+// 点击书籍 - 直接跳转到阅读页面
 function handleBookClick(book) {
-  if (!editMode.value) {
-    router.push(`/novel/${book.id}`)
+  // 编辑模式下不跳转，只选择
+  if (editMode.value) {
+    toggleSelect(book.id)
+    return
   }
+  
+  // 直接跳转到阅读页面，定位到上次阅读的章节
+  const chapter = book.currentChapter || 1
+  router.push(`/read/${book.id}/${chapter}`)
 }
 
 // 继续阅读

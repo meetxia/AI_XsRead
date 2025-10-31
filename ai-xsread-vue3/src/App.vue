@@ -44,12 +44,18 @@ onMounted(() => {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+  /* 主题背景过渡 */
+  transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 #app {
   width: 100%;
   min-height: 100vh;
   overflow-x: hidden; /* 防止水平滚动 */
   max-width: 100vw; /* 限制最大宽度 */
+  /* 使用主题背景渐变 */
+  background: var(--color-bg-gradient, transparent);
+  background-attachment: fixed; /* 固定背景 */
 }
 
 /* 页面过渡动画 */
@@ -61,5 +67,22 @@ onMounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 确保所有主要容器都使用主题背景 */
+.page-container,
+.main-content,
+.content-wrapper {
+  background: transparent; /* 继承父级背景 */
+  transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 卡片和容器使用主题卡片背景 */
+.card,
+.card-container,
+.detail-card {
+  background: var(--color-bg-card);
+  transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>

@@ -42,10 +42,40 @@ export const useBookshelfStore = defineStore('bookshelf', () => {
       // 从服务器同步
       const res = await getBookshelf()
       if (res.code === 200) {
-        const data = res.data
-        reading.value = data.reading || []
-        finished.value = data.finished || []
-        collected.value = data.collected || []
+        // 后端返回的是扁平数组，需要按 type 分组
+        const bookshelfData = res.data?.data || res.data || []
+        
+        // 按类型分组
+        reading.value = []
+        finished.value = []
+        collected.value = []
+        
+        bookshelfData.forEach(item => {
+          // 转换数据格式
+          const book = {
+            id: item.novel_id,
+            title: item.title,
+            author: item.author,
+            cover: item.cover,
+            category_id: item.category_id,
+            category_name: item.category_name,
+            type: item.type || 'reading',
+            currentChapter: item.current_chapter_id || item.currentChapter || 0,
+            progress: item.reading_progress || item.progress || 0,
+            addTime: item.added_time || item.addTime,
+            lastReadTime: item.last_read_time || item.lastReadTime,
+            updateTime: item.updated_at || item.updateTime
+          }
+          
+          // 根据类型分配到不同数组
+          if (book.type === 'finished') {
+            finished.value.push(book)
+          } else if (book.type === 'collected') {
+            collected.value.push(book)
+          } else {
+            reading.value.push(book)
+          }
+        })
         
         // 保存到本地
         saveToLocal()
@@ -320,7 +350,9 @@ export const useBookshelfStore = defineStore('bookshelf', () => {
     // 方法
     fetchBookshelf,
     addBook,
+    addToBookshelf: addBook, // 别名，兼容旧代码
     removeBook,
+    removeFromBookshelf: removeBook, // 别名，兼容旧代码
     updateReadingStatus,
     moveBook,
     batchDelete,

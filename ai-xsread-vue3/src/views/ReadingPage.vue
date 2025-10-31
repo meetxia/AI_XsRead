@@ -24,26 +24,75 @@
     <div
       ref="contentArea"
       class="reading-content"
-      :class="{ 'dark-content': isContentDark }"
+      :class="{ 'dark-content': isContentDark, 'page-mode': isPageMode }"
       :style="contentStyle"
       @click="toggleToolbar"
-      @scroll="handleScroll"
+      @scroll="onContentScroll"
     >
-      <div class="chapter-container" v-if="!loading && chapterContent">
-        <!-- 标题：只在多章节时显示章节标题 -->
-        <h2 v-if="totalChapters > 1" class="chapter-heading">{{ chapterContent.title }}</h2>
-        <h2 v-else class="novel-heading">{{ novelTitle }}</h2>
+      <!-- 滚动模式：传统滚动阅读 -->
+      <template v-if="!isPageMode">
+        <div class="chapter-container" v-if="!loading && chapterContent">
+          <!-- 标题：只在多章节时显示章节标题 -->
+          <h2 v-if="totalChapters > 1" class="chapter-heading">{{ chapterContent.title }}</h2>
+          <h2 v-else class="novel-heading">{{ novelTitle }}</h2>
 
-        <!-- 元信息（分页或章节模式通用） -->
-        <div class="chapter-meta" v-if="displayWordCount || displayUpdatedAt || (chapterList.length <= 1 && totalPages > 1)">
-          <span v-if="chapterList.length <= 1 && totalPages > 1">第 {{ currentPage }} 页</span>
-          <span v-if="displayWordCount">共 {{ displayWordCount }} 字</span>
-          <span v-if="displayUpdatedAt">更新时间：{{ displayUpdatedAt }}</span>
+          <!-- 元信息（分页或章节模式通用） -->
+          <div class="chapter-meta" v-if="displayWordCount || displayUpdatedAt || (chapterList.length <= 1 && totalPages > 1)">
+            <span v-if="chapterList.length <= 1 && totalPages > 1">第 {{ currentPage }} 页</span>
+            <span v-if="displayWordCount">共 {{ displayWordCount }} 字</span>
+            <span v-if="displayUpdatedAt">更新时间：{{ displayUpdatedAt }}</span>
+          </div>
+
+          <!-- 正文内容 -->
+          <div class="chapter-text" v-html="formattedContent"></div>
         </div>
 
-        <!-- 正文内容 -->
-        <div class="chapter-text" v-html="formattedContent"></div>
-      </div>
+        <!-- 评论区：正文末尾展示 -->
+        <div v-if="!loading" ref="commentsSection" class="comments-wrapper">
+          <CommentSection :novel-id="novelId" />
+        </div>
+      </template>
+
+      <!-- 翻页模式：仿真翻页效果 -->
+      <template v-else>
+        <div
+          class="flip-book-container"
+          ref="flipBookContainer"
+          @touchstart="handleTouchStart"
+          @touchmove="handleTouchMove"
+          @touchend="handleTouchEnd"
+        >
+          <!-- 当前页 -->
+          <div
+            class="flip-page current-page"
+            :class="{ 'flipping-forward': isFlippingForward, 'flipping-backward': isFlippingBackward }"
+            :style="currentPageStyle"
+          >
+            <div class="page-content" v-html="currentPageContent"></div>
+            <div class="page-number">{{ virtualPageIndex + 1 }} / {{ virtualPages.length }}</div>
+          </div>
+
+          <!-- 下一页（翻页动画时显示） -->
+          <div
+            v-if="isFlippingForward"
+            class="flip-page next-page"
+            :style="nextPageStyle"
+          >
+            <div class="page-content" v-html="nextPageContent"></div>
+            <div class="page-number">{{ virtualPageIndex + 2 }} / {{ virtualPages.length }}</div>
+          </div>
+
+          <!-- 上一页（翻页动画时显示） -->
+          <div
+            v-if="isFlippingBackward"
+            class="flip-page prev-page"
+            :style="prevPageStyle"
+          >
+            <div class="page-content" v-html="prevPageContent"></div>
+            <div class="page-number">{{ virtualPageIndex }} / {{ virtualPages.length }}</div>
+          </div>
+        </div>
+      </template>
 
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-state">
@@ -55,11 +104,6 @@
       <div v-if="error" class="error-state">
         <p>{{ error }}</p>
         <button @click="retryLoad" class="retry-btn">重试</button>
-      </div>
-
-      <!-- 评论区：正文末尾展示 -->
-      <div v-if="!loading" ref="commentsSection" class="comments-wrapper">
-        <CommentSection :novel-id="novelId" />
       </div>
     </div>
 
@@ -179,6 +223,16 @@
             </svg>
             <span>设置</span>
           </button>
+          <!-- 阅读模式快速切换 -->
+          <button @click.stop="toggleReadingMode" class="action-btn" :class="{ 'mode-active': isPageMode }">
+            <svg v-if="!isPageMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+            </svg>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+            <span>{{ isPageMode ? '翻页' : '滚屏' }}</span>
+          </button>
           <button @click.stop="addToBookshelf" class="action-btn">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
@@ -245,6 +299,15 @@
                 <button @click="increaseLineHeight">+</button>
               </div>
             </div>
+            <!-- 阅读模式切换 -->
+            <div class="setting-item">
+              <label>阅读模式</label>
+              <div class="size-control">
+                <button :class="{ active: !isPageMode }" @click="setReadingMode('scroll')">滚屏</button>
+                <span>{{ isPageMode ? '翻页模式' : '滚屏模式' }}</span>
+                <button :class="{ active: isPageMode }" @click="setReadingMode('page')">翻页</button>
+              </div>
+            </div>
             <!-- 背景色 -->
             <div class="setting-item">
               <label>背景色</label>
@@ -277,16 +340,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getNovelDetail, getChapterList, getChapterContent, getNovelPages, likeNovel } from '@/api/novel'
 import { addToBookshelf as apiAddToBookshelf, removeFromBookshelf } from '@/api/bookshelf'
 import CommentSection from '@/components/novel/CommentSection.vue'
 import { useTheme } from '@/composables/useTheme'
 import { message } from '@/utils/message'
+import { useBookshelfStore } from '@/stores/bookshelf'
 
 const route = useRoute()
 const router = useRouter()
+const bookshelfStore = useBookshelfStore()
 
 // 小说信息
 const novelId = ref(route.params.id)
@@ -314,6 +379,27 @@ const showCatalog = ref(false)
 const showSettings = ref(false)
 const contentArea = ref(null)
 const commentsSection = ref(null)
+// 阅读模式：scroll(滚屏) | page(翻页)
+const READING_MODE_KEY = 'xsread_reading_mode'
+const readingMode = ref((() => {
+  try { return localStorage.getItem(READING_MODE_KEY) || 'scroll' } catch (e) { return 'scroll' }
+})())
+const isPageMode = computed(() => readingMode.value === 'page')
+
+// 翻页模式相关状态
+const virtualPages = ref([]) // 虚拟分页数组
+const virtualPageIndex = ref(0) // 当前虚拟页索引
+const isFlippingForward = ref(false) // 是否正在向前翻页
+const isFlippingBackward = ref(false) // 是否正在向后翻页
+const flipBookContainer = ref(null) // 翻页容器引用
+
+// 滑动手势相关状态
+const touchStartX = ref(0)
+const touchStartY = ref(0)
+const touchStartTime = ref(0)
+const isSwiping = ref(false)
+const SWIPE_THRESHOLD = 80 // 滑动阈值（像素）
+const SWIPE_TIMEOUT = 800 // 滑动超时时间（毫秒）
 
 // 悬浮工具栏状态
 const showFloatToolbar = ref(false)
@@ -328,6 +414,12 @@ function dismissGuide() {
   showGuide.value = false
   try { localStorage.setItem('reading_guide_seen', '1') } catch (e) {}
 }
+
+// 自动加入书架相关
+const readingTimer = ref(null) // 阅读计时器
+const readingElapsedTime = ref(0) // 已阅读时长（秒）
+const autoAddedToBookshelf = ref(false) // 是否已自动加入书架
+const isPageVisible = ref(true) // 页面是否可见
 
 // 阅读设置（与全局主题同步）
 const { currentMode, toggleMode } = useTheme()
@@ -373,6 +465,7 @@ const contentStyle = computed(() => {
     lineHeight: lineHeight.value,
     backgroundColor: bgColor.value || 'var(--color-bg-elevated)',
     color: textColor
+    // overflow-y 现在通过 CSS class 控制，不再使用内联样式
   }
 })
 
@@ -384,6 +477,40 @@ const formattedContent = computed(() => {
     .map(p => `<p>${p.trim()}</p>`)
     .join('')
 })
+
+// 翻页模式：当前页内容
+const currentPageContent = computed(() => {
+  if (!isPageMode.value || virtualPages.value.length === 0) return ''
+  return virtualPages.value[virtualPageIndex.value] || ''
+})
+
+// 翻页模式：下一页内容
+const nextPageContent = computed(() => {
+  if (!isPageMode.value || virtualPageIndex.value >= virtualPages.value.length - 1) return ''
+  return virtualPages.value[virtualPageIndex.value + 1] || ''
+})
+
+// 翻页模式：上一页内容
+const prevPageContent = computed(() => {
+  if (!isPageMode.value || virtualPageIndex.value <= 0) return ''
+  return virtualPages.value[virtualPageIndex.value - 1] || ''
+})
+
+// 翻页动画样式 - 添加背景色
+const currentPageStyle = computed(() => ({
+  backgroundColor: bgColor.value || 'var(--color-bg-elevated)',
+  color: isContentDark.value ? '#e6e6e6' : 'var(--color-text-primary)'
+}))
+
+const nextPageStyle = computed(() => ({
+  backgroundColor: bgColor.value || 'var(--color-bg-elevated)',
+  color: isContentDark.value ? '#e6e6e6' : 'var(--color-text-primary)'
+}))
+
+const prevPageStyle = computed(() => ({
+  backgroundColor: bgColor.value || 'var(--color-bg-elevated)',
+  color: isContentDark.value ? '#e6e6e6' : 'var(--color-text-primary)'
+}))
 
 
 
@@ -435,6 +562,288 @@ function nextPage() {
   if (!hasNextPage.value) return
   const target = Math.min(totalPages.value, Number(currentPage.value) + 1)
   loadPagedContent(target)
+}
+
+// ===== 翻页模式：仿真翻页效果 =====
+const FLIP_ANIMATION_DURATION = 400 // 平移动画持续时间（毫秒）
+
+function pageDown() {
+  if (!isPageMode.value) return
+
+  // 防止动画进行中重复触发
+  if (isFlippingForward.value || isFlippingBackward.value) {
+    console.log('翻页动画进行中，请稍候...')
+    return
+  }
+
+  // 检查是否还有下一页
+  if (virtualPageIndex.value >= virtualPages.value.length - 1) {
+    console.log('已经是最后一页')
+    return
+  }
+
+  // 开始翻页动画
+  isFlippingForward.value = true
+
+  // 动画结束后更新页码
+  setTimeout(() => {
+    virtualPageIndex.value++
+    isFlippingForward.value = false
+    saveVirtualPageProgress()
+  }, FLIP_ANIMATION_DURATION)
+}
+
+function pageUp() {
+  if (!isPageMode.value) return
+
+  // 防止动画进行中重复触发
+  if (isFlippingForward.value || isFlippingBackward.value) {
+    console.log('翻页动画进行中，请稍候...')
+    return
+  }
+
+  // 检查是否还有上一页
+  if (virtualPageIndex.value <= 0) {
+    console.log('已经是第一页')
+    return
+  }
+
+  // 开始翻页动画
+  isFlippingBackward.value = true
+
+  // 动画结束后更新页码
+  setTimeout(() => {
+    virtualPageIndex.value--
+    isFlippingBackward.value = false
+    saveVirtualPageProgress()
+  }, FLIP_ANIMATION_DURATION)
+}
+
+// ===== 滑动手势处理 =====
+function handleTouchStart(e) {
+  if (!isPageMode.value) return
+
+  // 防止动画进行中触发
+  if (isFlippingForward.value || isFlippingBackward.value) return
+
+  const touch = e.touches[0]
+  touchStartX.value = touch.clientX
+  touchStartY.value = touch.clientY
+  touchStartTime.value = Date.now()
+  isSwiping.value = true
+}
+
+function handleTouchMove(e) {
+  if (!isPageMode.value || !isSwiping.value) return
+
+  // 防止页面滚动
+  e.preventDefault()
+}
+
+function handleTouchEnd(e) {
+  if (!isPageMode.value || !isSwiping.value) return
+
+  const touch = e.changedTouches[0]
+  const touchEndX = touch.clientX
+  const touchEndY = touch.clientY
+  const touchEndTime = Date.now()
+
+  const deltaX = touchEndX - touchStartX.value
+  const deltaY = touchEndY - touchStartY.value
+  const deltaTime = touchEndTime - touchStartTime.value
+
+  isSwiping.value = false
+
+  // 检查是否是有效的水平滑动
+  // 1. 水平滑动距离大于阈值
+  // 2. 水平滑动距离大于垂直滑动距离的1.5倍（确保是水平滑动）
+  // 3. 滑动时间在合理范围内
+  const isHorizontalSwipe = Math.abs(deltaX) > SWIPE_THRESHOLD &&
+                            Math.abs(deltaX) > Math.abs(deltaY) * 1.5 &&
+                            deltaTime < SWIPE_TIMEOUT
+
+  if (isHorizontalSwipe) {
+    if (deltaX > 0) {
+      // 向右滑动 - 上一页（翻回去）
+      console.log('向右滑动 - 上一页')
+      pageUp()
+    } else {
+      // 向左滑动 - 下一页（翻过来）
+      console.log('向左滑动 - 下一页')
+      pageDown()
+    }
+  }
+
+  // 重置状态
+  touchStartX.value = 0
+  touchStartY.value = 0
+  touchStartTime.value = 0
+}
+
+function getScrollPercent() {
+  const el = contentArea.value
+  if (!el) return 0
+  const max = el.scrollHeight - el.clientHeight
+  if (max <= 0) return 0
+  return el.scrollTop / max
+}
+
+function restoreScrollPercent(p) {
+  const el = contentArea.value
+  if (!el) return
+  const max = el.scrollHeight - el.clientHeight
+  el.scrollTo({ top: max * Math.min(1, Math.max(0, p)), behavior: 'instant' })
+}
+
+// ===== 虚拟分页逻辑 =====
+/**
+ * 将章节内容分割成虚拟页面
+ * 根据容器高度和字体设置动态计算每页可容纳的内容
+ * 使用精确的高度计算，确保内容不会溢出
+ */
+function splitContentIntoPages() {
+  if (!isPageMode.value || !chapterContent.value?.content) {
+    virtualPages.value = []
+    return
+  }
+
+  const content = chapterContent.value.content
+  const paragraphs = content.split('\n').filter(p => p.trim())
+
+  // 计算实际可用高度（与CSS保持一致）
+  const viewportHeight = window.innerHeight
+  const topBarHeight = 56 // 顶部工具栏
+  const bottomBarHeight = 40 // 底部安全距离（减小以显示更多内容）
+  const pagePaddingTop = 10 // 上padding (减小padding)
+  const pagePaddingBottom = 6 // 下padding (减小padding)
+  const pageNumberHeight = 20 // 页码区域高度（从24px减到20px，与CSS保持一致）
+  const safetyMargin = 3 // 额外的安全边距（从5px减到3px，进一步增加内容显示）
+
+  // 可用内容高度
+  const availableHeight = viewportHeight - topBarHeight - bottomBarHeight - 
+                         pagePaddingTop - pagePaddingBottom - 
+                         pageNumberHeight - safetyMargin
+
+  // 计算每行高度
+  const lineHeightPx = fontSize.value * lineHeight.value
+  
+  // 标题高度计算（仅第一页）
+  const titleLineHeight = 1.6 * 1.5 * fontSize.value // 标题行高 1.6，字体 1.5倍
+  const titleMarginBottom = 16 // 标题下边距减小（从24px→16px），显示更多内容
+  const titleTotalHeight = titleLineHeight + titleMarginBottom
+  
+  // 段落之间的间距（减小以显示更多内容）
+  const paragraphMarginBottom = fontSize.value * lineHeight.value * 0.85 // 0.85em (减小段落间距)
+
+  console.log('📄 分页参数:', {
+    viewportHeight,
+    availableHeight,
+    fontSize: fontSize.value,
+    lineHeightPx,
+    titleTotalHeight,
+    paragraphMarginBottom
+  })
+
+  const pages = []
+  let currentPageContent = ''
+  let currentPageHeight = 0
+  let isFirstPage = true
+
+  // 添加标题到第一页
+  const title = totalChapters.value > 1 ? chapterContent.value.title : novelTitle.value
+  let pageAvailableHeight = availableHeight
+  
+  if (title && isFirstPage) {
+    currentPageContent += `<h2 class="chapter-heading">${title}</h2>`
+    pageAvailableHeight = availableHeight - titleTotalHeight // 第一页减去标题高度
+  }
+
+  for (const para of paragraphs) {
+    const paraText = para.trim()
+    
+    // 计算段落需要的行数
+    // 考虑首行缩进2em和容器宽度
+    const containerWidth = Math.min(800, window.innerWidth - 24) // 减去左右padding 0.75*2=1.5rem=24px
+    const indentWidth = 2 * fontSize.value // 首行缩进2个字符宽度
+    const firstLineWidth = containerWidth - indentWidth
+    const normalLineWidth = containerWidth
+    
+    // 简化计算：假设每个字符占用fontSize的宽度
+    const charsPerFirstLine = Math.floor(firstLineWidth / fontSize.value)
+    const charsPerLine = Math.floor(normalLineWidth / fontSize.value)
+    
+    // 计算行数
+    let linesNeeded = 0
+    if (paraText.length <= charsPerFirstLine) {
+      linesNeeded = 1
+    } else {
+      linesNeeded = 1 + Math.ceil((paraText.length - charsPerFirstLine) / charsPerLine)
+    }
+    
+    // 段落总高度 = 行数 * 行高 + 段落间距
+    const paraHeight = linesNeeded * lineHeightPx + paragraphMarginBottom
+
+    // 如果加入当前段落会超出页面高度，开始新页
+    if (currentPageHeight + paraHeight > pageAvailableHeight && currentPageContent) {
+      pages.push(currentPageContent)
+      currentPageContent = ''
+      currentPageHeight = 0
+      isFirstPage = false
+      pageAvailableHeight = availableHeight // 后续页面使用完整高度
+    }
+
+    currentPageContent += `<p>${paraText}</p>`
+    currentPageHeight += paraHeight
+  }
+
+  // 添加最后一页
+  if (currentPageContent) {
+    pages.push(currentPageContent)
+  }
+
+  const avgCharsPerPage = Math.floor(content.length / pages.length)
+  console.log(`📚 内容已分为 ${pages.length} 页，平均每页 ${avgCharsPerPage} 字`)
+
+  virtualPages.value = pages
+
+  // 恢复之前的阅读进度
+  restoreVirtualPageProgress()
+}
+
+/**
+ * 保存虚拟页进度
+ */
+function saveVirtualPageProgress() {
+  try {
+    const progress = {
+      novelId: novelId.value,
+      virtualPageIndex: virtualPageIndex.value,
+      totalVirtualPages: virtualPages.value.length,
+      timestamp: Date.now()
+    }
+    localStorage.setItem(`virtual_page_progress_${novelId.value}`, JSON.stringify(progress))
+  } catch (e) {
+    console.error('保存虚拟页进度失败:', e)
+  }
+}
+
+/**
+ * 恢复虚拟页进度
+ */
+function restoreVirtualPageProgress() {
+  try {
+    const saved = localStorage.getItem(`virtual_page_progress_${novelId.value}`)
+    if (saved) {
+      const progress = JSON.parse(saved)
+      // 确保索引在有效范围内
+      if (progress.virtualPageIndex >= 0 && progress.virtualPageIndex < virtualPages.value.length) {
+        virtualPageIndex.value = progress.virtualPageIndex
+        console.log(`📖 恢复到第 ${progress.virtualPageIndex + 1} 页`)
+      }
+    }
+  } catch (e) {
+    console.error('恢复虚拟页进度失败:', e)
+  }
 }
 
 // 加载小说信息
@@ -508,6 +917,12 @@ async function loadChapter(chapterId) {
       await nextTick()
       scrollToTop()
 
+      // 如果是翻页模式，进行分页
+      if (isPageMode.value) {
+        await nextTick()
+        splitContentIntoPages()
+      }
+
       // 保存阅读进度
       saveReadingProgress()
     } else {
@@ -539,21 +954,77 @@ async function loadPagedContent(page = 1) {
   try {
     loading.value = true
     error.value = null
-    const res = await getNovelPages(novelId.value, { page, pageSize: pageSize.value })
-    if (res && res.code === 200 && res.data) {
-      chapterContent.value = { content: res.data.content }
-      currentPage.value = res.data.page
-      totalPages.value = res.data.totalPages
+
+    if (isPageMode.value) {
+      // 翻页模式：加载所有内容
+      // 后端限制单次最大20000字，如果内容超过，需要循环加载所有分页
+      console.log('📖 翻页模式：开始加载全文内容...')
+
+      let allContent = ''
+      let currentPageNum = 1
+      let totalPagesCount = 1
+
+      // 循环加载所有分页
+      while (currentPageNum <= totalPagesCount) {
+        const res = await getNovelPages(novelId.value, { page: currentPageNum, pageSize: 20000 })
+
+        if (res && res.code === 200 && res.data) {
+          allContent += res.data.content
+          totalPagesCount = res.data.totalPages
+
+          console.log(`✓ 加载第 ${currentPageNum}/${totalPagesCount} 页，字数: ${res.data.content?.length || 0}`)
+
+          currentPageNum++
+        } else {
+          throw new Error(res?.message || '加载失败')
+        }
+      }
+
+      // 设置完整内容
+      chapterContent.value = { content: allContent }
+      currentPage.value = 1
+      totalPages.value = totalPagesCount
       currentChapterTitle.value = ''
-      
+
+      console.log('✓ 全文加载完成:', {
+        totalChars: allContent.length,
+        totalBackendPages: totalPagesCount
+      })
+
       // 等待 DOM 更新后滚动到顶部
       await nextTick()
       scrollToTop()
-      
-      saveReadingProgress()
+
+      // 进行虚拟分页
+      await nextTick()
+      splitContentIntoPages()
+
     } else {
-      throw new Error(res?.message || '分页数据格式错误')
+      // 滚动模式：按3000字分页加载
+      console.log('📖 滚动模式：加载第', page, '页')
+
+      const res = await getNovelPages(novelId.value, { page, pageSize: pageSize.value })
+      if (res && res.code === 200 && res.data) {
+        chapterContent.value = { content: res.data.content }
+        currentPage.value = res.data.page
+        totalPages.value = res.data.totalPages
+        currentChapterTitle.value = ''
+
+        console.log('✓ 分页内容加载成功:', {
+          page: res.data.page,
+          totalPages: res.data.totalPages,
+          contentLength: res.data.content?.length || 0
+        })
+
+        // 等待 DOM 更新后滚动到顶部
+        await nextTick()
+        scrollToTop()
+      } else {
+        throw new Error(res?.message || '分页数据格式错误')
+      }
     }
+
+    saveReadingProgress()
   } catch (err) {
     console.error('✗ 加载分页失败:', err)
     error.value = err.message || '分页加载失败，请重试'
@@ -613,7 +1084,8 @@ function toggleToolbar(event) {
 let scrollTimer = null
 let isScrolling = false
 
-function handleScroll() {
+function onContentScroll(e) {
+  if (isPageMode.value) return
   // 滚动时隐藏工具栏
   if (!isScrolling) {
     showHeader.value = false
@@ -623,6 +1095,12 @@ function handleScroll() {
 
   // 检测评论区是否可见
   checkCommentsSectionVisible()
+
+  // 保存滚动百分比（用于模式切换和持久化）
+  try {
+    const p = getScrollPercent()
+    localStorage.setItem(`reading_scroll_percent_${novelId.value}`, String(p))
+  } catch (e) {}
 
   clearTimeout(scrollTimer)
   scrollTimer = setTimeout(() => {
@@ -653,6 +1131,46 @@ function checkCommentsSectionVisible() {
 // 切换夜间模式
 function toggleDarkMode() {
   toggleMode()
+}
+
+// 阅读模式切换/持久化
+function setReadingMode(mode) {
+  if (mode !== 'scroll' && mode !== 'page') return
+  if (readingMode.value === mode) return
+  // 切换前记录当前位置百分比
+  const percent = getScrollPercent()
+  readingMode.value = mode
+  try { localStorage.setItem(READING_MODE_KEY, mode) } catch (e) {}
+
+  // 提示用户当前模式
+  const modeText = mode === 'page' ? '翻页模式：仿真翻页阅读' : '滚屏模式：连续滚动阅读'
+  message.success(modeText, 2000)
+
+  if (mode === 'page') {
+    // 切换到翻页模式时，重新加载全文内容
+    if (totalChapters.value === 0) {
+      // 无章节模式：重新加载全文
+      loadPagedContent(1)
+    } else if (chapterContent.value) {
+      // 有章节模式：直接分页当前章节
+      nextTick(() => {
+        splitContentIntoPages()
+      })
+    }
+  } else {
+    // 切换到滚动模式时，重新加载分页内容
+    if (totalChapters.value === 0) {
+      // 无章节模式：重新加载分页内容
+      loadPagedContent(currentPage.value)
+    } else {
+      // 有章节模式：恢复滚动位置
+      nextTick(() => restoreScrollPercent(percent))
+    }
+  }
+}
+
+function toggleReadingMode() {
+  setReadingMode(isPageMode.value ? 'scroll' : 'page')
 }
 
 // 字体设置
@@ -931,7 +1449,163 @@ onMounted(async () => {
       showGuide.value = true
     }
   } catch (e) {}
+
+  // 启动阅读计时器并监听页面可见性
+  startReadingTimer()
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+
+  // 翻页模式事件监听（滚轮/键盘/触摸）
+  contentArea.value?.addEventListener('wheel', wheelHandler, { passive: false })
+  window.addEventListener('keydown', keyHandler)
+  contentArea.value?.addEventListener('touchstart', touchStart, { passive: true })
+  contentArea.value?.addEventListener('touchmove', touchMove, { passive: false })
+  contentArea.value?.addEventListener('touchend', touchEnd, { passive: true })
+
+  // 初始化恢复滚动百分比
+  try {
+    const raw = localStorage.getItem(`reading_scroll_percent_${novelId.value}`)
+    if (raw) nextTick(() => restoreScrollPercent(Number(raw)))
+  } catch (e) {}
+
+  // 在模式变化后也恢复百分比
+  watch(isPageMode, async () => {
+    const raw = localStorage.getItem(`reading_scroll_percent_${novelId.value}`)
+    const p = raw ? Number(raw) : getScrollPercent()
+    await nextTick()
+    restoreScrollPercent(p)
+  })
+
 })
+
+// 事件处理器定义在 setup 作用域，便于统一清理
+const wheelHandler = (e) => {
+  if (!isPageMode.value) return
+  e.preventDefault()
+  if (e.deltaY > 0) {
+    pageDown()
+  } else {
+    pageUp()
+  }
+}
+
+const keyHandler = (e) => {
+  if (!isPageMode.value) return
+  if ([ 'ArrowDown', 'PageDown', ' ' ].includes(e.key)) { e.preventDefault(); pageDown() }
+  if ([ 'ArrowUp', 'PageUp' ].includes(e.key)) { e.preventDefault(); pageUp() }
+  if (e.key === 'ArrowRight') { e.preventDefault(); pageDown() }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); pageUp() }
+}
+
+const touchStart = (e) => { 
+  if (!isPageMode.value || !e.touches?.length) return
+  touchStartX.value = e.touches[0].clientX
+  touchStartY.value = e.touches[0].clientY
+  touchStartTime.value = Date.now()
+}
+
+const touchMove = (e) => {
+  // 翻页模式下禁止原生滚动，避免与整屏翻页冲突
+  if (isPageMode.value) {
+    e.preventDefault()
+  }
+}
+
+const touchEnd = (e) => {
+  if (!isPageMode.value || !e.changedTouches?.length) return
+  
+  const touchEndX = e.changedTouches[0].clientX
+  const touchEndY = e.changedTouches[0].clientY
+  const touchDuration = Date.now() - touchStartTime.value
+  
+  const dx = touchEndX - touchStartX.value
+  const dy = touchEndY - touchStartY.value
+  
+  // 计算滑动距离和方向
+  const absDx = Math.abs(dx)
+  const absDy = Math.abs(dy)
+  
+  // 判断是否为有效滑动（距离>30px 且时间<500ms）
+  if (Math.max(absDx, absDy) < 30 || touchDuration > 500) return
+  
+  // 判断主要滑动方向
+  if (absDx > absDy) {
+    // 水平滑动：左滑下一屏，右滑上一屏
+    if (dx < 0) {
+      pageDown() // 左滑
+    } else {
+      pageUp()   // 右滑
+    }
+  } else {
+    // 垂直滑动：下滑上一屏，上滑下一屏
+    if (dy < 0) {
+      pageDown() // 上滑
+    } else {
+      pageUp()   // 下滑
+    }
+  }
+}
+
+onUnmounted(() => {
+  contentArea.value?.removeEventListener('wheel', wheelHandler)
+  window.removeEventListener('keydown', keyHandler)
+  contentArea.value?.removeEventListener('touchstart', touchStart)
+  contentArea.value?.removeEventListener('touchmove', touchMove)
+  contentArea.value?.removeEventListener('touchend', touchEnd)
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  stopReadingTimer()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
+
+// ===== 自动加入书架：计时与可见性控制 =====
+function handleVisibilityChange() {
+  isPageVisible.value = document.visibilityState === 'visible'
+}
+
+function startReadingTimer() {
+  if (readingTimer.value) return
+  readingTimer.value = setInterval(async () => {
+    if (!isPageVisible.value) return
+    // 未登录不计入自动加入逻辑（静默忽略）
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    readingElapsedTime.value += 1
+    // 达到10秒且尚未加入书架则自动加入
+    if (readingElapsedTime.value >= 10 && !autoAddedToBookshelf.value) {
+      await autoAddToBookshelf()
+    }
+  }, 1000)
+}
+
+function stopReadingTimer() {
+  if (readingTimer.value) {
+    clearInterval(readingTimer.value)
+    readingTimer.value = null
+  }
+}
+
+async function autoAddToBookshelf() {
+  try {
+    // 已在书架则不重复添加
+    if (inBookshelf.value || bookshelfStore.isInBookshelf(Number(novelId.value))) {
+      autoAddedToBookshelf.value = true
+      stopReadingTimer()
+      return
+    }
+    await apiAddToBookshelf({ novelId: Number(novelId.value) })
+    inBookshelf.value = true
+    autoAddedToBookshelf.value = true
+    stopReadingTimer()
+    // 轻量提示
+    message.info('已自动加入书架', 1500)
+  } catch (err) {
+    // 失败静默处理，避免打扰阅读
+    console.warn('自动加入书架失败:', err?.response?.data || err?.message)
+  }
+}
 
 // 保存阅读设置
 watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
@@ -943,18 +1617,51 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   }
   localStorage.setItem('reading_settings', JSON.stringify(settings))
 }, { deep: true })
+
+// 监听字体大小和行高变化，重新分页
+watch([fontSize, lineHeight], () => {
+  if (isPageMode.value && chapterContent.value) {
+    nextTick(() => {
+      splitContentIntoPages()
+    })
+  }
+})
+
+// 监听阅读模式变化，控制页面滚动
+watch(isPageMode, (newMode) => {
+  if (newMode) {
+    // 切换到翻页模式：禁用页面滚动
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+  } else {
+    // 切换到滚动模式：恢复页面滚动
+    document.body.style.overflow = ''
+    document.documentElement.style.overflow = ''
+  }
+})
+
+// 组件卸载时恢复滚动
+onUnmounted(() => {
+  document.body.style.overflow = ''
+  document.documentElement.style.overflow = ''
+})
 </script>
 
 <style scoped>
 .reading-page {
   min-height: 100vh;
   position: relative;
-  transition: all 0.3s ease;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 使用主题背景渐变 */
+  background: var(--color-bg-gradient, transparent);
+  background-attachment: fixed;
 }
 
 .reading-page.dark-mode {
-  background-color: #1a1a1a;
-  color: #e0e0e0;
+  /* 深色模式下使用主题背景，不再硬编码 */
+  background: var(--color-bg-gradient, transparent);
+  background-attachment: fixed;
+  color: var(--color-text-primary);
 }
 
 /* 顶部工具栏 */
@@ -964,12 +1671,13 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   left: 0;
   right: 0;
   height: 56px;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.98), rgba(255,255,255,0.95));
+  background: var(--color-bg-card);
   backdrop-filter: blur(10px);
   transform: translateY(-100%);
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 100;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px var(--color-shadow);
+  opacity: 0.98;
 }
 
 .header-content {
@@ -995,7 +1703,9 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 }
 
 .dark-mode .reading-header {
-  background: linear-gradient(to bottom, rgba(26,26,26,0.98), rgba(26,26,26,0.95));
+  background: var(--color-bg-card);
+  box-shadow: 0 2px 8px var(--color-shadow);
+  opacity: 0.98;
 }
 
 .back-btn, .menu-btn {
@@ -1076,10 +1786,201 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 .reading-content {
   min-height: 100vh;
   padding: 72px 1rem 6rem; /* 顶部留白避免遮挡 */
-  overflow-y: auto;
   overflow-x: hidden;
   transition: all 0.3s ease;
+  overscroll-behavior: contain; /* 防止外层页面橡皮筋 */
 }
+
+/* 滚动模式：允许上下滚动 */
+.reading-content:not(.page-mode) {
+  overflow-y: auto;
+}
+
+/* 翻页模式：完全禁用上下滚动 */
+.reading-content.page-mode {
+  overflow: hidden !important; /* 禁用所有滚动 */
+  height: 100vh;
+  width: 100vw;
+  position: fixed; /* 固定定位，防止滚动 */
+  top: 0;
+  left: 0;
+  touch-action: none; /* 禁用所有触摸手势 */
+  overscroll-behavior: none; /* 禁用过度滚动 */
+  padding: 0 !important; /* 移除padding避免滚动 */
+}
+
+/* ===== 平移滑动翻页效果样式 ===== */
+.flip-book-container {
+  position: fixed;
+  top: 56px; /* 顶部工具栏高度 */
+  left: 0;
+  right: 0;
+  bottom: 40px; /* 减小底部安全距离，显示更多内容 */
+  width: calc(100% - 1rem); /* 减少左右边距，增加内容显示宽度 */
+  max-width: 800px;
+  height: calc(100vh - 96px); /* 视口高度 - 顶部56px - 底部40px */
+  margin: 0 auto;
+  overflow: hidden;
+  touch-action: none; /* 禁用触摸滚动 */
+}
+
+.flip-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  will-change: transform;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.flip-page .page-content {
+  flex: 1;
+  overflow: hidden; /* 禁止滚动，内容需精确分页 */
+  padding: 10px 0.75rem 6px; /* 进一步减少padding，显示更多内容（与JS保持一致：上10px 下6px） */
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #333;
+  text-align: justify;
+  box-sizing: border-box;
+}
+
+.flip-page .page-content :deep(h2) {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem; /* 从1.5rem减小到1rem(16px)，显示更多内容 */
+  margin-top: 0;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.flip-page .page-content :deep(p) {
+  margin-bottom: 0.85em; /* 从1em减小到0.85em，减少段落间距，显示更多内容 */
+  margin-top: 0;
+  text-indent: 2em;
+  text-align: justify;
+  line-height: inherit;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.flip-page .page-number {
+  position: absolute;
+  bottom: 0.25rem; /* 从0.5rem减小到0.25rem，更靠近底部，显示更多内容 */
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem; /* 从0.75rem减小到0.7rem */
+  color: #999;
+  opacity: 0.5;
+  z-index: 10;
+  background: transparent;
+  padding: 0.2rem 0.5rem; /* 减小padding */
+  pointer-events: none; /* 不阻挡点击事件 */
+}
+
+/* 当前页（中心位置） */
+.flip-page.current-page {
+  z-index: 2;
+  animation: none;
+  transform: translateX(0);
+}
+
+/* 向前翻页动画 - 当前页向左滑出 */
+.flip-page.current-page.flipping-forward {
+  z-index: 2;
+  animation: slideOutLeft 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 下一页（从右侧滑入） */
+.flip-page.next-page {
+  z-index: 3;
+  animation: slideInFromRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 向后翻页动画 - 当前页向右滑出 */
+.flip-page.current-page.flipping-backward {
+  z-index: 2;
+  animation: slideOutRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 上一页（从左侧滑入） */
+.flip-page.prev-page {
+  z-index: 3;
+  opacity: 1;
+  animation: slideInFromLeft 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 平移动画关键帧 - 向左滑出 */
+@keyframes slideOutLeft {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-100%);
+    opacity: 0.3;
+  }
+}
+
+/* 平移动画关键帧 - 从右侧滑入 */
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* 平移动画关键帧 - 向右滑出 */
+@keyframes slideOutRight {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0.3;
+  }
+}
+
+/* 平移动画关键帧 - 从左侧滑入 */
+@keyframes slideInFromLeft {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* 翻页模式左右热区（覆盖于页面两侧，点击整屏翻动） */
+.page-zone {
+  position: fixed;
+  top: 56px; /* 避开顶部工具栏高度 */
+  bottom: 64px; /* 避开底部工具栏高度 */
+  width: 28%;
+  background: transparent;
+  border: none;
+  z-index: 110;
+  cursor: pointer;
+}
+.page-zone.left { left: 0; }
+.page-zone.right { right: 0; }
+.page-zone:focus { outline: none; }
 
 @media (min-width: 768px) {
   .reading-content { padding: 80px 2rem 6rem; }
@@ -1255,13 +2156,14 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   left: 0;
   right: 0;
   width: 100%;
-  background: linear-gradient(to top, rgba(255,255,255,0.98), rgba(255,255,255,0.95));
+  background: var(--color-bg-card);
   backdrop-filter: blur(10px);
   transform: translateY(100%);
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 100;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 -2px 8px var(--color-shadow);
   box-sizing: border-box;
+  opacity: 0.98;
 }
 
 .footer-content {
@@ -1283,7 +2185,9 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 }
 
 .dark-mode .reading-footer {
-  background: linear-gradient(to top, rgba(26,26,26,0.98), rgba(26,26,26,0.95));
+  background: var(--color-bg-card);
+  box-shadow: 0 -2px 8px var(--color-shadow);
+  opacity: 0.98;
 }
 
 /* 底部工具栏翻页按钮区域 */
@@ -1444,6 +2348,12 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
   color: #4f46e5;
 }
 
+.action-btn.mode-active {
+  color: #4f46e5;
+  background: rgba(79, 70, 229, 0.1);
+  font-weight: 600;
+}
+
 .dark-mode .action-btn {
   color: #999;
 }
@@ -1451,6 +2361,11 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 .dark-mode .action-btn:hover {
   background: rgba(255,255,255,0.05);
   color: #6366f1;
+}
+
+.dark-mode .action-btn.mode-active {
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.15);
 }
 
 /* 目录抽屉 */
@@ -2039,3 +2954,4 @@ watch([fontSize, lineHeight, bgColor, isDarkMode], () => {
 }
 
 </style>
+

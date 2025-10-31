@@ -74,7 +74,7 @@ const addToBookshelf = async (req, res) => {
     
     // 添加到书架
     await pool.query(
-      'INSERT INTO bookshelf (user_id, novel_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+      'INSERT INTO bookshelf (user_id, novel_id) VALUES (?, ?)',
       [userId, novelId]
     );
     

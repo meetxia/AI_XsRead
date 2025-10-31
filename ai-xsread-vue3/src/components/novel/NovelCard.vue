@@ -69,6 +69,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useTheme } from '@/composables/useTheme'
 
 const props = defineProps({
   novel: {
@@ -88,6 +89,9 @@ const props = defineProps({
 
 const emit = defineEmits(['click', 'read', 'add-shelf'])
 const router = useRouter()
+
+// 获取主题信息
+const { currentThemeConfig } = useTheme()
 
 // 卡片尺寸类
 const cardSizeClass = computed(() => {
@@ -131,138 +135,21 @@ function getPublishTime() {
   return times[Math.floor(Math.random() * times.length)]
 }
 
-// 获取多层次艺术渐变（模拟照片质感）
+// 获取封面渐变 - 使用主题配置
 function getCoverGradient() {
-  // 安全检查
-  if (!props.novel) {
-    return { background: 'linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)' }
+  // 优先使用主题配置的封面渐变
+  const themeConfig = currentThemeConfig.value
+  if (themeConfig && themeConfig.coverGradient) {
+    return {
+      background: themeConfig.coverGradient,
+      transition: 'background 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+    }
   }
   
-  // 多色渐变系统 - 模拟摄影作品的色彩过渡
-  const lightModeGradients = [
-    // 温暖日落系 - 米黄到浅橙粉
-    { 
-      colors: ['#f5f0e8', '#f0e6d8', '#ead5c0', '#e8cdb8'],
-      angle: 135,
-      positions: ['0%', '40%', '70%', '100%']
-    },
-    
-    // 清晨雾霭系 - 浅蓝灰到米白
-    { 
-      colors: ['#e8eef2', '#e0e6ea', '#dce0e3', '#f2f0ed'],
-      angle: 120,
-      positions: ['0%', '35%', '65%', '100%']
-    },
-    
-    // 樱花落英系 - 浅粉到米灰
-    { 
-      colors: ['#f5e8e8', '#f0dede', '#e8d8d5', '#e5ddd8'],
-      angle: 145,
-      positions: ['0%', '40%', '75%', '100%']
-    },
-    
-    // 森林晨雾系 - 浅绿到米灰
-    { 
-      colors: ['#e8f0e8', '#e0e8e0', '#d8e0d5', '#e5e8e0'],
-      angle: 160,
-      positions: ['0%', '35%', '70%', '100%']
-    },
-    
-    // 薄暮紫霭系 - 浅紫到灰粉
-    { 
-      colors: ['#f0e8f0', '#e8dfe5', '#e0d8dd', '#ded8d8'],
-      angle: 130,
-      positions: ['0%', '40%', '70%', '100%']
-    },
-    
-    // 极简混凝土系 - 多层次灰
-    { 
-      colors: ['#f5f3f0', '#ebe8e3', '#e0ddd8', '#d8d5d0'],
-      angle: 150,
-      positions: ['0%', '35%', '70%', '100%']
-    },
-    
-    // 海雾迷蒙系 - 蓝灰渐变
-    { 
-      colors: ['#e5ebf0', '#dde3e8', '#d5dde0', '#d8ddd8'],
-      angle: 140,
-      positions: ['0%', '40%', '75%', '100%']
-    },
-    
-    // 秋日暖调系 - 暖橙米色
-    { 
-      colors: ['#f8f0e8', '#f0e8d8', '#e8ddd0', '#e0d8cc'],
-      angle: 125,
-      positions: ['0%', '35%', '70%', '100%']
-    },
-    
-    // 月光冷调系 - 冷灰蓝
-    { 
-      colors: ['#eaeef2', '#e2e6ea', '#d8dde0', '#d5d8dd'],
-      angle: 155,
-      positions: ['0%', '40%', '75%', '100%']
-    },
-    
-    // 胶片复古系 - 暖黄灰
-    { 
-      colors: ['#f2ede5', '#ebe6d8', '#e3ddd0', '#ddd8cc'],
-      angle: 135,
-      positions: ['0%', '35%', '70%', '100%']
-    }
-  ]
-  
-  const darkModeGradients = [
-    // 深夜蓝调系
-    { 
-      colors: ['#2a2d35', '#252830', '#20232a', '#1c1f25'],
-      angle: 135,
-      positions: ['0%', '40%', '70%', '100%']
-    },
-    
-    // 深邃森林系
-    { 
-      colors: ['#2a2f2d', '#252a28', '#202523', '#1c211e'],
-      angle: 120,
-      positions: ['0%', '35%', '65%', '100%']
-    },
-    
-    // 深棕暖调系
-    { 
-      colors: ['#302d2a', '#2a2825', '#252320', '#201f1c'],
-      angle: 145,
-      positions: ['0%', '40%', '75%', '100%']
-    },
-    
-    // 午夜紫系
-    { 
-      colors: ['#2f2d32', '#2a282d', '#252328', '#201e23'],
-      angle: 160,
-      positions: ['0%', '35%', '70%', '100%']
-    },
-    
-    // 深海蓝系
-    { 
-      colors: ['#2a2e34', '#25292f', '#20242a', '#1c2025'],
-      angle: 130,
-      positions: ['0%', '40%', '70%', '100%']
-    }
-  ]
-  
-  // 根据小说ID选择渐变
-  const index = props.novel.id ? props.novel.id % 5 : 0  // 修改为 % 5，因为只有5个渐变
-  
-  // 暂时只使用浅色渐变，确保在浅色主题下显示正常
-  // TODO: 后续可以根据页面实际主题（而非系统设置）来切换深色/浅色渐变
-  const gradients = lightModeGradients
-  const gradient = gradients[index] || gradients[0]  // 添加默认值防止 undefined
-  
-  // 构建多色渐变字符串
-  const colorStops = gradient.colors.map((color, i) => 
-    `${color} ${gradient.positions[i]}`
-  ).join(', ')
-  
+  // 如果没有配置，使用CSS变量（从主题系统获取）
   return {
-    background: `linear-gradient(${gradient.angle}deg, ${colorStops})`
+    background: 'var(--color-cover-gradient, var(--color-bg-gradient))',
+    transition: 'background 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
   }
 }
 
@@ -324,7 +211,8 @@ function getCategoryStyle() {
   width: 100%;
   height: 40px;
   overflow: hidden;
-  transition: all 0.5s ease;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--color-cover-gradient, var(--color-bg-gradient)); /* 默认使用主题封面渐变 */
 }
 
 .novel-card.magazine-style:hover .card-cover {

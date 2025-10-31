@@ -80,9 +80,12 @@ body {
   font-family: 'Noto Serif SC', serif;
   margin: 0;
   padding: 0;
-  transition: background 0.3s ease, color 0.3s ease;
-  /* 背景将通过 JS 动态设置 */
+  transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1), color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 背景将通过 JS 动态设置主题渐变 */
   min-height: 100vh;
+  /* 使用主题背景渐变作为默认值 */
+  background: var(--color-bg-gradient, #fefefe);
+  background-attachment: fixed; /* 固定背景，滚动时背景不动 */
 }
 
 /* 确保body始终填满视口 */
@@ -165,10 +168,20 @@ html, body {
   }
 }
 
-/* 平滑过渡 */
+/* 平滑过渡 - 增强主题切换动画 */
 * {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 0.3s;
-  transition-timing-function: ease;
+  transition-property: background-color, border-color, color, fill, stroke, background;
+  transition-duration: 0.6s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 主题相关的背景类 */
+.bg-themed-gradient {
+  background: var(--color-bg-gradient);
+  background-attachment: fixed;
+}
+
+.bg-themed-cover {
+  background: var(--color-cover-gradient, var(--color-bg-gradient));
 }
 
