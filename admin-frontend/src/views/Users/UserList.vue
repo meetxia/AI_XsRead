@@ -134,25 +134,36 @@ const pagination = reactive({
   total: 0
 })
 
-const userList = ref([
-  {
-    id: 1001,
-    username: 'reader001',
-    email: 'reader001@example.com',
-    avatar: '',
-    totalBooks: 47,
-    readingTime: 128,
-    status: 1,
-    createdAt: '2024-01-15'
-  }
-])
+const userList = ref([])
 
 const loadUserList = async () => {
   loading.value = true
   try {
-    // TODO: 调用API
+    const params = {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      status: filters.status,
+      keyword: filters.keyword
+    }
+    
+    const res = await getUserList(params)
+    
+    if (res.code === 200) {
+      userList.value = res.data.list.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        totalBooks: user.total_books || 0,
+        readingTime: Math.round((user.reading_time || 0) / 3600), // 转换为小时
+        status: user.status,
+        createdAt: user.created_at
+      }))
+      pagination.total = res.data.total
+    }
   } catch (error) {
-    ElMessage.error('加载用户列表失败')
+    console.error('加载用户列表失败:', error)
+    ElMessage.error(error.message || '加载用户列表失败')
   } finally {
     loading.value = false
   }

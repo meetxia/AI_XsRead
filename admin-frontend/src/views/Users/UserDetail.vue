@@ -43,24 +43,39 @@ const router = useRouter()
 const route = useRoute()
 
 const userInfo = ref({
-  id: 1001,
-  username: 'reader001',
-  email: 'reader001@example.com',
+  id: '',
+  username: '',
+  email: '',
   avatar: '',
   status: 1
 })
 
 const loadUserDetail = async () => {
   try {
-    // const res = await getUserDetail(route.params.id)
-    // userInfo.value = res.data
+    const res = await getUserDetail(route.params.id)
+    if (res.code === 200) {
+      userInfo.value = {
+        id: res.data.id,
+        username: res.data.username,
+        email: res.data.email,
+        avatar: res.data.avatar,
+        status: res.data.status
+      }
+    }
   } catch (error) {
+    console.error('加载用户详情失败:', error)
     ElMessage.error('加载用户详情失败')
+    router.back()
   }
 }
 
 onMounted(() => {
-  loadUserDetail()
+  if (route.params.id) {
+    loadUserDetail()
+  } else {
+    ElMessage.error('缺少用户ID')
+    router.back()
+  }
 })
 </script>
 

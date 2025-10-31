@@ -178,51 +178,42 @@ const pagination = reactive({
   total: 0
 })
 
-const novelList = ref([
-  {
-    id: 1,
-    title: '时光里的温柔相遇',
-    author: '温柔笔触',
-    cover: 'https://via.placeholder.com/300x400',
-    category: '都市言情',
-    chapterCount: 50,
-    wordCount: 128000,
-    status: 1,
-    views: 15600,
-    collections: 890,
-    rating: 4.8,
-    lastChapterTitle: '第五十章:未完待续',
-    lastUpdateTime: '2025-10-24 15:30:00'
-  },
-  {
-    id: 2,
-    title: '长安月下归人未归',
-    author: '墨染流年',
-    cover: 'https://via.placeholder.com/300x400',
-    category: '古风穿越',
-    chapterCount: 100,
-    wordCount: 256000,
-    status: 1,
-    views: 32400,
-    collections: 2100,
-    rating: 4.9,
-    lastChapterTitle: '第一百章:月下重逢',
-    lastUpdateTime: '2025-10-26 20:00:00'
-  }
-])
+const novelList = ref([])
 
 const loadNovelList = async () => {
   loading.value = true
   try {
-    // const res = await getNovelList({
-    //   page: pagination.page,
-    //   pageSize: pagination.pageSize,
-    //   ...filters
-    // })
-    // novelList.value = res.data.list
-    // pagination.total = res.data.total
+    const params = {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      category: filters.category,
+      status: filters.status,
+      keyword: filters.keyword
+    }
+    
+    const res = await getNovelList(params)
+    
+    if (res.code === 200) {
+      novelList.value = res.data.list.map(novel => ({
+        id: novel.id,
+        title: novel.title,
+        author: novel.author,
+        cover: novel.cover,
+        category: novel.category || '未分类',
+        chapterCount: novel.chapter_count || 0,
+        wordCount: novel.word_count || 0,
+        status: novel.status,
+        views: novel.views || 0,
+        collections: novel.collections || 0,
+        rating: novel.rating || 0,
+        lastChapterTitle: novel.last_chapter_title || '暂无',
+        lastUpdateTime: novel.last_update_time
+      }))
+      pagination.total = res.data.total
+    }
   } catch (error) {
-    ElMessage.error('加载小说列表失败')
+    console.error('加载小说列表失败:', error)
+    ElMessage.error(error.message || '加载小说列表失败')
   } finally {
     loading.value = false
   }

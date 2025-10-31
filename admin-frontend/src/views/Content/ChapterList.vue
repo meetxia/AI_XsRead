@@ -141,47 +141,54 @@ const pagination = reactive({
   total: 0
 })
 
-const novelOptions = ref([
-  { id: 1, title: '时光里的温柔相遇' },
-  { id: 2, title: '长安月下归人未归' }
-])
+const novelOptions = ref([])
 
-const chapterList = ref([
-  {
-    id: 1,
-    novelId: 1,
-    novelTitle: '时光里的温柔相遇',
-    chapterNumber: 1,
-    title: '第一章:图书馆的邂逅',
-    wordCount: 2580,
-    views: 8456,
-    status: 1,
-    publishTime: '2025-08-01 10:00:00'
-  },
-  {
-    id: 2,
-    novelId: 1,
-    novelTitle: '时光里的温柔相遇',
-    chapterNumber: 2,
-    title: '第二章:意外的重逢',
-    wordCount: 2450,
-    views: 7234,
-    status: 1,
-    publishTime: '2025-08-02 10:00:00'
+const chapterList = ref([])
+
+// 加载小说列表（用于筛选下拉框）
+const loadNovelOptions = async () => {
+  try {
+    const { getNovelList } = await import('@/api/novel')
+    const res = await getNovelList({ page: 1, pageSize: 100 })
+    if (res.code === 200) {
+      novelOptions.value = res.data.list.map(novel => ({
+        id: novel.id,
+        title: novel.title
+      }))
+    }
+  } catch (error) {
+    console.error('加载小说列表失败:', error)
   }
-])
+}
 
 const loadChapterList = async () => {
   loading.value = true
   try {
-    // const res = await getChapterList({
-    //   page: pagination.page,
-    //   pageSize: pagination.pageSize,
-    //   ...filters
-    // })
-    // chapterList.value = res.data.list
-    // pagination.total = res.data.total
+    const params = {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      novelId: filters.novelId,
+      status: filters.status
+    }
+    
+    const res = await getChapterList(params)
+    
+    if (res.code === 200) {
+      chapterList.value = res.data.list.map(chapter => ({
+        id: chapter.id,
+        novelId: chapter.novel_id,
+        novelTitle: chapter.novel_title || '未知小说',
+        chapterNumber: chapter.chapter_number,
+        title: chapter.title,
+        wordCount: chapter.word_count || 0,
+        views: chapter.views || 0,
+        status: chapter.status,
+        publishTime: chapter.publish_time
+      }))
+      pagination.total = res.data.total
+    }
   } catch (error) {
+    console.error('加载章节列表失败:', error)
     ElMessage.error('加载章节列表失败')
   } finally {
     loading.value = false
@@ -242,6 +249,7 @@ const handlePageSizeChange = (size) => {
 }
 
 onMounted(() => {
+  loadNovelOptions()
   loadChapterList()
 })
 </script>

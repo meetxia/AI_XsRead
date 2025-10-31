@@ -162,36 +162,30 @@ const trendRange = ref('7')
 const rankType = ref('views')
 
 const overview = reactive({
-  totalUsers: 12458,
-  newUsersToday: 127,
-  totalNovels: 23,
-  totalChapters: 1456,
-  todayViews: 45678,
-  avgReadTime: 22,
-  pendingComments: 15
+  totalUsers: 0,
+  newUsersToday: 0,
+  totalNovels: 0,
+  totalChapters: 0,
+  todayViews: 0,
+  avgReadTime: 0,
+  pendingComments: 0
 })
 
-const hotNovels = ref([
-  { id: 1, title: '长安月下归人未归', views: 32400, collections: 2100, trend: 15.6 },
-  { id: 2, title: '时光里的温柔相遇', views: 28100, collections: 1890, trend: 12.3 },
-  { id: 3, title: '星河尽头的她', views: 25700, collections: 1560, trend: -3.2 },
-  { id: 4, title: '浮生若梦', views: 22300, collections: 1420, trend: 8.5 },
-  { id: 5, title: '月色与君眠', views: 19800, collections: 1280, trend: 5.7 }
-])
-
-const realtimeActivities = ref([
-  { id: 1, text: '用户 reader_001 收藏了《时光里的温柔相遇》', time: '刚刚' },
-  { id: 2, text: '用户 reader_123 评论了《长安月下归人未归》', time: '1分钟前' },
-  { id: 3, text: '用户 reader_456 开始阅读《星河尽头的她》', time: '2分钟前' },
-  { id: 4, text: '用户 reader_789 点赞了《浮生若梦》', time: '3分钟前' },
-  { id: 5, text: '用户 reader_012 收藏了《月色与君眠》', time: '5分钟前' }
-])
+const hotNovels = ref([])
+const realtimeActivities = ref([])
 
 // 初始化用户趋势图表
-const initUserTrendChart = () => {
+const initUserTrendChart = (trendsData = []) => {
   if (!userTrendChart.value) return
   
   userTrendChartInstance = echarts.init(userTrendChart.value)
+  
+  const dates = trendsData.map(item => {
+    const date = new Date(item.date)
+    return `${date.getMonth() + 1}-${date.getDate()}`
+  })
+  const newUsers = trendsData.map(item => item.new_users || 0)
+  const activeUsers = trendsData.map(item => item.active_users || 0)
   
   const option = {
     tooltip: {
@@ -209,7 +203,7 @@ const initUserTrendChart = () => {
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: ['10-21', '10-22', '10-23', '10-24', '10-25', '10-26', '10-27']
+      data: dates
     },
     yAxis: {
       type: 'value'
@@ -218,14 +212,14 @@ const initUserTrendChart = () => {
       {
         name: '新增用户',
         type: 'line',
-        data: [120, 132, 101, 134, 90, 230, 210],
+        data: newUsers,
         smooth: true,
         itemStyle: { color: '#409eff' }
       },
       {
         name: '活跃用户',
         type: 'line',
-        data: [2200, 2400, 2100, 2350, 2180, 2580, 2450],
+        data: activeUsers,
         smooth: true,
         itemStyle: { color: '#67c23a' }
       }
@@ -275,10 +269,66 @@ const initCategoryChart = () => {
   categoryChartInstance.setOption(option)
 }
 
+// 加载概览数据
+const loadOverview = async () => {
+  try {
+    const res = await getOverview()
+    if (res.code === 200) {
+      Object.assign(overview, res.data)
+    }
+  } catch (error) {
+    console.error('加载概览数据失败:', error)
+  }
+}
+
 // 加载趋势数据
 const loadTrends = async () => {
-  // TODO: 调用API加载实际数据
-  console.log('加载趋势数据:', trendRange.value)
+  try {
+    const res = await getTrends({ days: trendRange.value })
+    if (res.code === 200 && res.data.length > 0) {
+      initUserTrendChart(res.data)
+    }
+  } catch (error) {
+    console.error('加载趋势数据失败:', error)
+  }
+}
+
+// 加载排行榜数据
+const loadRanking = async () => {
+  try {
+    const res = await getRanking({ type: rankType.value, limit: 5 })
+    if (res.code === 200) {
+      // 添加模拟的趋势数据（实际应该从后端返回）
+      hotNovels.value = res.data.map((item, index) => ({
+        ...item,
+        trend: Math.random() > 0.3 ? (Math.random() * 20).toFixed(1) : -(Math.random() * 10).toFixed(1)
+      }))
+    }
+  } catch (error) {
+    console.error('加载排行榜数据失败:', error)
+  }
+}
+
+// 加载实时动态
+const loadRealtime = async () => {
+  try {
+    const res = await getRealtime()
+    if (res.code === 200) {
+      realtimeActivities.value = res.data.map(item => {
+        const text = `用户 ${item.username} 正在阅读《${item.novel_title}》`
+        const timeDiff = Date.now() - new Date(item.read_time).getTime()
+        const minutes = Math.floor(timeDiff / 60000)
+        const time = minutes < 1 ? '刚刚' : minutes < 60 ? `${minutes}分钟前` : `${Math.floor(minutes / 60)}小时前`
+        return {
+          id: item.id,
+          text,
+          time
+        }
+      })
+    }
+  } catch (error) {
+    console.error('加载实时动态失败:', error)
+  }
 }
 
 // 窗口大小改变时重新渲染图表
@@ -290,15 +340,18 @@ const handleResize = () => {
 onMounted(async () => {
   // 初始化图表
   await nextTick()
-  initUserTrendChart()
   initCategoryChart()
   
   // 监听窗口大小变化
   window.addEventListener('resize', handleResize)
   
-  // TODO: 加载实际数据
-  // const res = await getOverview()
-  // Object.assign(overview, res.data)
+  // 加载实际数据
+  await Promise.all([
+    loadOverview(),
+    loadTrends(),
+    loadRanking(),
+    loadRealtime()
+  ])
 })
 </script>
 

@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 /**
- * 获取数据看板概览统计
+ * 获取概览统计
  */
 export function getOverview() {
   return request({
@@ -32,7 +32,7 @@ export function getRealtime() {
 }
 
 /**
- * 获取排行榜数据
+ * 获取排行榜
  */
 export function getRanking(params) {
   return request({
@@ -41,4 +41,3 @@ export function getRanking(params) {
     params
   })
 }
-

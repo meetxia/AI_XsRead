@@ -75,32 +75,76 @@ import { formatDate } from '@/utils/format'
 
 const loading = ref(false)
 const activeTab = ref('pending')
-const pendingCount = ref(15)
+const pendingCount = ref(0)
 
-const commentList = ref([
-  {
-    id: 1,
-    username: 'reader001',
-    content: '非常好看的小说！文笔细腻，情感真挚。',
-    novelTitle: '长安月下归人未归',
-    createdAt: '2025-10-27 09:30:00'
+const commentList = ref([])
+
+// 加载评论列表
+const loadComments = async () => {
+  loading.value = true
+  try {
+    // 根据tab确定status参数
+    let status
+    if (activeTab.value === 'pending') status = 0
+    else if (activeTab.value === 'approved') status = 1
+    else if (activeTab.value === 'rejected') status = 2
+    
+    const params = { status }
+    
+    // 需要先导入API
+    const { getCommentList } = await import('@/api/comment')
+    const res = await getCommentList(params)
+    
+    if (res.code === 200) {
+      commentList.value = res.data.list.map(comment => ({
+        id: comment.id,
+        username: comment.username,
+        content: comment.content,
+        novelTitle: comment.novel_title || '未知小说',
+        createdAt: comment.created_at
+      }))
+      
+      // 更新待审核数量
+      if (activeTab.value === 'pending') {
+        pendingCount.value = res.data.total
+      }
+    }
+  } catch (error) {
+    console.error('加载评论列表失败:', error)
+    ElMessage.error('加载评论列表失败')
+  } finally {
+    loading.value = false
   }
-])
+}
 
 const handleTabChange = (tab) => {
-  console.log('切换到:', tab)
+  loadComments()
 }
 
-const handleApprove = (id) => {
-  ElMessage.success('审核通过')
+const handleApprove = async (id) => {
+  try {
+    const { approveComment } = await import('@/api/comment')
+    await approveComment(id)
+    ElMessage.success('审核通过')
+    loadComments()
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
 }
 
-const handleReject = (id) => {
-  ElMessage.warning('已屏蔽')
+const handleReject = async (id) => {
+  try {
+    const { rejectComment } = await import('@/api/comment')
+    await rejectComment(id)
+    ElMessage.warning('已屏蔽')
+    loadComments()
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
 }
 
 onMounted(() => {
-  // loadComments()
+  loadComments()
 })
 </script>
 
