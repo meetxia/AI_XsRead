@@ -139,6 +139,25 @@ class NovelService {
   }
   
   /**
+   * 记录用户浏览历史
+   * @param {number} userId 用户 ID
+   * @param {number} novelId 小说 ID
+   * @returns {Promise<void>}
+   */
+  async recordViewHistory(userId, novelId) {
+    try {
+      // 插入浏览历史记录（允许重复记录，按时间排序）
+      await pool.query(
+        'INSERT INTO reading_history (user_id, novel_id, chapter_id, read_time) VALUES (?, ?, NULL, NOW())',
+        [userId, novelId]
+      );
+    } catch (error) {
+      console.error('Record view history error:', error);
+      // 不抛出异常，避免影响主流程
+    }
+  }
+  
+  /**
    * 获取推荐小说
    * @param {Object} options 选项
    * @returns {Promise<Array>} 推荐小说列表

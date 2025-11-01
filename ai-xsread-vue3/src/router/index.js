@@ -32,6 +32,16 @@ const router = createRouter({
       }
     },
     {
+      path: '/history',
+      name: 'history',
+      component: () => import(/* webpackChunkName: "history" */ '@/views/HistoryPage.vue'),
+      meta: { 
+        title: '浏览记录',
+        keepAlive: true,
+        requiresAuth: true // 需要登录
+      }
+    },
+    {
       path: '/profile',
       name: 'profile',
       component: () => import(/* webpackChunkName: "profile" */ '@/views/ProfilePage.vue'),

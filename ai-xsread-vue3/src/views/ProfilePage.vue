@@ -64,32 +64,39 @@
         <ReadingStatsChart />
       </section>
 
-      <!-- 成就系统 -->
-      <section class="achievement-section fade-in" style="animation-delay: 0.15s">
-        <h3 class="section-title">我的成就</h3>
-        <AchievementSystem />
-      </section>
-
-      <!-- 我的书架快捷入口 -->
-      <section class="bookshelf-section fade-in" style="animation-delay: 0.2s">
+      <!-- 浏览记录 -->
+      <section class="bookshelf-section fade-in" style="animation-delay: 0.15s">
         <div class="section-header">
-          <h3 class="section-title">我的书架</h3>
-          <button class="more-btn" @click="goToBookshelf">
+          <h3 class="section-title">浏览记录</h3>
+          <button v-if="viewHistory.length > 0" class="more-btn" @click="goToHistory">
             查看全部
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
           </button>
         </div>
-        <div class="bookshelf-preview">
-          <div v-for="book in recentBooks" :key="book.id" 
-               class="book-item" @click="goToNovel(book.id)">
-            <div class="book-cover" :style="{ background: book.coverGradient }">
-              <h4 class="book-title">{{ book.title }}</h4>
+        <div v-if="viewHistory.length > 0" class="bookshelf-preview">
+          <div v-for="book in viewHistory.slice(0, 3)" :key="book.novel_id || book.id" 
+               class="book-item" @click="goToNovel(book.novel_id || book.id)">
+            <div class="book-cover" :style="getBookCoverStyle(book)">
+              <img v-if="book.cover" :src="book.cover" :alt="book.title" class="book-cover-img" />
+              <h4 v-else class="book-title">{{ book.title }}</h4>
             </div>
-            <p class="book-progress">阅读至 {{ book.progress }}%</p>
+            <p class="book-progress">
+              <span v-if="book.chapter_title">{{ book.chapter_title }}</span>
+              <span v-else>浏览过</span>
+            </p>
           </div>
         </div>
+        <div v-else class="empty-history">
+          <p class="empty-text">暂无浏览记录</p>
+        </div>
+      </section>
+
+      <!-- 成就系统 -->
+      <section class="achievement-section fade-in" style="animation-delay: 0.2s">
+        <h3 class="section-title">我的成就</h3>
+        <AchievementSystem />
       </section>
 
       <!-- 功能菜单 -->
@@ -173,6 +180,7 @@ import ReadingStatsChart from '@/components/profile/ReadingStatsChart.vue'
 import AchievementSystem from '@/components/profile/AchievementSystem.vue'
 import EditProfileModal from '@/components/profile/EditProfileModal.vue'
 import { getUserAvatarUrl, handleAvatarError } from '@/utils/avatar'
+import { getReadingHistory } from '@/api/user'
 import message from '@/utils/message'
 
 const router = useRouter()
@@ -185,27 +193,57 @@ const userInfo = computed(() => userStore.userInfo)
 // 编辑弹窗显示状态
 const showEditModal = ref(false)
 
-// 最近阅读的书籍
-const recentBooks = ref([
-  {
-    id: 1,
-    title: '时光里的温柔相遇',
-    coverGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    progress: 35
-  },
-  {
-    id: 2,
-    title: '长安月下，归人未归',
-    coverGradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    progress: 60
-  },
-  {
-    id: 3,
-    title: '雨夜迷雾中的真相',
-    coverGradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    progress: 25
+// 浏览记录
+const viewHistory = ref([])
+const loadingHistory = ref(false)
+
+// 预设的渐变背景数组
+const gradientBackgrounds = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #fa8bff 0%, #2bd2ff 90%)',
+  'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+  'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+]
+
+// 获取书籍封面样式
+function getBookCoverStyle(book) {
+  if (book.cover) {
+    return {
+      backgroundImage: `url(${book.cover})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center'
+    }
   }
-])
+  // 如果没有封面，使用渐变背景
+  const index = (book.novel_id || book.id || 0) % gradientBackgrounds.length
+  return {
+    background: gradientBackgrounds[index]
+  }
+}
+
+// 加载浏览记录
+async function loadViewHistory() {
+  if (!userStore.isLogin) return
+  
+  loadingHistory.value = true
+  try {
+    const res = await getReadingHistory({ page: 1, pageSize: 20 })
+    if (res.data && res.data.data) {
+      viewHistory.value = res.data.data
+    } else if (Array.isArray(res.data)) {
+      viewHistory.value = res.data
+    }
+  } catch (error) {
+    console.error('加载浏览记录失败:', error)
+    viewHistory.value = []
+  } finally {
+    loadingHistory.value = false
+  }
+}
 
 // SVG 图标组件
 const BookIcon = () => h('svg', { fill: 'currentColor', viewBox: '0 0 20 20' }, [
@@ -242,7 +280,7 @@ const menuItems = ref([
   },
   { 
     key: 'history', 
-    label: '阅读历史', 
+    label: '浏览记录', 
     icon: HistoryIcon,
     gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
   },
@@ -357,9 +395,9 @@ function handleEditSuccess() {
   message.success('资料更新成功')
 }
 
-// 去书架
-function goToBookshelf() {
-  router.push('/bookshelf')
+// 去浏览记录页面
+function goToHistory() {
+  router.push('/history')
 }
 
 // 去小说详情
@@ -374,7 +412,7 @@ function handleMenuClick(key) {
       router.push('/bookshelf')
       break
     case 'history':
-      console.log('阅读历史')
+      router.push('/history')
       break
     case 'favorites':
       console.log('我的收藏')
@@ -432,7 +470,11 @@ onMounted(async () => {
   // 如果未登录，跳转到登录页
   if (!userStore.isLogin) {
     router.push('/login')
+    return
   }
+  
+  // 加载浏览记录
+  await loadViewHistory()
 })
 </script>
 
@@ -703,6 +745,14 @@ onMounted(async () => {
   padding: 0.75rem;
   margin-bottom: 0.5rem;
   box-shadow: 0 4px 8px var(--color-shadow);
+  overflow: hidden;
+  position: relative;
+}
+
+.book-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .book-title {
@@ -711,6 +761,18 @@ onMounted(async () => {
   font-weight: 600;
   text-align: center;
   line-height: 1.4;
+  z-index: 1;
+  position: relative;
+}
+
+.empty-history {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.empty-text {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
 }
 
 .book-progress {

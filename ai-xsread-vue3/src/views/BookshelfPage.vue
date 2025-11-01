@@ -170,12 +170,9 @@
                 <h3 class="book-cover-title">{{ book.title }}</h3>
               </div>
               
-              <!-- 阅读进度徽章 -->
-              <div v-if="activeTab === 'reading'" class="book-progress-badge">
-                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-                </svg>
-                第{{ book.currentChapter || 3 }}章
+              <!-- 阅读进度徽章 - 显示实际阅读进度 -->
+              <div v-if="activeTab === 'reading' && book.progress > 0" class="book-progress-badge">
+                {{ Math.round(book.progress) }}%
               </div>
               
               <!-- 完成徽章 -->
@@ -195,37 +192,9 @@
               </div>
             </div>
             
-            <!-- 书籍信息 -->
+            <!-- 书籍信息 - 简化版：仅显示书名 -->
             <div class="book-info" @click="handleBookClick(book)">
               <h4 class="book-title">{{ book.title }}</h4>
-              <p class="book-author">{{ book.author }}</p>
-              
-              <!-- 阅读进度条 -->
-              <div v-if="activeTab === 'reading'" class="book-progress">
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: (book.progress || 35) + '%' }"></div>
-                </div>
-                <p class="progress-text">已读 {{ book.progress || 35 }}%</p>
-              </div>
-              
-              <!-- 完成时间 -->
-              <p v-else-if="activeTab === 'finished'" class="book-finish-time">
-                <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-                </svg>
-                {{ book.finishDays || 2 }}天前读完
-              </p>
-
-              <!-- 快捷操作按钮 -->
-              <div v-if="!editMode && activeTab === 'reading'" class="quick-actions">
-                <button class="quick-btn primary" @click.stop="handleContinueRead(book)">
-                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  继续阅读
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -502,7 +471,7 @@ onMounted(async () => {
 
 @media (max-width: 640px) {
   .container {
-    padding: 0 1rem;
+    padding: 0 0.75rem;
   }
 }
 
@@ -889,25 +858,28 @@ onMounted(async () => {
 
 .books-grid {
   display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(2, 1fr);
+  gap: 0.625rem;
+  grid-template-columns: repeat(3, 1fr);
 }
 
 @media (min-width: 640px) {
   .books-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
   }
 }
 
 @media (min-width: 1024px) {
   .books-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.25rem;
   }
 }
 
 @media (min-width: 1280px) {
   .books-grid {
     grid-template-columns: repeat(5, 1fr);
+    gap: 1.5rem;
   }
 }
 
@@ -915,6 +887,8 @@ onMounted(async () => {
   position: relative;
   cursor: pointer;
   transition: all 0.3s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .book-card.edit-mode {
@@ -963,12 +937,14 @@ onMounted(async () => {
 
 .book-cover {
   position: relative;
+  width: 100%;
   aspect-ratio: 3 / 4;
   border-radius: 0.5rem;
   overflow: hidden;
   box-shadow: 0 4px 6px -1px var(--color-shadow);
   margin-bottom: 0.75rem;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .book-card:hover .book-cover {
@@ -1020,25 +996,26 @@ onMounted(async () => {
   text-align: center;
   font-weight: 700;
   font-size: 1.125rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .book-progress-badge {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  bottom: 0.5rem;
+  right: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.75);
   color: white;
   font-size: 0.75rem;
-  padding: 0.5rem;
+  font-weight: 600;
+  padding: 0.375rem 0.625rem;
+  border-radius: 9999px;
   text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.book-progress-badge .mr-1 {
-  margin-right: 0.25rem;
+  backdrop-filter: blur(4px);
 }
 
 .book-finished-badge {
@@ -1052,88 +1029,21 @@ onMounted(async () => {
 
 .book-info {
   padding: 0 0.25rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .book-title {
   font-weight: 500;
   color: var(--color-text-primary);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.book-author {
   font-size: 0.875rem;
-  color: var(--color-text-muted);
-  margin-bottom: 0.5rem;
 }
 
-.book-progress {
-  margin-top: 0.5rem;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 0.375rem;
-  background-color: var(--color-border);
-  border-radius: 9999px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: var(--color-primary);
-  border-radius: 9999px;
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin-top: 0.25rem;
-}
-
-.book-finish-time {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin-top: 0.25rem;
-  display: flex;
-  align-items: center;
-}
-
-/* 快捷操作按钮 */
-.quick-actions {
-  margin-top: 0.5rem;
-}
-
-.quick-btn {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.quick-btn.primary {
-  background: var(--color-primary);
-  color: white;
-}
-
-.quick-btn.primary:hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-1px);
-}
-
-.quick-btn svg {
-  flex-shrink: 0;
-}
+/* 不再需要的样式已移除：进度条、完成时间、快捷按钮 */
 
 /* 模态框 */
 .modal-overlay {
@@ -1325,91 +1235,74 @@ onMounted(async () => {
     padding-top: 3.5rem;
   }
 
-  /* 书籍网格间距 */
+  /* 书籍网格间距 - 3列布局专用 */
   .books-grid {
-    gap: 0.75rem;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.5rem !important;
   }
 
-  /* 书籍封面 */
+  /* 书籍卡片 - grid布局中不需要width:100% */
+  .book-card {
+    min-width: 0;
+  }
+
+  /* 书籍封面 - 优化尺寸 */
   .book-cover {
     border-radius: 0.375rem;
-    box-shadow: 0 2px 4px var(--color-shadow);
-    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px var(--color-shadow);
+    margin-bottom: 0.4rem;
+    /* aspect-ratio已在基础样式中定义为3/4，移动端保持不变 */
   }
 
   .book-card:hover .book-cover {
-    box-shadow: 0 4px 8px var(--color-shadow);
+    box-shadow: 0 2px 6px var(--color-shadow);
   }
 
-  /* 书籍封面标题 */
+  /* 书籍封面内容 - 紧凑内边距 */
+  .book-cover-content {
+    padding: 0.5rem 0.4rem;
+  }
+
+  /* 书籍封面标题 - 合适字体 */
   .book-cover-title {
-    font-size: 0.9375rem;
+    font-size: 0.8125rem;
+    line-height: 1.25;
+    font-weight: 600;
   }
 
   /* 书籍信息 */
   .book-info {
-    padding: 0;
+    padding: 0 0.125rem;
   }
 
   .book-title {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     margin-bottom: 0.125rem;
+    font-weight: 500;
+    line-height: 1.3;
   }
 
   .book-author {
-    font-size: 0.75rem;
-    margin-bottom: 0.375rem;
+    font-size: 0.6875rem;
+    margin-bottom: 0.3rem;
+    line-height: 1.2;
   }
 
-  /* 进度徽章 */
+  /* 进度徽章 - 移动端优化 */
   .book-progress-badge {
     font-size: 0.625rem;
-    padding: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    bottom: 0.375rem;
+    right: 0.375rem;
   }
 
-  .book-progress-badge svg {
-    width: 0.875rem;
-    height: 0.875rem;
-  }
-
-  /* 完成徽章 */
+  /* 完成徽章 - 移动端优化 */
   .book-finished-badge {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-
-  /* 进度条 */
-  .book-progress {
-    margin-top: 0.375rem;
-  }
-
-  .progress-bar {
-    height: 0.25rem;
-  }
-
-  .progress-text {
-    font-size: 0.625rem;
-    margin-top: 0.125rem;
-  }
-
-  .book-finish-time {
-    font-size: 0.625rem;
-    margin-top: 0.125rem;
-  }
-
-  /* 快捷操作按钮 */
-  .quick-actions {
-    margin-top: 0.375rem;
-  }
-
-  .quick-btn {
-    padding: 0.375rem 0.625rem;
-    font-size: 0.6875rem;
-  }
-
-  .quick-btn svg {
-    width: 0.875rem;
-    height: 0.875rem;
+    width: 1rem;
+    height: 1rem;
+    top: 0.375rem;
+    right: 0.375rem;
   }
 
   /* 空状态 */
@@ -1482,36 +1375,47 @@ onMounted(async () => {
     font-size: 0.875rem;
   }
 
-  /* 选择框 */
+  /* 选择框 - 缩小 */
   .select-checkbox {
-    top: 0.375rem;
-    left: 0.375rem;
+    top: 0.25rem;
+    left: 0.25rem;
   }
 
   .checkbox {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1rem;
+    height: 1rem;
+    border-width: 1.5px;
   }
 
   .check-icon {
-    width: 0.875rem;
-    height: 0.875rem;
+    width: 0.75rem;
+    height: 0.75rem;
   }
 
-  /* 操作按钮 */
+  .book-card.edit-mode {
+    padding-top: 1.5rem;
+  }
+
+  /* 操作按钮 - 缩小 */
   .book-actions {
-    top: 0.375rem;
-    right: 0.375rem;
+    top: 0.25rem;
+    right: 0.25rem;
   }
 
   .action-btn {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
   }
 
   .action-btn svg {
-    width: 0.875rem;
-    height: 0.875rem;
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  /* 移动端禁用hover效果 */
+  .book-card:hover {
+    transform: none;
   }
 }
 </style>

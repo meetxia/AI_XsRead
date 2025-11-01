@@ -152,8 +152,8 @@
           <!-- 上一页/上一章按钮 -->
           <button
             class="footer-nav-btn prev-btn"
-            @click.stop="chapterList.length > 1 ? loadPrevChapter() : prevPage()"
-            :disabled="chapterList.length > 1 ? !hasPrevChapter : !hasPrevPage"
+            @click.stop="isPageMode ? pageUp() : (chapterList.length > 1 ? loadPrevChapter() : prevPage())"
+            :disabled="isPageMode ? virtualPageIndex <= 0 : (chapterList.length > 1 ? !hasPrevChapter : !hasPrevPage)"
           >
             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -190,8 +190,8 @@
           <!-- 下一页/下一章按钮 -->
           <button
             class="footer-nav-btn next-btn"
-            @click.stop="chapterList.length > 1 ? loadNextChapter() : nextPage()"
-            :disabled="chapterList.length > 1 ? !hasNextChapter : !hasNextPage"
+            @click.stop="isPageMode ? pageDown() : (chapterList.length > 1 ? loadNextChapter() : nextPage())"
+            :disabled="isPageMode ? virtualPageIndex >= virtualPages.length - 1 : (chapterList.length > 1 ? !hasNextChapter : !hasNextPage)"
           >
             <span>{{ chapterList.length > 1 ? '下一章' : '下一页' }}</span>
             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -344,6 +344,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getNovelDetail, getChapterList, getChapterContent, getNovelPages, likeNovel } from '@/api/novel'
 import { addToBookshelf as apiAddToBookshelf, removeFromBookshelf } from '@/api/bookshelf'
+import { updateReadingProgress as updateReadingProgressAPI } from '@/api/user'
 import CommentSection from '@/components/novel/CommentSection.vue'
 import { useTheme } from '@/composables/useTheme'
 import { message } from '@/utils/message'
@@ -420,6 +421,10 @@ const readingTimer = ref(null) // 阅读计时器
 const readingElapsedTime = ref(0) // 已阅读时长（秒）
 const autoAddedToBookshelf = ref(false) // 是否已自动加入书架
 const isPageVisible = ref(true) // 页面是否可见
+
+// 进度保存相关
+const progressSaveTimer = ref(null) // 进度保存计时器
+const progressSaveInterval = 30 // 每30秒保存一次进度
 
 // 阅读设置（与全局主题同步）
 const { currentMode, toggleMode } = useTheme()
@@ -590,6 +595,17 @@ function pageDown() {
     virtualPageIndex.value++
     isFlippingForward.value = false
     saveVirtualPageProgress()
+    
+    // ✅ 如果翻到最后一页，立即检测滚动位置
+    if (virtualPageIndex.value === virtualPages.value.length - 1) {
+      setTimeout(() => {
+        const scrollPercent = getScrollPercent()
+        if (scrollPercent >= 0.95) {
+          console.log('🎉 已翻到最后一页并滚动到底部，立即保存100%进度')
+          saveReadingProgress()
+        }
+      }, 100) // 等待DOM更新
+    }
   }, FLIP_ANIMATION_DURATION)
 }
 
@@ -686,6 +702,93 @@ function getScrollPercent() {
   const max = el.scrollHeight - el.clientHeight
   if (max <= 0) return 0
   return el.scrollTop / max
+}
+
+/**
+ * 检测是否已读完全文（多重检测）
+ * 返回true表示已读完，应该保存100%进度
+ */
+function checkIfFinishedReading() {
+  try {
+    // ========== 翻页模式检测 ==========
+    if (isPageMode.value && virtualPages.value.length > 0) {
+      const isLastVirtualPage = virtualPageIndex.value === virtualPages.value.length - 1
+      
+      if (isLastVirtualPage) {
+        // 检查最后一页内容是否包含"全文完"
+        const lastPageContent = virtualPages.value[virtualPageIndex.value] || ''
+        const lastPageText = lastPageContent.replace(/<[^>]+>/g, '')
+        
+        if (lastPageText.includes('全文完') || lastPageText.includes('（全文完）') || lastPageText.includes('(全文完)')) {
+          console.log('🎉 翻页模式：最后一页包含"全文完"')
+          return true
+        }
+        
+        // 如果在最后一页，也认为读完了
+        console.log('🎉 翻页模式：已到最后一页 (' + (virtualPageIndex.value + 1) + '/' + virtualPages.value.length + ')')
+        return true
+      }
+      
+      return false // 翻页模式下，未到最后一页则未读完
+    }
+    
+    // ========== 滚动模式检测 ==========
+    // 只在滚动模式下进行以下检测
+    
+    // 方法1: 必须是最后一页
+    const isLastPage = !totalPages.value || currentPage.value === totalPages.value
+    
+    if (!isLastPage) {
+      return false // 不是最后一页，肯定没读完
+    }
+    
+    // 方法2: 检测滚动到底部（精确判断，容差100px）
+    const el = contentArea.value
+    if (el) {
+      const scrollTop = el.scrollTop
+      const scrollHeight = el.scrollHeight
+      const clientHeight = el.clientHeight
+      const distanceToBottom = scrollHeight - scrollTop - clientHeight
+      
+      // 如果距离底部小于100px，认为已经到底
+      if (distanceToBottom <= 100) {
+        console.log('🎉 滚动模式：已滚动到底部（距离底部 ' + distanceToBottom.toFixed(0) + 'px）')
+        return true
+      }
+    }
+    
+    // 方法3: 检测滚动百分比（>98%认为到底）
+    const scrollPercent = getScrollPercent()
+    if (scrollPercent >= 0.98) {
+      console.log('🎉 滚动模式：滚动百分比达到 ' + (scrollPercent * 100).toFixed(1) + '%')
+      return true
+    }
+    
+    // 方法4: 检测内容是否包含"全文完"
+    const contentText = contentArea.value?.innerText || contentArea.value?.textContent || ''
+    if (contentText.includes('全文完') || contentText.includes('（全文完）') || contentText.includes('(全文完)')) {
+      console.log('🎉 滚动模式：内容中包含"全文完"')
+      return true
+    }
+    
+    // 方法5: 检测评论区是否可见（只在最后一页有效）
+    // 评论区在最后一页的内容底部，如果评论区可见说明已读完
+    if (isLastPage && commentsSection.value) {
+      const rect = commentsSection.value.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      
+      // 如果评论区顶部已经出现在视口中
+      if (rect.top < viewportHeight) {
+        console.log('🎉 滚动模式：最后一页的评论区已可见（说明已读完全文）')
+        return true
+      }
+    }
+    
+    return false
+  } catch (e) {
+    console.warn('检测是否读完时出错:', e)
+    return false
+  }
 }
 
 function restoreScrollPercent(p) {
@@ -822,6 +925,18 @@ function saveVirtualPageProgress() {
       timestamp: Date.now()
     }
     localStorage.setItem(`virtual_page_progress_${novelId.value}`, JSON.stringify(progress))
+    
+    // ✅ 检测当前页内容是否包含"全文完"
+    const currentPageContent = virtualPages.value[virtualPageIndex.value] || ''
+    const pageText = currentPageContent.replace(/<[^>]+>/g, '')
+    
+    if (pageText.includes('全文完') || pageText.includes('（全文完）') || pageText.includes('(全文完)')) {
+      console.log('🎉 翻页模式检测到"全文完"，立即保存100%进度')
+      saveReadingProgress(true) // 强制100%
+    } else {
+      // 正常保存进度
+      saveReadingProgress()
+    }
   } catch (e) {
     console.error('保存虚拟页进度失败:', e)
   }
@@ -832,15 +947,32 @@ function saveVirtualPageProgress() {
  */
 function restoreVirtualPageProgress() {
   try {
-    const saved = localStorage.getItem(`virtual_page_progress_${novelId.value}`)
-    if (saved) {
-      const progress = JSON.parse(saved)
-      // 确保索引在有效范围内
+    // 方法1：尝试从虚拟页进度恢复
+    const savedVirtualPage = localStorage.getItem(`virtual_page_progress_${novelId.value}`)
+    if (savedVirtualPage) {
+      const progress = JSON.parse(savedVirtualPage)
       if (progress.virtualPageIndex >= 0 && progress.virtualPageIndex < virtualPages.value.length) {
         virtualPageIndex.value = progress.virtualPageIndex
-        console.log(`📖 恢复到第 ${progress.virtualPageIndex + 1} 页`)
+        console.log(`📖 恢复到第 ${progress.virtualPageIndex + 1}/${virtualPages.value.length} 页`)
+        return
       }
     }
+    
+    // 方法2：根据阅读进度百分比估算虚拟页位置
+    const savedProgress = localStorage.getItem(`reading_progress_${novelId.value}`)
+    if (savedProgress) {
+      const progress = JSON.parse(savedProgress)
+      if (progress.progress && virtualPages.value.length > 0) {
+        // 根据进度百分比计算虚拟页索引
+        const targetPageIndex = Math.floor((progress.progress / 100) * virtualPages.value.length)
+        // 确保索引在有效范围内
+        virtualPageIndex.value = Math.max(0, Math.min(virtualPages.value.length - 1, targetPageIndex))
+        console.log(`📖 根据进度 ${progress.progress}% 恢复到第 ${virtualPageIndex.value + 1}/${virtualPages.value.length} 页`)
+        return
+      }
+    }
+    
+    console.log('📖 无保存进度，从第1页开始')
   } catch (e) {
     console.error('恢复虚拟页进度失败:', e)
   }
@@ -998,6 +1130,9 @@ async function loadPagedContent(page = 1) {
       // 进行虚拟分页
       await nextTick()
       splitContentIntoPages()
+      
+      // 恢复虚拟页进度（翻页模式）
+      restoreVirtualPageProgress()
 
     } else {
       // 滚动模式：按3000字分页加载
@@ -1016,9 +1151,23 @@ async function loadPagedContent(page = 1) {
           contentLength: res.data.content?.length || 0
         })
 
-        // 等待 DOM 更新后滚动到顶部
+        // 等待 DOM 更新后恢复滚动位置
         await nextTick()
-        scrollToTop()
+        
+        // 尝试恢复滚动位置（滚动模式）
+        try {
+          const savedScrollPercent = localStorage.getItem(`reading_scroll_percent_${novelId.value}`)
+          if (savedScrollPercent && page === 1) {
+            // 只在第一页时恢复滚动位置
+            const percent = parseFloat(savedScrollPercent)
+            restoreScrollPercent(percent)
+            console.log('✓ 恢复滚动位置:', (percent * 100).toFixed(1) + '%')
+          } else {
+            scrollToTop()
+          }
+        } catch (e) {
+          scrollToTop()
+        }
       } else {
         throw new Error(res?.message || '分页数据格式错误')
       }
@@ -1100,13 +1249,25 @@ function onContentScroll(e) {
   try {
     const p = getScrollPercent()
     localStorage.setItem(`reading_scroll_percent_${novelId.value}`, String(p))
-  } catch (e) {}
+    
+    // ✅ 使用多重检测判断是否已读完全文
+    if (checkIfFinishedReading()) {
+      console.log('🎉 多重检测确认已读完全文，立即保存100%进度')
+      saveReadingProgress(true) // 强制100%
+      return // 不再等待1.5秒
+    }
+  } catch (e) {
+    console.warn('滚动检测出错:', e)
+  }
 
   clearTimeout(scrollTimer)
   scrollTimer = setTimeout(() => {
     showHeader.value = true
     showFooter.value = true
     isScrolling = false
+    
+    // 滚动停止后保存进度
+    saveReadingProgress()
   }, 1500)
 }
 
@@ -1191,16 +1352,253 @@ function decreaseLineHeight() {
 }
 
 // 保存阅读进度
-function saveReadingProgress() {
-  const progress = {
-    novelId: novelId.value,
-    chapterId: currentChapterId.value,
-    chapterNumber: currentChapterNumber.value,
-    page: currentPage.value,
-    totalPages: totalPages.value,
-    timestamp: Date.now()
+// forceComplete: 强制设置为100%（检测到"全文完"时使用）
+async function saveReadingProgress(forceComplete = false) {
+  try {
+    let progressPercentage = 0
+    let totalWords = 0
+    let readWords = 0
+    let calculationMode = ''
+    
+    // ✅ 如果强制完成（检测到"全文完"），直接设置为100%
+    if (forceComplete) {
+      // 获取总字数
+      if (isPageMode.value && virtualPages.value.length > 0) {
+        // 翻页模式：累加所有虚拟页字数
+        for (let i = 0; i < virtualPages.value.length; i++) {
+          const pageContent = virtualPages.value[i]
+          const textContent = pageContent.replace(/<[^>]+>/g, '')
+          totalWords += textContent.length
+        }
+      } else if (totalPages.value > 0) {
+        // 滚动模式：当前页字数 × 总页数
+        const currentPageContent = chapterContent.value?.content || ''
+        const currentPageText = currentPageContent.replace(/<[^>]+>/g, '')
+        totalWords = currentPageText.length * totalPages.value
+      } else {
+        // 单页模式
+        const content = chapterContent.value?.content || ''
+        const textContent = content.replace(/<[^>]+>/g, '')
+        totalWords = textContent.length
+      }
+      
+      // 已读字数 = 总字数（强制100%）
+      readWords = totalWords
+      progressPercentage = 100
+      calculationMode = '全文完检测'
+      
+      console.log('📊 全文完检测 - 强制100%进度:', {
+        总字数: totalWords,
+        已读字数: readWords,
+        进度: '100%'
+      })
+      
+      // 直接保存，跳过后续计算，跳转到保存部分
+    } else {
+      // ========== 正常计算进度 ==========
+    
+      // ========== 模式1: 翻页模式 ==========
+      if (isPageMode.value && virtualPages.value.length > 0) {
+      calculationMode = '翻页模式'
+      
+      // 翻页模式：基于虚拟页面计算
+      // 1. 计算总字数：所有虚拟页的字数之和
+      for (let i = 0; i < virtualPages.value.length; i++) {
+        const pageContent = virtualPages.value[i]
+        const textContent = pageContent.replace(/<[^>]+>/g, '')
+        totalWords += textContent.length
+      }
+      
+      // 2. 计算已读字数
+      const isLastPage = virtualPageIndex.value === virtualPages.value.length - 1
+      
+      for (let i = 0; i <= virtualPageIndex.value; i++) {
+        const pageContent = virtualPages.value[i]
+        const textContent = pageContent.replace(/<[^>]+>/g, '')
+        
+        if (i < virtualPageIndex.value) {
+          // 已完全翻过的页面：100%
+          readWords += textContent.length
+        } else if (i === virtualPageIndex.value) {
+          // 当前页
+          if (isLastPage) {
+            // 最后一页：按实际滚动位置计算，如果到底部则100%
+            const scrollPercent = getScrollPercent()
+            if (scrollPercent >= 0.95) {
+              // 滚动到底部（>95%），认为读完了
+              readWords += textContent.length
+            } else {
+              // 否则按滚动百分比计算
+              readWords += Math.floor(textContent.length * Math.max(0.5, scrollPercent))
+            }
+          } else {
+            // 非最后一页：假设读了50%
+            readWords += Math.floor(textContent.length * 0.5)
+          }
+        }
+      }
+      
+      console.log('📖 翻页模式计算:', {
+        虚拟页总数: virtualPages.value.length,
+        当前虚拟页索引: virtualPageIndex.value,
+        当前页码显示: `${virtualPageIndex.value + 1}/${virtualPages.value.length}`,
+        总字数: totalWords,
+        已读字数: readWords,
+        计算进度: ((readWords / totalWords) * 100).toFixed(1) + '%'
+      })
+      
+    }
+    // ========== 模式2: 滚动模式（分页加载）==========
+    else if (totalPages.value > 0 && !isPageMode.value) {
+      calculationMode = '滚动模式（分页）'
+      
+      // 滚动模式：每次只加载一页内容（3000字左右）
+      // 当前页的字数
+      const currentPageContent = chapterContent.value?.content || ''
+      const currentPageText = currentPageContent.replace(/<[^>]+>/g, '')
+      const currentPageWords = currentPageText.length
+      
+      if (currentPageWords === 0) {
+        console.warn('⚠️ 当前页内容为空')
+        return
+      }
+      
+      // 1. 估算总字数：当前页字数 × 总页数
+      totalWords = currentPageWords * totalPages.value
+      
+      // 2. 计算已读字数
+      // 已完成的页面（已翻过的）
+      const completedPages = currentPage.value - 1
+      const completedPagesWords = completedPages * currentPageWords
+      
+      // 当前页的已读字数：基于滚动位置
+      const scrollPercent = getScrollPercent()
+      const isLastPage = currentPage.value === totalPages.value
+      let currentPageReadPercent = 0.3 // 默认30%
+      
+      if (scrollPercent >= 0.05) {
+        // 如果已经滚动，使用实际滚动位置，但至少30%
+        currentPageReadPercent = Math.max(0.3, Math.min(1, scrollPercent))
+      }
+      
+      // 如果是最后一页且滚动到底部（>95%），认为读完了
+      if (isLastPage && scrollPercent >= 0.95) {
+        currentPageReadPercent = 1.0
+      }
+      
+      const currentPageReadWords = Math.floor(currentPageWords * currentPageReadPercent)
+      readWords = completedPagesWords + currentPageReadWords
+      
+      console.log('📖 滚动模式计算:', {
+        当前页: `${currentPage.value}/${totalPages.value}`,
+        当前页字数: currentPageWords,
+        估算总字数: totalWords,
+        已完成页数: completedPages,
+        已完成页字数: completedPagesWords,
+        滚动位置: (scrollPercent * 100).toFixed(1) + '%',
+        当前页已读比例: (currentPageReadPercent * 100).toFixed(1) + '%',
+        当前页已读字数: currentPageReadWords,
+        累计已读字数: readWords,
+        计算进度: ((readWords / totalWords) * 100).toFixed(1) + '%'
+      })
+      
+    }
+    // ========== 模式3: 章节模式 ==========
+    else if (totalChapters.value > 0) {
+      calculationMode = '章节模式'
+      
+      const currentChapterContent = chapterContent.value?.content || ''
+      const currentChapterText = currentChapterContent.replace(/<[^>]+>/g, '')
+      const currentChapterWords = currentChapterText.length
+      
+      // 估算总字数
+      totalWords = currentChapterWords * totalChapters.value
+      
+      // 已完成章节 + 当前章节的50%
+      const completedChapters = currentChapterNumber.value - 1
+      const completedChaptersWords = completedChapters * currentChapterWords
+      const currentChapterReadWords = Math.floor(currentChapterWords * 0.5)
+      
+      readWords = completedChaptersWords + currentChapterReadWords
+      
+      console.log('📖 章节模式计算:', {
+        当前章节: `${currentChapterNumber.value}/${totalChapters.value}`,
+        当前章节字数: currentChapterWords,
+        估算总字数: totalWords,
+        已完成章节: completedChapters,
+        累计已读字数: readWords
+      })
+      
+    }
+    // ========== 模式4: 单页模式（无分页无章节）==========
+    else {
+      calculationMode = '单页模式'
+      
+      const content = chapterContent.value?.content || ''
+      const textContent = content.replace(/<[^>]+>/g, '')
+      totalWords = textContent.length
+      
+      const scrollPercent = getScrollPercent()
+      readWords = Math.floor(totalWords * Math.max(0.1, scrollPercent))
+      
+      console.log('📖 单页模式计算:', {
+        总字数: totalWords,
+        滚动位置: (scrollPercent * 100).toFixed(1) + '%',
+        已读字数: readWords
+      })
+      }
+    } // else块结束
+    
+    // ========== 最终计算进度（forceComplete和正常计算都需要）==========
+    if (totalWords === 0) {
+      console.warn('⚠️ 总字数为0，无法计算进度')
+      return
+    }
+    
+    progressPercentage = Math.floor((readWords / totalWords) * 100)
+    
+    // 进度范围：1-100%
+    // 如果已读字数>=总字数，允许达到100%
+    if (readWords >= totalWords) {
+      progressPercentage = 100
+    } else {
+      // 否则最少1%，最多99%
+      progressPercentage = Math.max(1, Math.min(99, progressPercentage))
+    }
+    
+    console.log('📊 最终进度:', {
+      模式: calculationMode,
+      总字数: totalWords,
+      已读字数: readWords,
+      进度: progressPercentage + '%'
+    })
+    
+    // 保存到本地存储
+    const progress = {
+      novelId: novelId.value,
+      chapterId: currentChapterId.value,
+      chapterNumber: currentChapterNumber.value,
+      page: currentPage.value,
+      totalPages: totalPages.value,
+      progress: progressPercentage,
+      timestamp: Date.now()
+    }
+    localStorage.setItem(`reading_progress_${novelId.value}`, JSON.stringify(progress))
+    
+    // 保存到后端（静默保存，失败不影响阅读）
+    const token = localStorage.getItem('token')
+    if (token) {
+      await updateReadingProgressAPI({
+        novelId: Number(novelId.value),
+        chapterId: currentChapterId.value || null,
+        progress: progressPercentage
+      })
+      console.log('✅ 阅读进度已保存到服务器:', progressPercentage + '%')
+    }
+  } catch (error) {
+    // 静默处理错误，不影响阅读体验
+    console.warn('保存阅读进度失败:', error)
   }
-  localStorage.setItem(`reading_progress_${novelId.value}`, JSON.stringify(progress))
 }
 
 // 悬浮工具栏功能
@@ -1341,8 +1739,23 @@ onMounted(async () => {
     console.log('✓ 小说信息加载完成:', novelTitle.value, '总章节数:', totalChapters.value)
 
     // 强制使用无章节分页模式
-    const pageFromQuery = parseInt(route.query.page || route.params.chapter || 1)
-    await loadPagedContent(pageFromQuery || 1)
+    // 优先从本地存储恢复进度
+    let startPage = parseInt(route.query.page || route.params.chapter || 1)
+    
+    try {
+      const savedProgress = localStorage.getItem(`reading_progress_${novelId.value}`)
+      if (savedProgress) {
+        const progress = JSON.parse(savedProgress)
+        if (progress.page) {
+          startPage = progress.page
+          console.log('✓ 从本地存储恢复进度，页码:', startPage)
+        }
+      }
+    } catch (e) {
+      console.warn('解析本地进度失败:', e)
+    }
+    
+    await loadPagedContent(startPage)
     return
 
     // 从URL或本地存储获取要阅读的章节（已弃用：章节模式）
@@ -1452,6 +1865,7 @@ onMounted(async () => {
 
   // 启动阅读计时器并监听页面可见性
   startReadingTimer()
+  startProgressSaveTimer()
   document.addEventListener('visibilitychange', handleVisibilityChange)
 
   // 翻页模式事件监听（滚轮/键盘/触摸）
@@ -1555,13 +1969,25 @@ onUnmounted(() => {
 
 // 组件卸载时清理
 onUnmounted(() => {
+  // 组件卸载时保存最后的进度
+  saveReadingProgress()
   stopReadingTimer()
+  stopProgressSaveTimer()
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 
 // ===== 自动加入书架：计时与可见性控制 =====
 function handleVisibilityChange() {
   isPageVisible.value = document.visibilityState === 'visible'
+  
+  // 页面可见时重新启动进度保存定时器
+  if (isPageVisible.value) {
+    startProgressSaveTimer()
+  } else {
+    // 页面隐藏时立即保存进度并停止定时器
+    saveReadingProgress()
+    stopProgressSaveTimer()
+  }
 }
 
 function startReadingTimer() {
@@ -1584,6 +2010,26 @@ function stopReadingTimer() {
   if (readingTimer.value) {
     clearInterval(readingTimer.value)
     readingTimer.value = null
+  }
+}
+
+// ===== 进度保存定时器 =====
+function startProgressSaveTimer() {
+  if (progressSaveTimer.value) return
+  
+  progressSaveTimer.value = setInterval(() => {
+    if (isPageVisible.value) {
+      saveReadingProgress()
+    }
+  }, progressSaveInterval * 1000)
+  
+  console.log(`📊 进度保存定时器已启动，每${progressSaveInterval}秒自动保存`)
+}
+
+function stopProgressSaveTimer() {
+  if (progressSaveTimer.value) {
+    clearInterval(progressSaveTimer.value)
+    progressSaveTimer.value = null
   }
 }
 

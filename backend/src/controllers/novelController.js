@@ -29,6 +29,13 @@ const getNovelDetail = async (req, res, next) => {
       console.error('Increase views error:', err);
     });
     
+    // 如果用户已登录，记录浏览历史（不阻塞响应）
+    if (userId) {
+      novelService.recordViewHistory(userId, id).catch(err => {
+        console.error('Record view history error:', err);
+      });
+    }
+    
     return Response.success(res, novel);
   } catch (error) {
     if (error.message === '小说不存在') {

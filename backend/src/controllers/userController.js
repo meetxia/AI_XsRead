@@ -157,9 +157,9 @@ const updateReadingProgress = async (req, res) => {
       );
     }
     
-    // 同时添加到阅读历史
+    // 同时添加到阅读历史（字段名是read_time，不是read_at）
     await pool.query(
-      'INSERT INTO reading_history (user_id, novel_id, chapter_id, read_at) VALUES (?, ?, ?, NOW())',
+      'INSERT INTO reading_history (user_id, novel_id, chapter_id, read_time) VALUES (?, ?, ?, NOW())',
       [userId, novelId, chapterId]
     );
     
