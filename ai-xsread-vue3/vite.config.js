@@ -112,13 +112,5 @@ export default defineConfig({
   optimizeDeps: {
     include: ['vue', 'vue-router', 'pinia', 'axios', 'lodash-es'],
     exclude: []
-  },
-  // 预加载优化
-  experimental: {
-    renderBuiltUrl(filename, { hostType }) {
-      if (hostType === 'js') {
-        return { runtime: `window.__assetsPath(${JSON.stringify(filename)})` }
-      }
-    }
   }
 })

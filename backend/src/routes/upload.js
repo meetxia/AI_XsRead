@@ -97,8 +97,8 @@ router.post(
         maxHeight: 1200
       });
 
-      const base = `${req.protocol}://${req.get('host')}`;
-      const imageUrl = `${base}${result.data.url}`;
+      // 直接返回相对路径，前端会自动使用当前域名
+      const imageUrl = result.data.url;
 
       return Response.success(res, {
         url: imageUrl

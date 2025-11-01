@@ -22,13 +22,12 @@ export const getUserAvatarUrl = (user) => {
   if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
     return avatar
   }
-  
-  // 如果是相对路径，拼接API基础路径
+
+  // 如果是 /uploads/ 路径，直接返回（Nginx已配置静态文件访问）
   if (avatar.startsWith('/uploads/')) {
-    const baseAPI = import.meta.env.VITE_APP_BASE_API || 'http://localhost:3000'
-    return `${baseAPI}${avatar}`
+    return avatar
   }
-  
+
   // 其他情况直接返回
   return avatar
 }

@@ -364,9 +364,10 @@ module.exports = {
 
       const relUrl = result.data.url; // 如 /uploads/images/xxx.webp
       const relThumb = result.data.thumbnail; // 如 /uploads/thumbnails/thumb_xxx.webp
-      const base = `${req.protocol}://${req.get('host')}`;
-      const avatarUrl = `${base}${relUrl}`;
-      const avatarThumb = relThumb ? `${base}${relThumb}` : null;
+
+      // 直接使用相对路径，前端会自动使用当前域名
+      const avatarUrl = relUrl;
+      const avatarThumb = relThumb || null;
 
       // 更新用户头像
       const userId = req.user.id;

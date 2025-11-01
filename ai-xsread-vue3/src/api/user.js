@@ -118,3 +118,14 @@ export const uploadAvatarApi = (formData, onProgress) => {
   })
 }
 
+/**
+ * 修改密码
+ */
+export const changePassword = (data) => {
+  return request({
+    url: '/user/change-password',
+    method: 'post',
+    data
+  })
+}
+
