@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="超可爱的治愈系互动页面 - 专为小红书女生设计">
+    <title>✨ 治愈小确幸 - 你今天也超可爱 💖</title>
+    
+    <!-- CDN资源引入 -->
+    <!-- anime.js - 流畅动画库 -->
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+    <!-- canvas-confetti - 撒花特效 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Font Awesome - 可爱图标 -->
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- Animate.css - CSS动画 -->
+    <link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
+    
+    <style>
+        /* ==================== 配置区域 CONFIG ==================== */
+        :root {
+            /* 少女粉系配色 */
+            --primary: #FFB6D9;      /* 樱花粉 */
+            --secondary: #FFC9E7;    /* 淡粉 */
+            --accent: #FF85B3;       /* 玫瑰粉 */
+            --background: #FFF5FA;   /* 奶白粉 */
+            --text: #8B5A7D;         /* 紫灰 */
+            --white: #FFFFFF;
+            
+            /* 马卡龙色系 */
+            --macaron-pink: #FFB7CE;
+            --macaron-blue: #B4E7F5;
+            --macaron-yellow: #FFF9B0;
+            --macaron-green: #C7EDCC;
+            --macaron-purple: #E1C9F5;
+            
+            /* 多巴胺配色 */
+            --dopamine-yellow: #FFD93D;
+            --dopamine-green: #6BCF7F;
+            --dopamine-pink: #FF6BCF;
+            --dopamine-blue: #6BAFFF;
+            
+            /* 阴影 */
+            --shadow-sm: 0 2px 8px rgba(255, 182, 217, 0.2);
+            --shadow-md: 0 4px 15px rgba(255, 182, 217, 0.3);
+            --shadow-lg: 0 8px 25px rgba(255, 182, 217, 0.4);
+        }
+        
+        /* ==================== 全局样式 ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #FFE5F1 0%, #FFC9E7 50%, #FFB6D9 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* 背景装饰粒子 */
+        .bg-decoration {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .floating-heart {
+            position: absolute;
+            font-size: 20px;
+            opacity: 0.3;
+            animation: float 6s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(10deg); }
+        }
+        
+        /* 主容器 */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* ==================== 头部欢迎区 ==================== */
+        .welcome-section {
+            background: var(--white);
+            border-radius: 30px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .welcome-title {
+            font-size: 32px;
+            color: var(--accent);
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(255, 182, 217, 0.3);
+        }
+        
+        .welcome-subtitle {
+            font-size: 18px;
+            color: var(--text);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .welcome-emoji {
+            font-size: 60px;
+            margin: 20px 0;
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* ==================== 按钮区域 ==================== */
+        .button-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .cute-button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 25px;
+            padding: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cute-button:active {
+            transform: scale(0.95);
+        }
+        
+        .cute-button::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .cute-button:hover::before {
+            opacity: 1;
+        }
+        
+        .button-icon {
+            font-size: 24px;
+        }
+        
+        .button-text {
+            font-size: 14px;
+        }
+        
+        /* 特殊按钮颜色 */
+        .btn-princess {
+            background: linear-gradient(135deg, #FFB6D9, #E1C9F5);
+        }
+        
+        .btn-yyds {
+            background: linear-gradient(135deg, #FFD93D, #FFC9E7);
+        }
+        
+        .btn-juezi {
+            background: linear-gradient(135deg, #FF85B3, #FF6BCF);
+        }
+        
+        .btn-dopamine {
+            background: linear-gradient(135deg, #6BCF7F, #6BAFFF);
+        }
+        
+        /* ==================== 心情卡片 ==================== */
+        .mood-section {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .mood-title {
+            font-size: 20px;
+            color: var(--accent);
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .mood-options {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .mood-btn {
+            font-size: 40px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            padding: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .mood-btn:hover {
+            transform: scale(1.2) rotate(10deg);
+        }
+        
+        /* ==================== 消息展示区 ==================== */
+        .message-display {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .message-text {
+            font-size: 24px;
+            color: var(--accent);
+            font-weight: bold;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .message-sub {
+            font-size: 16px;
+            color: var(--text);
+            opacity: 0.8;
+        }
+        
+        /* ==================== i人/e人选择 ==================== */
+        .personality-section {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .personality-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .personality-btn {
+            background: linear-gradient(135deg, var(--macaron-purple), var(--macaron-pink));
+            border: none;
+            border-radius: 20px;
+            padding: 25px 20px;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .personality-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .personality-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .personality-icon {
+            font-size: 36px;
+        }
+        
+        .personality-text {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text);
+        }
+        
+        .personality-desc {
+            font-size: 12px;
+            color: var(--text);
+            opacity: 0.7;
+        }
+        
+        #btnIPerson {
+            background: linear-gradient(135deg, var(--macaron-blue), var(--macaron-purple));
+        }
+        
+        #btnEPerson {
+            background: linear-gradient(135deg, var(--dopamine-yellow), var(--dopamine-pink));
+        }
+        
+        /* ==================== 访问计数器 ==================== */
+        .visit-counter {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            padding: 15px 25px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            font-size: 14px;
+            color: var(--text);
+        }
+        
+        #visitCount {
+            font-weight: bold;
+            color: var(--accent);
+            font-size: 18px;
+        }
+        
+        /* ==================== 音效开关 ==================== */
+        .sound-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .sound-toggle:hover {
+            transform: scale(1.1);
+        }
+        
+        .sound-toggle:active {
+            transform: scale(0.9);
+        }
+        
+        .sound-toggle i {
+            color: white;
+            font-size: 20px;
+        }
+        
+        /* ==================== 页脚 ==================== */
+        .footer {
+            text-align: center;
+            color: var(--text);
+            font-size: 14px;
+            margin-top: 30px;
+            opacity: 0.8;
+            padding-bottom: 80px;
+        }
+        
+        /* ==================== 移动端优化 ==================== */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .welcome-title {
+                font-size: 28px;
+            }
+            
+            .welcome-subtitle {
+                font-size: 16px;
+            }
+            
+            .button-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .cute-button {
+                min-height: 70px;
+            }
+            
+            .message-text {
+                font-size: 20px;
+            }
+        }
+        
+        /* ==================== 特效样式 ==================== */
+        .sparkle {
+            position: fixed;
+            pointer-events: none;
+            animation: sparkleAnim 1s forwards;
+            z-index: 9999;
+        }
+        
+        @keyframes sparkleAnim {
+            0% {
+                transform: translate(0, 0) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(1);
+                opacity: 0;
+            }
+        }
+        
+        /* 隐藏滚动条但保留功能 */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        
+        /* ==================== 加载动画 ==================== */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #FFE5F1 0%, #FFC9E7 50%, #FFB6D9 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-emoji {
+            font-size: 80px;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .loading-text {
+            font-size: 20px;
+            color: var(--accent);
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        
+        /* ==================== 分享提示 ==================== */
+        .share-hint {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 182, 217, 0.95);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 14px;
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+            text-align: center;
+        }
+        
+        .share-hint.show {
+            opacity: 1;
+        }
+        
+        /* ==================== 特殊效果增强 ==================== */
+        @keyframes blingbling {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .bling {
+            animation: blingbling 1s infinite;
+        }
+        
+        /* 按钮悬停增强 */
+        .cute-button:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 6px 20px rgba(255, 182, 217, 0.5);
+        }
+        
+        .mood-btn:active {
+            transform: scale(0.9) rotate(10deg);
+        }
+        
+        /* 性能优化：硬件加速 */
+        .cute-button,
+        .mood-btn,
+        .personality-btn,
+        .message-display,
+        .welcome-section {
+            transform: translateZ(0);
+            will-change: transform;
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载屏幕 -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-emoji">💖</div>
+        <div class="loading-text">加载治愈中...</div>
+    </div>
+    
+    <!-- 分享提示 -->
+    <div class="share-hint" id="shareHint">
+        💖 截图分享到小红书吧 💖
+    </div>
+    
+    <!-- 背景装饰 -->
+    <div class="bg-decoration" id="bgDecoration"></div>
+    
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 欢迎区 -->
+        <div class="welcome-section animate__animated animate__fadeInDown">
+            <div class="welcome-emoji">🌸</div>
+            <h1 class="welcome-title">你今天也超可爱 💖</h1>
+            <p class="welcome-subtitle">欢迎来到治愈小确幸<br>点击下面的按钮，获取今日份的快乐~</p>
+        </div>
+        
+        <!-- 互动按钮区 -->
+        <div class="button-section">
+            <button class="cute-button btn-princess" id="btnPrincess">
+                <span class="button-icon">👑</span>
+                <span class="button-text">公主请</span>
+            </button>
+            
+            <button class="cute-button btn-yyds" id="btnYyds">
+                <span class="button-icon">⭐</span>
+                <span class="button-text">yyds</span>
+            </button>
+            
+            <button class="cute-button btn-juezi" id="btnJuezi">
+                <span class="button-icon">💕</span>
+                <span class="button-text">绝绝子</span>
+            </button>
+            
+            <button class="cute-button btn-dopamine" id="btnDopamine">
+                <span class="button-icon">🌈</span>
+                <span class="button-text">多巴胺爆发</span>
+            </button>
+        </div>
+        
+        <!-- 心情选择 -->
+        <div class="mood-section">
+            <h2 class="mood-title">今天的心情是？</h2>
+            <div class="mood-options">
+                <div class="mood-btn" data-mood="happy">😊</div>
+                <div class="mood-btn" data-mood="love">🥰</div>
+                <div class="mood-btn" data-mood="excited">🤩</div>
+                <div class="mood-btn" data-mood="cute">😽</div>
+                <div class="mood-btn" data-mood="chill">😌</div>
+            </div>
+        </div>
+        
+        <!-- i人/e人选择 -->
+        <div class="personality-section" id="personalitySection">
+            <h2 class="mood-title">你是哪种人？</h2>
+            <div class="personality-buttons">
+                <button class="personality-btn" id="btnIPerson">
+                    <span class="personality-icon">🏠</span>
+                    <span class="personality-text">i人</span>
+                    <span class="personality-desc">安静·独处·慢热</span>
+                </button>
+                <button class="personality-btn" id="btnEPerson">
+                    <span class="personality-icon">🎉</span>
+                    <span class="personality-text">e人</span>
+                    <span class="personality-desc">外向·社交·活力</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 消息展示区 -->
+        <div class="message-display" id="messageDisplay">
+            <div class="message-text">点击任意按钮开始互动~</div>
+            <div class="message-sub">今天也要元气满满哦 ✨</div>
+        </div>
+        
+        <!-- 访问计数器（隐藏彩蛋） -->
+        <div class="visit-counter" id="visitCounter">
+            <span id="counterText">✨ 这是你的第 <span id="visitCount">1</span> 次访问</span>
+        </div>
+        
+        <!-- 音效开关 -->
+        <div class="sound-toggle" id="soundToggle">
+            <i class="fa fa-volume-up" id="soundIcon"></i>
+        </div>
+        
+        <!-- 页脚 -->
+        <div class="footer">
+            <p>💖 Made with Love 💖</p>
+            <p>专为小红书女生设计 • 2025</p>
+            <p style="font-size: 12px; margin-top: 10px; opacity: 0.6;">💡 小提示：试试连续点击同一个按钮3次~</p>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 配置区域 CONFIG ====================
+        const CONFIG = {
+            // 音效开关
+            soundEnabled: true,
+            
+            // 震动反馈开关（移动端）
+            vibrationEnabled: true,
+            
+            // 点击计数（用于彩蛋）
+            clickCounts: {},
+            
+            // 当前人格类型
+            personalityType: null,
+            
+            // 文案库
+            messages: {
+                princess: [
+                    "公主请继续努力呀 👑",
+                    "你就是最闪耀的小公主 ✨",
+                    "今天也要优雅地生活 🌹",
+                    "公主的一天从微笑开始 😊"
+                ],
+                yyds: [
+                    "你真的超级棒！yyds！🏆",
+                    "你就是永远的神！⭐",
+                    "今天的你依然yyds ✨",
+                    "yyds本人没错了！👏"
+                ],
+                juezi: [
+                    "绝绝子！你太棒了！💕",
+                    "这也太绝了吧！❤️",
+                    "绝美本人！✨",
+                    "绝了绝了！继续保持！🌟"
+                ],
+                dopamine: [
+                    "多巴胺爆发！活力满满！🌈",
+                    "能量爆棚的一天！⚡",
+                    "今天也是bling bling的一天 ✨",
+                    "快乐多巴胺充值成功！💖"
+                ],
+                mood: {
+                    happy: "开心的你最可爱啦！😊",
+                    love: "爱你爱你么么哒！🥰",
+                    excited: "哇哦！好激动呀！🤩",
+                    cute: "猫猫头贴贴！😽",
+                    chill: "放松一下，慢慢来～😌"
+                },
+                iperson: [
+                    "i人的小世界也很精彩 🏠",
+                    "安静地做自己就很好 ✨",
+                    "慢热也是一种温柔 💙",
+                    "享受独处的时光 📚",
+                    "社恐但很温柔的你 🌙"
+                ],
+                eperson: [
+                    "社交牛逼症本人！🎉",
+                    "e人的快乐很简单 ⚡",
+                    "能量爆棚的一天！💫",
+                    "和全世界做朋友 🌟",
+                    "天生的开心果 🌈"
+                ],
+                easter: [
+                    "哇！你发现了隐藏彩蛋！🎁",
+                    "恭喜你！这是专属惊喜！✨",
+                    "你真的很用心呢！💖",
+                    "厉害厉害！继续探索吧！🌟",
+                    "你是第一个发现这个的！👑"
+                ]
+            }
+        };
+        
+        // ==================== 核心功能 ====================
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 短暂延迟后隐藏加载屏幕
+            setTimeout(() => {
+                hideLoadingScreen();
+            }, 800);
+            
+            initBackgroundDecorations();
+            initButtonEvents();
+            initMoodButtons();
+            initPersonalityButtons();
+            initSoundToggle();
+            initVisitCounter();
+            initShareHint();
+            playWelcomeAnimation();
+        });
+        
+        // 隐藏加载屏幕
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            loadingScreen.classList.add('hidden');
+            
+            // 1秒后完全移除
+            setTimeout(() => {
+                loadingScreen.remove();
+            }, 500);
+        }
+        
+        // 初始化背景装饰
+        function initBackgroundDecorations() {
+            const container = document.getElementById('bgDecoration');
+            const hearts = ['💖', '💕', '💗', '💓', '💝', '✨', '⭐', '🌸'];
+            
+            for (let i = 0; i < 15; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'floating-heart';
+                heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+                heart.style.left = Math.random() * 100 + '%';
+                heart.style.top = Math.random() * 100 + '%';
+                heart.style.animationDelay = Math.random() * 6 + 's';
+                heart.style.animationDuration = (6 + Math.random() * 4) + 's';
+                container.appendChild(heart);
+            }
+        }
+        
+        // 欢迎动画
+        function playWelcomeAnimation() {
+            anime({
+                targets: '.welcome-section',
+                scale: [0.8, 1],
+                opacity: [0, 1],
+                duration: 800,
+                easing: 'easeOutElastic(1, .8)'
+            });
+        }
+        
+        // 初始化按钮事件
+        function initButtonEvents() {
+            // 公主请按钮
+            document.getElementById('btnPrincess').addEventListener('click', function() {
+                handleButtonClick('princess', this);
+                triggerPrincessEffect();
+            });
+            
+            // yyds按钮
+            document.getElementById('btnYyds').addEventListener('click', function() {
+                handleButtonClick('yyds', this);
+                triggerYydsEffect();
+            });
+            
+            // 绝绝子按钮
+            document.getElementById('btnJuezi').addEventListener('click', function() {
+                handleButtonClick('juezi', this);
+                triggerJueziEffect();
+            });
+            
+            // 多巴胺按钮
+            document.getElementById('btnDopamine').addEventListener('click', function() {
+                handleButtonClick('dopamine', this);
+                triggerDopamineEffect();
+            });
+            
+            // 移动端触摸优化
+            document.querySelectorAll('.cute-button').forEach(btn => {
+                btn.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    this.click();
+                }, { passive: false });
+            });
+        }
+        
+        // 初始化心情按钮
+        function initMoodButtons() {
+            document.querySelectorAll('.mood-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mood = this.getAttribute('data-mood');
+                    handleMoodClick(mood, this);
+                });
+                
+                // 移动端触摸优化
+                btn.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    this.click();
+                }, { passive: false });
+            });
+        }
+        
+        // ==================== 交互处理函数 ====================
+        
+        // 处理按钮点击
+        function handleButtonClick(type, button) {
+            // 播放音效
+            playClickSound();
+            
+            // 震动反馈
+            triggerVibration(50);
+            
+            // 按钮动画
+            animateButton(button);
+            
+            // 更新消息
+            updateMessage(type);
+            
+            // 创建点击特效
+            createSparkles(button);
+        }
+        
+        // 处理心情点击
+        function handleMoodClick(mood, element) {
+            playClickSound();
+            triggerVibration(30);
+            
+            // 放大动画
+            anime({
+                targets: element,
+                scale: [1, 1.3, 1],
+                rotate: [0, 360],
+                duration: 600,
+                easing: 'easeOutElastic(1, .6)'
+            });
+            
+            // 更新消息
+            const message = CONFIG.messages.mood[mood];
+            showMessage(message, "快乐充值成功！💖");
+            
+            // 撒花特效
+            confetti({
+                particleCount: 50,
+                spread: 60,
+                origin: { y: 0.6 }
+            });
+        }
+        
+        // ==================== 特效函数 ====================
+        
+        // 公主请特效
+        function triggerPrincessEffect() {
+            // 皇冠爱心特效
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#FFB6D9', '#E1C9F5', '#FFC9E7'],
+                shapes: ['circle'],
+                scalar: 1.2
+            });
+            
+            // 页面闪光
+            flashScreen('#E1C9F5');
+        }
+        
+        // yyds特效
+        function triggerYydsEffect() {
+            // 彩虹爆炸
+            const duration = 2000;
+            const animationEnd = Date.now() + duration;
+            
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+                
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+                
+                confetti({
+                    particleCount: 3,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#FFD93D', '#6BCF7F', '#FF6BCF', '#6BAFFF']
+                });
+                
+                confetti({
+                    particleCount: 3,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#FFD93D', '#6BCF7F', '#FF6BCF', '#6BAFFF']
+                });
+            }, 50);
+        }
+        
+        // 绝绝子特效
+        function triggerJueziEffect() {
+            // 爱心爆炸
+            const count = 100;
+            const defaults = {
+                origin: { y: 0.7 }
+            };
+            
+            function fire(particleRatio, opts) {
+                confetti(Object.assign({}, defaults, opts, {
+                    particleCount: Math.floor(count * particleRatio),
+                    colors: ['#FF85B3', '#FF6BCF', '#FFB6D9', '#FFC9E7']
+                }));
+            }
+            
+            fire(0.25, {
+                spread: 26,
+                startVelocity: 55,
+            });
+            
+            fire(0.2, {
+                spread: 60,
+            });
+            
+            fire(0.35, {
+                spread: 100,
+                decay: 0.91,
+                scalar: 0.8
+            });
+            
+            fire(0.1, {
+                spread: 120,
+                startVelocity: 25,
+                decay: 0.92,
+                scalar: 1.2
+            });
+            
+            fire(0.1, {
+                spread: 120,
+                startVelocity: 45,
+            });
+        }
+        
+        // 多巴胺特效
+        function triggerDopamineEffect() {
+            // 多彩星星雨
+            const duration = 1500;
+            const animationEnd = Date.now() + duration;
+            
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+                
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+                
+                confetti({
+                    particleCount: 5,
+                    angle: 90,
+                    spread: 360,
+                    origin: {
+                        x: Math.random(),
+                        y: Math.random() * 0.5
+                    },
+                    colors: ['#FFD93D', '#6BCF7F', '#FF6BCF', '#6BAFFF'],
+                    shapes: ['star'],
+                    scalar: 1.5
+                });
+            }, 100);
+            
+            flashScreen('#FFD93D');
+        }
+        
+        // ==================== 辅助函数 ====================
+        
+        // 播放点击音效（使用Web Audio API）
+        function playClickSound() {
+            if (!CONFIG.soundEnabled) return;
+            
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.1);
+            } catch (e) {
+                // 音效播放失败，静默处理
+            }
+        }
+        
+        // 触发震动反馈
+        function triggerVibration(duration) {
+            if (CONFIG.vibrationEnabled && navigator.vibrate) {
+                navigator.vibrate(duration);
+            }
+        }
+        
+        // 按钮动画
+        function animateButton(button) {
+            anime({
+                targets: button,
+                scale: [1, 0.9, 1.1, 1],
+                duration: 500,
+                easing: 'easeOutElastic(1, .6)'
+            });
+        }
+        
+        // 更新消息显示
+        function updateMessage(type) {
+            const messages = CONFIG.messages[type];
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            showMessage(randomMessage, "继续加油哦~ ✨");
+        }
+        
+        // 显示消息
+        function showMessage(mainText, subText) {
+            const display = document.getElementById('messageDisplay');
+            display.innerHTML = `
+                <div class="message-text animate__animated animate__bounceIn">${mainText}</div>
+                <div class="message-sub animate__animated animate__fadeIn">${subText}</div>
+            `;
+        }
+        
+        // 创建点击星星特效
+        function createSparkles(element) {
+            const rect = element.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            const sparkles = ['✨', '⭐', '💫', '🌟'];
+            
+            for (let i = 0; i < 6; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+                sparkle.textContent = sparkles[Math.floor(Math.random() * sparkles.length)];
+                sparkle.style.left = centerX + 'px';
+                sparkle.style.top = centerY + 'px';
+                sparkle.style.fontSize = (Math.random() * 20 + 15) + 'px';
+                
+                const angle = (Math.PI * 2 * i) / 6;
+                const distance = 50 + Math.random() * 50;
+                sparkle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                sparkle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                
+                document.body.appendChild(sparkle);
+                
+                setTimeout(() => sparkle.remove(), 1000);
+            }
+        }
+        
+        // 屏幕闪光效果
+        function flashScreen(color) {
+            const flash = document.createElement('div');
+            flash.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: ${color};
+                opacity: 0.3;
+                pointer-events: none;
+                z-index: 9998;
+            `;
+            document.body.appendChild(flash);
+            
+            anime({
+                targets: flash,
+                opacity: [0.3, 0],
+                duration: 500,
+                easing: 'easeOutQuad',
+                complete: () => flash.remove()
+            });
+        }
+        
+        // ==================== 新功能 ====================
+        
+        // 初始化人格选择按钮
+        function initPersonalityButtons() {
+            document.getElementById('btnIPerson').addEventListener('click', function() {
+                handlePersonalityChoice('i', this);
+            });
+            
+            document.getElementById('btnEPerson').addEventListener('click', function() {
+                handlePersonalityChoice('e', this);
+            });
+            
+            // 移动端优化
+            document.querySelectorAll('.personality-btn').forEach(btn => {
+                btn.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    this.click();
+                }, { passive: false });
+            });
+        }
+        
+        // 处理人格选择
+        function handlePersonalityChoice(type, button) {
+            CONFIG.personalityType = type;
+            playClickSound();
+            triggerVibration(50);
+            
+            // 按钮动画
+            anime({
+                targets: button,
+                scale: [1, 1.2, 1],
+                rotate: [0, 360],
+                duration: 800,
+                easing: 'easeOutElastic(1, .6)'
+            });
+            
+            // 显示相应文案
+            const messages = type === 'i' ? CONFIG.messages.iperson : CONFIG.messages.eperson;
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            
+            if (type === 'i') {
+                showMessage(randomMessage, "安静也是一种力量 💙");
+                // i人专属效果：温柔的蓝色粒子
+                confetti({
+                    particleCount: 60,
+                    spread: 50,
+                    origin: { y: 0.6 },
+                    colors: ['#B4E7F5', '#E1C9F5', '#C7EDCC'],
+                    shapes: ['circle'],
+                    scalar: 0.8
+                });
+            } else {
+                showMessage(randomMessage, "活力满满冲鸭！⚡");
+                // e人专属效果：活力的彩色烟花
+                triggerDopamineEffect();
+            }
+            
+            // 改变页面主题色
+            changeTheme(type);
+        }
+        
+        // 改变主题
+        function changeTheme(type) {
+            const body = document.body;
+            
+            if (type === 'i') {
+                // i人主题：柔和蓝紫色
+                body.style.background = 'linear-gradient(135deg, #E8F4F8 0%, #E1C9F5 50%, #D4E7ED 100%)';
+            } else {
+                // e人主题：活力多巴胺色
+                body.style.background = 'linear-gradient(135deg, #FFF9B0 0%, #FFD93D 50%, #6BCF7F 100%)';
+            }
+            
+            anime({
+                targets: body,
+                opacity: [0.8, 1],
+                duration: 600
+            });
+        }
+        
+        // 初始化音效开关
+        function initSoundToggle() {
+            const toggle = document.getElementById('soundToggle');
+            const icon = document.getElementById('soundIcon');
+            
+            toggle.addEventListener('click', function() {
+                CONFIG.soundEnabled = !CONFIG.soundEnabled;
+                
+                if (CONFIG.soundEnabled) {
+                    icon.className = 'fa fa-volume-up';
+                    showMessage('音效已开启 🔊', '点击按钮试试吧~');
+                } else {
+                    icon.className = 'fa fa-volume-off';
+                    showMessage('音效已关闭 🔇', '享受安静的互动~');
+                }
+                
+                triggerVibration(30);
+                
+                anime({
+                    targets: toggle,
+                    rotate: [0, 360],
+                    scale: [1, 1.2, 1],
+                    duration: 500,
+                    easing: 'easeOutElastic(1, .6)'
+                });
+            });
+            
+            // 移动端优化
+            toggle.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                this.click();
+            }, { passive: false });
+        }
+        
+        // 初始化访问计数器
+        function initVisitCounter() {
+            // 从localStorage读取访问次数
+            let visitCount = parseInt(localStorage.getItem('visitCount') || '0');
+            visitCount++;
+            localStorage.setItem('visitCount', visitCount.toString());
+            
+            // 更新显示
+            document.getElementById('visitCount').textContent = visitCount;
+            
+            // 特殊次数彩蛋
+            if (visitCount === 1) {
+                setTimeout(() => {
+                    showMessage('欢迎第一次来玩！💖', '探索一下这个治愈小世界吧~');
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                }, 1000);
+            } else if (visitCount === 10) {
+                setTimeout(() => {
+                    showMessage('哇！你已经来了10次！', '你真的超级喜欢这里呢 💕');
+                    triggerJueziEffect();
+                }, 1000);
+            } else if (visitCount % 5 === 0) {
+                setTimeout(() => {
+                    showMessage(`第${visitCount}次访问纪念！`, '感谢你的每次光临 ✨');
+                    confetti({
+                        particleCount: 50,
+                        spread: 60,
+                        origin: { y: 0.6 }
+                    });
+                }, 1000);
+            }
+        }
+        
+        // 连续点击彩蛋检测
+        function checkEasterEgg(buttonId) {
+            if (!CONFIG.clickCounts[buttonId]) {
+                CONFIG.clickCounts[buttonId] = 0;
+            }
+            
+            CONFIG.clickCounts[buttonId]++;
+            
+            // 连续点击3次触发彩蛋
+            if (CONFIG.clickCounts[buttonId] === 3) {
+                triggerEasterEgg(buttonId);
+                CONFIG.clickCounts[buttonId] = 0; // 重置
+            }
+            
+            // 3秒后重置计数
+            setTimeout(() => {
+                CONFIG.clickCounts[buttonId] = 0;
+            }, 3000);
+        }
+        
+        // 触发彩蛋
+        function triggerEasterEgg(buttonId) {
+            const messages = CONFIG.messages.easter;
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            
+            showMessage(randomMessage, '你发现了隐藏彩蛋！🎁');
+            
+            // 超级豪华特效
+            const duration = 3000;
+            const animationEnd = Date.now() + duration;
+            
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+                
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+                
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0, y: Math.random() * 0.8 },
+                    colors: ['#FFB6D9', '#E1C9F5', '#FFC9E7', '#FFD93D', '#6BCF7F']
+                });
+                
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1, y: Math.random() * 0.8 },
+                    colors: ['#FFB6D9', '#E1C9F5', '#FFC9E7', '#FFD93D', '#6BCF7F']
+                });
+            }, 100);
+            
+            // 屏幕闪烁
+            flashScreen('#FFD93D');
+            setTimeout(() => flashScreen('#FF6BCF'), 200);
+            setTimeout(() => flashScreen('#6BAFFF'), 400);
+            
+            triggerVibration(200);
+        }
+        
+        // 重写handleButtonClick以添加彩蛋检测
+        const originalHandleButtonClick = handleButtonClick;
+        handleButtonClick = function(type, button) {
+            originalHandleButtonClick(type, button);
+            checkEasterEgg(button.id);
+        };
+        
+        // 初始化分享提示
+        function initShareHint() {
+            let interactionCount = 0;
+            const shareHint = document.getElementById('shareHint');
+            
+            // 监听所有交互
+            document.addEventListener('click', function() {
+                interactionCount++;
+                
+                // 第5次交互时显示分享提示
+                if (interactionCount === 5) {
+                    showShareHint();
+                }
+            });
+        }
+        
+        // 显示分享提示
+        function showShareHint() {
+            const shareHint = document.getElementById('shareHint');
+            shareHint.classList.add('show');
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                shareHint.classList.remove('show');
+            }, 3000);
+        }
+        
+        // ==================== 性能优化 ====================
+        
+        // 节流函数
+        function throttle(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // 移动端性能优化：减少粒子数量
+        if (window.innerWidth < 768) {
+            // 减少背景装饰数量
+            const originalInitBg = initBackgroundDecorations;
+            initBackgroundDecorations = function() {
+                const container = document.getElementById('bgDecoration');
+                const hearts = ['💖', '💕', '💗', '💓', '💝', '✨', '⭐', '🌸'];
+                
+                // 移动端只显示8个装饰（原来15个）
+                for (let i = 0; i < 8; i++) {
+                    const heart = document.createElement('div');
+                    heart.className = 'floating-heart';
+                    heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+                    heart.style.left = Math.random() * 100 + '%';
+                    heart.style.top = Math.random() * 100 + '%';
+                    heart.style.animationDelay = Math.random() * 6 + 's';
+                    heart.style.animationDuration = (6 + Math.random() * 4) + 's';
+                    container.appendChild(heart);
+                }
+            };
+        }
+        
+        // 添加页面可见性检测，页面不可见时暂停动画
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // 页面隐藏时暂停所有动画
+                document.body.style.animationPlayState = 'paused';
+            } else {
+                // 页面可见时恢复动画
+                document.body.style.animationPlayState = 'running';
+            }
+        });
+        
+        // 防止iOS双击放大
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+        
+        // 控制台彩蛋
+        console.log('%c💖 你好呀！小可爱~ 💖', 'font-size: 20px; color: #FFB6D9; font-weight: bold;');
+        console.log('%c欢迎来到治愈小确幸！', 'font-size: 16px; color: #FF85B3;');
+        console.log('%c如果你喜欢这个页面，记得分享到小红书哦~ ✨', 'font-size: 14px; color: #8B5A7D;');
+    </script>
+</body>
+</html>
+
