@@ -137,6 +137,14 @@ const updateReadingProgress = async (req, res) => {
     const userId = req.user.id;
     const { novelId, chapterId, progress } = req.body;
     
+    // 参数验证
+    if (!novelId) {
+      return Response.error(res, '小说ID不能为空', 400);
+    }
+    
+    // 确保 chapterId 为 null 而不是 undefined
+    const finalChapterId = chapterId || null;
+    
     // 检查是否已有记录
     const [existing] = await pool.query(
       'SELECT id FROM reading_progress WHERE user_id = ? AND novel_id = ?',
@@ -147,26 +155,46 @@ const updateReadingProgress = async (req, res) => {
       // 更新
       await pool.query(
         'UPDATE reading_progress SET chapter_id = ?, progress = ?, updated_at = NOW() WHERE user_id = ? AND novel_id = ?',
-        [chapterId, progress, userId, novelId]
+        [finalChapterId, progress, userId, novelId]
       );
     } else {
       // 插入
       await pool.query(
         'INSERT INTO reading_progress (user_id, novel_id, chapter_id, progress, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
-        [userId, novelId, chapterId, progress]
+        [userId, novelId, finalChapterId, progress]
       );
     }
     
-    // 同时添加到阅读历史（字段名是read_time，不是read_at）
-    await pool.query(
-      'INSERT INTO reading_history (user_id, novel_id, chapter_id, read_time) VALUES (?, ?, ?, NOW())',
-      [userId, novelId, chapterId]
-    );
+    // 添加到阅读历史（避免频繁插入，只在有章节ID或首次阅读时记录）
+    try {
+      // 检查最近是否已有相同的阅读记录（5分钟内）
+      const [recentHistory] = await pool.query(
+        `SELECT id FROM reading_history 
+         WHERE user_id = ? AND novel_id = ? 
+         AND (chapter_id = ? OR (chapter_id IS NULL AND ? IS NULL))
+         AND read_time > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+         LIMIT 1`,
+        [userId, novelId, finalChapterId, finalChapterId]
+      );
+      
+      // 只有在5分钟内没有相同记录时才插入
+      if (recentHistory.length === 0) {
+        await pool.query(
+          'INSERT INTO reading_history (user_id, novel_id, chapter_id, read_time) VALUES (?, ?, ?, NOW())',
+          [userId, novelId, finalChapterId]
+        );
+      }
+    } catch (historyError) {
+      // 阅读历史插入失败不影响主要功能，只记录日志
+      console.warn('Insert reading history warning:', historyError.message);
+    }
     
     return Response.success(res, null, '更新成功');
   } catch (error) {
     console.error('Update reading progress error:', error);
-    return Response.error(res, '更新失败', 500);
+    // 提供更详细的错误信息
+    const errorMessage = error.sqlMessage || error.message || '更新失败';
+    return Response.error(res, errorMessage, 500);
   }
 };
 
