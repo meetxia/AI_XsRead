@@ -266,6 +266,7 @@ const getUserAvatar = () => {
 
   // 如果是 /uploads/ 路径，直接返回（Nginx已配置静态文件访问）
   if (avatar.startsWith('/uploads/')) {
+    // /uploads 由 Nginx 直接以同源 alias 暴露，无需拼接 API base
     return avatar
   }
 

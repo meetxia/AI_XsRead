@@ -25,6 +25,8 @@ export const getUserAvatarUrl = (user) => {
 
   // 如果是 /uploads/ 路径，直接返回（Nginx已配置静态文件访问）
   if (avatar.startsWith('/uploads/')) {
+    // /uploads 由 Nginx 直接以同源 alias 暴露，无需拼接 API base
+    // 在生产环境 VITE_APP_BASE_API='/api'，开发环境通过 vite proxy /uploads 转发
     return avatar
   }
 

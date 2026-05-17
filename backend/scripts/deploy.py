@@ -1,9 +1,31 @@
 """
-AI_XS_Vocab 自包含部署脚本（不依赖其他项目）。
+文字之境（AI-XsRead）一键部署脚本。
+
+适用站点：xs.momofx.cn（腾讯云 OpenCloudOS + 宝塔面板 + Node.js 18+ + PM2）
+
+服务器实际目录结构（基于现场确认）：
+
+    /www/wwwroot/xs.momofx.cn/
+    ├── ai-xsread-vue3/dist/      ← Nginx root 指向此处（前端构建产物）
+    ├── backend/                   ← 用户后端源代码（PM2: xsread-backend, 端口 8005）
+    ├── admin-frontend/            ← 管理前端
+    ├── admin-backend/             ← 管理后端（PM2: xsread-admin-backend, 端口 8001）
+    ├── ecosystem.config.js        ← PM2 多进程配置文件（本脚本通过它 start/reload）
+    └── logs/                      ← PM2 日志目录
+
+Nginx 通过反向代理把 /api 转发到 127.0.0.1:8005。
 
 能力：
-1. 前端：构建 + 上传 dist 到宝塔站点目录
-2. 后端：打包 backend 代码 + 上传到 api 目录
+1. 前端（ai-xsread-vue3）：npm run build → rsync 增量上传到 ai-xsread-vue3/dist
+2. 后端（backend）：rsync 增量上传到 backend/，远端 npm ci，再用 ecosystem.config.js
+   通过 PM2 进行 reload（无则 start），最后 curl /api/health 做健康检查
+3. 支持 --frontend / --backend / --all / --watch / --dry-run
+4. 默认仅允许部署到 /www/wwwroot/ 下
+
+注意：
+- 服务器上的 .env 不会被同步覆盖（在排除列表中）
+- node_modules、tests、日志、缓存等都不会同步
+- 第一次 PM2 start 需要 ecosystem.config.js 已经在站点根目录（服务器已存在）
 """
 
 from __future__ import annotations
@@ -21,29 +43,53 @@ import time
 from pathlib import Path
 from typing import Callable
 
+# ============================================================
+# 路径与默认值
+# ============================================================
 SCRIPT_DIR = Path(__file__).resolve().parent
-BACKEND_DIR = SCRIPT_DIR.parent
-ROOT_DIR = BACKEND_DIR.parent
-FRONTEND_DIR = ROOT_DIR / "frontend"
+BACKEND_DIR = SCRIPT_DIR.parent                     # backend/
+ROOT_DIR = BACKEND_DIR.parent                       # 项目根目录
+FRONTEND_DIR = ROOT_DIR / "ai-xsread-vue3"          # 用户前端
 
 DEFAULT_LOCAL_DIST_PATH = FRONTEND_DIR / "dist"
 DEFAULT_LOCAL_API_PATH = BACKEND_DIR
-DEFAULT_SERVER_HOST = "175.178.27.89"
+
+# 服务器与站点信息（默认按 xs.momofx.cn 实际部署结构配置，可通过命令行/环境变量覆盖）
+# 服务器实际目录结构（已通过 SSH 现场确认）：
+#   /www/wwwroot/xs.momofx.cn/                    站点根目录
+#   ├── ai-xsread-vue3/dist/                      用户前端构建产物（Nginx root 指向这里）
+#   ├── backend/                                  用户后端代码（PM2: xsread-backend，端口 8005）
+#   ├── admin-frontend/                           管理前端构建产物
+#   ├── admin-backend/                            管理后端代码（PM2: xsread-admin-backend，端口 8001）
+#   ├── ecosystem.config.js                       PM2 多进程配置，本脚本依赖它来 start/reload
+#   ├── nginx.conf                                Nginx 配置参考（实际配置在宝塔面板/conf.d）
+#   └── logs/                                     PM2 日志目录
+DEFAULT_SERVER_HOST = "xs.momofx.cn"
 DEFAULT_SERVER_PORT = 22
-DEFAULT_SERVER_ROOT = "/www/wwwroot/dc.momofx.cn"
+DEFAULT_SERVER_USER = "root"
+DEFAULT_SERVER_ROOT = "/www/wwwroot/xs.momofx.cn"
 DEFAULT_SSH_KEY = str(Path.home() / ".ssh" / "id_rsa")
-DEFAULT_FRONTEND_HEALTHCHECK_HOST = "dc.momofx.cn"
-DEFAULT_BACKEND_SUPERVISOR_PROGRAM = "ai_xs_backend"
-DEFAULT_BACKEND_HEALTHCHECK_URL = "http://127.0.0.1:8000/api/health"
-DEFAULT_DB_NAME = "ai_xs"
-DEFAULT_DB_LOCAL_HOST = "127.0.0.1"
-DEFAULT_DB_LOCAL_PORT = "3306"
-DEFAULT_DB_REMOTE_HOST = "127.0.0.1"
-DEFAULT_DB_REMOTE_PORT = "3306"
-DEFAULT_DB_MIGRATIONS_PATH = BACKEND_DIR / "alembic" / "versions"
+
+# 站点子目录（与服务器现场一致）
+DEFAULT_SERVER_FRONTEND_PATH = f"{DEFAULT_SERVER_ROOT}/ai-xsread-vue3/dist"
+DEFAULT_SERVER_API_PATH = f"{DEFAULT_SERVER_ROOT}/backend"
+DEFAULT_SERVER_PM2_CONFIG = f"{DEFAULT_SERVER_ROOT}/ecosystem.config.js"
+
+# 健康检查相关
+DEFAULT_FRONTEND_HEALTHCHECK_HOST = "xs.momofx.cn"
+DEFAULT_BACKEND_PORT = 8005
+DEFAULT_BACKEND_HEALTHCHECK_URL = f"http://127.0.0.1:{DEFAULT_BACKEND_PORT}/api/health"
+
+# PM2 进程名（与服务器 ecosystem.config.js 中保持一致）
+DEFAULT_BACKEND_PM2_NAME = "xsread-backend"
+
+# 监听 dist 变化的轮询周期
 CHECK_INTERVAL = 5
 DEPLOY_CACHE_FILE = str(SCRIPT_DIR / ".deploy-cache.json")
 
+# ============================================================
+# 日志
+# ============================================================
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -55,6 +101,9 @@ logging.basicConfig(
 logger = logging.getLogger("deploy")
 
 
+# ============================================================
+# 部署清单 / 缓存
+# ============================================================
 def _file_sha256(path: Path) -> str:
     hasher = hashlib.sha256()
     with path.open("rb") as fh:
@@ -101,11 +150,7 @@ def _summarize_manifest_changes(previous: dict[str, str], current: dict[str, str
     changed = sorted(path for path, file_hash in current.items() if previous.get(path) != file_hash)
     unchanged = sorted(path for path, file_hash in current.items() if previous.get(path) == file_hash)
     removed = sorted(path for path in previous if path not in current)
-    return {
-        "changed": changed,
-        "unchanged": unchanged,
-        "removed": removed,
-    }
+    return {"changed": changed, "unchanged": unchanged, "removed": removed}
 
 
 def _format_file_list(files: list[str]) -> str:
@@ -120,9 +165,9 @@ def _format_deploy_summary(
     removed_files: list[str],
 ) -> str:
     mode_line = (
-        "当前上传方式：真正采用 rsync 增量上传。"
+        "当前上传方式：rsync 增量上传。"
         if upload_mode == "incremental"
-        else "当前上传方式：全量压缩包覆盖部署，不是真正按文件增量上传。"
+        else "当前上传方式：全量覆盖部署。"
     )
     lines = [
         f"{target_name}部署摘要：",
@@ -132,8 +177,6 @@ def _format_deploy_summary(
         f"保持不变文件：{_format_file_list(unchanged_files)}",
         f"本地已删除文件：{_format_file_list(removed_files)}",
     ]
-    if upload_mode != "incremental":
-        lines.append("说明：这些“保持不变”的文件是按差异口径识别出的未变化文件，但当前脚本仍会通过整包上传后覆盖部署。")
     return "\n".join(lines)
 
 
@@ -193,7 +236,10 @@ def _log_and_persist_deploy_summary(
     cache = _load_deploy_cache()
     previous_manifest = cache.get(cache_key, {})
     manifest_summary = _summarize_manifest_changes(previous_manifest, current_manifest)
-    summary = _build_deploy_summary(manifest_summary, _parse_rsync_itemize_output(rsync_output) if rsync_output else None)
+    summary = _build_deploy_summary(
+        manifest_summary,
+        _parse_rsync_itemize_output(rsync_output) if rsync_output else None,
+    )
     logger.info(
         "\n%s",
         _format_deploy_summary(
@@ -209,6 +255,9 @@ def _log_and_persist_deploy_summary(
         _save_deploy_cache(cache)
 
 
+# ============================================================
+# 命令执行 / rsync 工具
+# ============================================================
 def _resolve_command(cmd: list[str]) -> list[str]:
     if not cmd:
         return cmd
@@ -256,6 +305,7 @@ def _run(cmd: list[str], cwd: Path | None = None, dry_run: bool = False) -> subp
 
 
 def _to_rsync_local_path(path: Path) -> str:
+    """Windows 路径转换成 cwRsync 可识别的 /cygdrive/<drive>/... 格式。"""
     resolved = path.resolve()
     rsync_path = resolved.as_posix()
     drive = resolved.drive.rstrip(":")
@@ -276,6 +326,7 @@ def _to_rsync_ssh_path(path_str: str) -> str:
 
 
 def _resolve_rsync_ssh_executable() -> str:
+    """优先使用 cwRsync 自带的 ssh，避免与 Windows OpenSSH 不兼容。"""
     cw_ssh = Path(r"C:\ProgramData\chocolatey\lib\rsync\tools\bin\ssh.exe")
     if cw_ssh.exists():
         return cw_ssh.as_posix()
@@ -291,6 +342,15 @@ def _build_rsync_command(
     chmod_mode: str = "",
     delete: bool = True,
 ) -> list[str]:
+    """
+    构造 rsync 增量上传命令。
+
+    关键参数说明（确保真增量、内容一致就不上传）：
+    - --checksum   按文件内容 MD5 比对（不依赖 mtime）。这样即便 npm run build 重新生成
+                   了所有文件、mtime 全变了，只要文件内容没变也会被跳过。
+    - --itemize-changes  逐文件输出动作，便于本脚本解析“真正上传 / 跳过”。
+    - --no-times   不去同步源文件的 mtime（搭配 --checksum 才能保持长期稳定）。
+    """
     ssh_executable = _resolve_rsync_ssh_executable()
     ssh_cmd = " ".join(
         shlex.quote(part)
@@ -310,10 +370,12 @@ def _build_rsync_command(
         "rsync",
         "--archive",
         "--compress",
+        "--checksum",       # 真增量：按内容 hash 决定是否传输
         "--itemize-changes",
         "--no-owner",
         "--no-group",
         "--no-perms",
+        "--no-times",       # mtime 不再作为判断条件，避免 npm run build 全量重传
         "-e",
         ssh_cmd,
     ]
@@ -335,41 +397,79 @@ def _env(*names: str, default: str = "") -> str:
     return default
 
 
+# ============================================================
+# 远端命令构造
+# ============================================================
 def build_backend_restart_command(cfg: dict) -> str:
-    supervisor_program = cfg.get("backend_supervisor_program") or DEFAULT_BACKEND_SUPERVISOR_PROGRAM
+    """
+    远端重启后端命令（PM2 + ecosystem.config.js 方式）：
+
+    1. 进入 backend 目录，执行 npm ci 安装生产依赖
+    2. 切到站点根目录，使用 ecosystem.config.js 启动/重载 PM2 进程
+       - 已有进程：reload（保留 PM2 ID，平滑重启）
+       - 没有进程：通过 ecosystem 配置 start --only <name>
+    3. pm2 save，让 PM2 在服务器重启后能自启
+    4. 调用 /api/health 做健康检查
+    """
+    pm2_name = cfg.get("backend_pm2_name") or DEFAULT_BACKEND_PM2_NAME
     healthcheck_url = cfg.get("backend_healthcheck_url") or DEFAULT_BACKEND_HEALTHCHECK_URL
-    backend_api_path = cfg.get("server_api_path") or f"{cfg.get('server_root') or DEFAULT_SERVER_ROOT}/api"
+    backend_api_path = cfg.get("server_api_path") or DEFAULT_SERVER_API_PATH
+    pm2_config = cfg.get("server_pm2_config") or DEFAULT_SERVER_PM2_CONFIG
+    pm2_bin = cfg.get("pm2_bin") or "pm2"
+    npm_bin = cfg.get("npm_bin") or "npm"
     return (
-        f"cd {shlex.quote(backend_api_path)} && ./.venv/bin/python -m alembic upgrade head; "
-        f"/www/server/panel/pyenv/bin/supervisorctl -c /etc/supervisor/supervisord.conf restart {shlex.quote(supervisor_program)}; "
+        f"set -e; "
+        f"cd {shlex.quote(backend_api_path)} && "
+        f"{shlex.quote(npm_bin)} ci --omit=dev --no-audit --no-fund && "
+        f"({shlex.quote(pm2_bin)} reload {shlex.quote(pm2_name)} --update-env "
+        f"|| {shlex.quote(pm2_bin)} start {shlex.quote(pm2_config)} --only {shlex.quote(pm2_name)} --update-env) && "
+        f"{shlex.quote(pm2_bin)} save && "
+        f"sleep 2 && "
         f"curl -fsS --max-time 15 {shlex.quote(healthcheck_url)}"
     )
 
 
 def build_frontend_healthcheck_command(cfg: dict) -> str:
+    """
+    前端健康检查：服务器实际配置 HTTP 80 会 301 跳转到 HTTPS，所以这里用 -L
+    跟随跳转，并接受 200/301/302 三种状态。
+    """
     host = cfg.get("frontend_healthcheck_host") or DEFAULT_FRONTEND_HEALTHCHECK_HOST
     return (
-        "STATUS=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1/ "
-        f"-H {shlex.quote(f'Host: {host}')}); "
-        'test "$STATUS" = "200"'
+        "STATUS=$(curl -skL -o /dev/null -w '%{http_code}' http://127.0.0.1/ "
+        f"-H {shlex.quote(f'Host: {host}')} --resolve {shlex.quote(f'{host}:443:127.0.0.1')}); "
+        "echo \"前端首页 HTTP 状态：$STATUS\"; "
+        'test "$STATUS" = "200" -o "$STATUS" = "301" -o "$STATUS" = "302"'
     )
 
 
+# ============================================================
+# 配置归一
+# ============================================================
 def _normalize(config: dict) -> dict:
     cfg = dict(config)
     root = cfg.get("server_root") or DEFAULT_SERVER_ROOT
     cfg["server_host"] = cfg.get("server_host") or DEFAULT_SERVER_HOST
-    cfg["server_user"] = cfg.get("server_user") or "root"
+    cfg["server_user"] = cfg.get("server_user") or DEFAULT_SERVER_USER
     cfg["server_port"] = int(cfg.get("server_port") or DEFAULT_SERVER_PORT)
     cfg["server_root"] = root
-    cfg["server_frontend_path"] = cfg.get("server_frontend_path") or root
-    cfg["server_api_path"] = cfg.get("server_api_path") or f"{root}/api"
+    # 服务器 Nginx root 指向 dist，所以前端要传到 ai-xsread-vue3/dist 子目录
+    cfg["server_frontend_path"] = (
+        cfg.get("server_frontend_path") or f"{root}/ai-xsread-vue3/dist"
+    )
+    # 后端代码目录是 backend，不是 api（与 ecosystem.config.js 中的 cwd 对应）
+    cfg["server_api_path"] = cfg.get("server_api_path") or f"{root}/backend"
+    cfg["server_pm2_config"] = (
+        cfg.get("server_pm2_config") or f"{root}/ecosystem.config.js"
+    )
     cfg["ssh_key_path"] = cfg.get("ssh_key_path") or DEFAULT_SSH_KEY
     cfg["local_dist_path"] = cfg.get("local_dist_path") or str(DEFAULT_LOCAL_DIST_PATH)
     cfg["local_api_path"] = cfg.get("local_api_path") or str(DEFAULT_LOCAL_API_PATH)
     cfg["strict_host_key_checking"] = cfg.get("strict_host_key_checking") or "accept-new"
+    # 前端目标已经是 dist 专用目录，仍保留这些“安全清单”避免误删宝塔/Nginx 自动生成的文件
     cfg["frontend_preserve_files"] = tuple(
-        cfg.get("frontend_preserve_files") or [".htaccess", ".user.ini", "404.html", "api"]
+        cfg.get("frontend_preserve_files")
+        or [".htaccess", ".user.ini", "404.html", ".well-known"]
     )
     cfg["frontend_healthcheck_host"] = (
         cfg.get("frontend_healthcheck_host") or DEFAULT_FRONTEND_HEALTHCHECK_HOST
@@ -378,9 +478,11 @@ def _normalize(config: dict) -> dict:
     cfg["skip_frontend_build"] = bool(cfg.get("skip_frontend_build", False))
     cfg["dry_run"] = bool(cfg.get("dry_run", False))
     cfg["allow_unsafe_remote_path"] = bool(cfg.get("allow_unsafe_remote_path", False))
-    cfg["backend_supervisor_program"] = (
-        cfg.get("backend_supervisor_program") or DEFAULT_BACKEND_SUPERVISOR_PROGRAM
+    cfg["backend_pm2_name"] = (
+        cfg.get("backend_pm2_name") or DEFAULT_BACKEND_PM2_NAME
     )
+    cfg["pm2_bin"] = cfg.get("pm2_bin") or "pm2"
+    cfg["npm_bin"] = cfg.get("npm_bin") or "npm"
     cfg["backend_healthcheck_url"] = (
         cfg.get("backend_healthcheck_url") or DEFAULT_BACKEND_HEALTHCHECK_URL
     )
@@ -388,6 +490,9 @@ def _normalize(config: dict) -> dict:
     return cfg
 
 
+# ============================================================
+# SSH / SCP
+# ============================================================
 def _ssh_options(cfg: dict, scp: bool = False) -> list[str]:
     opts = []
     if cfg["ssh_key_path"]:
@@ -406,6 +511,133 @@ def _ssh(cfg: dict, script: str) -> None:
     )
 
 
+def _ssh_capture(cfg: dict, script: str) -> str:
+    """SSH 执行命令并捕获 stdout（不打印），失败返回空串。本工具不参与 dry-run。"""
+    if cfg.get("dry_run"):
+        return ""
+    resolved = _resolve_command(["ssh", *_ssh_options(cfg), f"{cfg['server_user']}@{cfg['server_host']}", script])
+    try:
+        result = subprocess.run(
+            resolved,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except Exception as exc:  # pragma: no cover
+        logger.warning("SSH 取数据失败: %s", exc)
+        return ""
+    if result.returncode != 0:
+        logger.warning(
+            "SSH 取数据返回非 0：%s\n%s",
+            result.returncode,
+            (result.stderr or "").strip(),
+        )
+    return result.stdout or ""
+
+
+# ============================================================
+# 远端迁移状态查询（migrations 表）
+# ============================================================
+_REMOTE_MIGRATIONS_QUERY_JS = r"""
+(async () => {
+  try {
+    require('dotenv').config();
+    const mysql = require('mysql2/promise');
+    const conn = await mysql.createConnection({
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT) || 3306,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE || process.env.DB_NAME
+    });
+    let rows = [];
+    try {
+      const [r] = await conn.query(
+        'SELECT version, description, applied_at FROM migrations ORDER BY version'
+      );
+      rows = r;
+    } catch (e) {
+      if (e.code === 'ER_NO_SUCH_TABLE') rows = [];
+      else throw e;
+    }
+    process.stdout.write('__MIG__' + JSON.stringify(rows) + '__END__');
+    await conn.end();
+  } catch (e) {
+    process.stderr.write('ERR:' + (e && e.message ? e.message : String(e)));
+    process.exit(1);
+  }
+})();
+"""
+
+
+def _remote_query_migrations(cfg: dict) -> list[dict]:
+    """
+    通过 SSH 在服务器上跑一段 node 脚本查 migrations 表。
+    采用 base64 编码避免 SSH 多层引号转义问题。
+    返回值形如 [{version, description, applied_at}, ...]。
+    """
+    import base64
+
+    encoded = base64.b64encode(_REMOTE_MIGRATIONS_QUERY_JS.encode("utf-8")).decode("ascii")
+    backend_path = cfg.get("server_api_path") or DEFAULT_SERVER_API_PATH
+    # cd 到后端目录确保 require('dotenv') / require('mysql2/promise') 都能从 node_modules 找到
+    script = (
+        f"cd {shlex.quote(backend_path)} && "
+        f"echo {shlex.quote(encoded)} | base64 -d | node -"
+    )
+    raw = _ssh_capture(cfg, script)
+    if not raw:
+        return []
+    start = raw.find("__MIG__")
+    end = raw.find("__END__")
+    if start < 0 or end < 0 or end <= start:
+        logger.warning("未能解析远端 migrations 输出（截断 200 字符）：%s", raw[:200])
+        return []
+    payload = raw[start + len("__MIG__"):end]
+    try:
+        rows = json.loads(payload)
+        return rows if isinstance(rows, list) else []
+    except json.JSONDecodeError:
+        logger.warning("远端 migrations JSON 解析失败：%s", payload[:200])
+        return []
+
+
+def _format_migration_rows(rows: list[dict]) -> list[str]:
+    return [
+        f"  {row.get('version', '?'):<14} {row.get('description', '') or ''}".rstrip()
+        for row in rows
+    ]
+
+
+def _log_migration_diff(before: list[dict], after: list[dict]) -> None:
+    """打印本次部署后新应用的迁移与累计应用版本数。"""
+    before_versions = {str(r.get("version")) for r in before}
+    after_versions = {str(r.get("version")) for r in after}
+    newly_applied = [r for r in after if str(r.get("version")) not in before_versions]
+
+    if not after:
+        logger.info("数据库迁移摘要：未读到 migrations 表（可能首次部署，正在初始化）。")
+        return
+
+    if newly_applied:
+        logger.info(
+            "\n数据库迁移摘要：本次新应用 %d 个迁移，累计 %d 个：\n%s",
+            len(newly_applied),
+            len(after_versions),
+            "\n".join(_format_migration_rows(newly_applied)),
+        )
+    else:
+        latest = after[-1] if after else {}
+        logger.info(
+            "数据库迁移摘要：无新增迁移，累计 %d 个，最新版本 %s（%s）。",
+            len(after_versions),
+            latest.get("version", "?"),
+            latest.get("description", "") or "",
+        )
+
+
 def _scp(cfg: dict, local_file: Path, remote_path: str) -> None:
     _run(
         ["scp", *_ssh_options(cfg, scp=True), str(local_file), f"{cfg['server_user']}@{cfg['server_host']}:{remote_path}"],
@@ -420,6 +652,9 @@ def _safe_remote_path(cfg: dict, remote_path: str) -> None:
         raise RuntimeError("默认只允许部署到 /www/wwwroot/ 下，若确认安全请加 --allow-unsafe-remote-path")
 
 
+# ============================================================
+# 前端构建 & 排除规则
+# ============================================================
 def _build_frontend(cfg: dict) -> None:
     if cfg["skip_frontend_build"]:
         logger.info("跳过前端构建")
@@ -439,24 +674,35 @@ def _frontend_chmod_mode() -> str:
     return "Du=rwx,Dgo=rx,Fu=rw,Fgo=r"
 
 
+# ============================================================
+# 后端排除规则
+# ============================================================
 def _skip_backend(rel: Path) -> bool:
     skip_dirs = {
         ".git",
-        ".venv",
-        "__pycache__",
-        ".pytest_cache",
         "node_modules",
+        "coverage",
+        "logs",
         "uploads",
-        "generated_exports",
-        "reports",
-        "test-artifacts",
         "tests",
+        "tmp",
+        ".vscode",
+        ".idea",
+        "__pycache__",
     }
     if any(part in skip_dirs for part in rel.parts):
         return True
-    if rel.name in {".env", ".env.local", ".deploy-cache.json", "tmp_run_no_rate_limit_server.py"}:
+    if rel.name in {
+        ".env",
+        ".env.local",
+        ".env.production",
+        ".deploy-cache.json",
+        "deploy.log",
+    }:
         return True
-    if rel.suffix in {".pyc", ".pyo", ".log", ".pid", ".sqlite3", ".jsonl"}:
+    if rel.suffix in {".log", ".pid", ".pyc", ".pyo", ".sqlite3", ".sqlite", ".tmp"}:
+        return True
+    if rel.name.endswith(".test.js") or rel.name.endswith(".spec.js"):
         return True
     return False
 
@@ -464,28 +710,34 @@ def _skip_backend(rel: Path) -> bool:
 def _backend_excludes() -> list[str]:
     return [
         ".git",
-        ".venv",
-        "__pycache__",
-        ".pytest_cache",
         "node_modules",
+        "coverage",
+        "logs",
         "uploads",
-        "generated_exports",
-        "reports",
-        "test-artifacts",
         "tests",
+        "tmp",
+        ".vscode",
+        ".idea",
+        "__pycache__",
         ".env",
         ".env.local",
+        ".env.production",
         "scripts/.deploy-cache.json",
-        "tmp_run_no_rate_limit_server.py",
-        "*.pyc",
-        "*.pyo",
+        "scripts/deploy.log",
         "*.log",
         "*.pid",
+        "*.pyc",
+        "*.pyo",
         "*.sqlite3",
-        "*.jsonl",
+        "*.sqlite",
+        "*.test.js",
+        "*.spec.js",
     ]
 
 
+# ============================================================
+# 上传逻辑
+# ============================================================
 def upload_dist(config: dict) -> bool:
     cfg = _normalize(config)
     try:
@@ -495,6 +747,8 @@ def upload_dist(config: dict) -> bool:
         if not dist_root.exists():
             raise RuntimeError(f"dist 目录不存在: {dist_root}")
         _ssh(cfg, f"mkdir -p {shlex.quote(cfg['server_frontend_path'])}")
+        # 前端目标是独立的 ai-xsread-vue3/dist 目录，启用 --delete 清理旧的 hash 文件，
+        # 但仍通过 excludes 保护 .htaccess / .user.ini / .well-known 等
         rsync_result = _run(
             _build_rsync_command(
                 cfg=cfg,
@@ -502,7 +756,7 @@ def upload_dist(config: dict) -> bool:
                 destination=cfg["server_frontend_path"],
                 excludes=_frontend_excludes(cfg),
                 chmod_mode=_frontend_chmod_mode(),
-                delete=False,
+                delete=True,
             ),
             dry_run=cfg["dry_run"],
         )
@@ -514,7 +768,7 @@ def upload_dist(config: dict) -> bool:
             rsync_output="" if rsync_result is None else rsync_result.stdout,
         )
         _ssh(cfg, build_frontend_healthcheck_command(cfg))
-        logger.info("✅ 前端部署完成")
+        logger.info("✅ 前端部署完成（站点：%s）", cfg["frontend_healthcheck_host"])
         return True
     except Exception as exc:
         logger.error("前端部署失败: %s", exc)
@@ -529,6 +783,10 @@ def upload_api(config: dict) -> bool:
         if not api_root.exists():
             raise RuntimeError(f"后端目录不存在: {api_root}")
         _ssh(cfg, f"mkdir -p {shlex.quote(cfg['server_api_path'])}")
+
+        # 部署前先抓一份远端 migrations 快照，部署后再抓一份做 diff
+        migrations_before = _remote_query_migrations(cfg)
+
         rsync_result = _run(
             _build_rsync_command(
                 cfg=cfg,
@@ -548,7 +806,12 @@ def upload_api(config: dict) -> bool:
             dry_run=cfg["dry_run"],
             rsync_output="" if rsync_result is None else rsync_result.stdout,
         )
-        logger.info("✅ 后端部署完成")
+
+        # 应用启动期会自动执行 runPendingMigrations，所以这里再抓一次最新状态
+        migrations_after = _remote_query_migrations(cfg)
+        _log_migration_diff(migrations_before, migrations_after)
+
+        logger.info("✅ 后端部署完成（PM2：%s）", cfg["backend_pm2_name"])
         return True
     except Exception as exc:
         logger.error("后端部署失败: %s", exc)
@@ -562,11 +825,15 @@ def watch_and_deploy(config: dict) -> bool:
         logger.error("watch 失败，dist 不存在: %s", dist)
         return False
     logger.info("watch 模式启动，监控: %s", dist)
-    last = hashlib.md5("".join(sorted(str(p.stat().st_mtime_ns) for p in dist.rglob("*") if p.is_file())).encode()).hexdigest()
+    last = hashlib.md5(
+        "".join(sorted(str(p.stat().st_mtime_ns) for p in dist.rglob("*") if p.is_file())).encode()
+    ).hexdigest()
     try:
         while True:
             time.sleep(CHECK_INTERVAL)
-            now = hashlib.md5("".join(sorted(str(p.stat().st_mtime_ns) for p in dist.rglob("*") if p.is_file())).encode()).hexdigest()
+            now = hashlib.md5(
+                "".join(sorted(str(p.stat().st_mtime_ns) for p in dist.rglob("*") if p.is_file())).encode()
+            ).hexdigest()
             if now != last:
                 logger.info("检测到 dist 变化，重新部署前端")
                 if upload_dist(cfg):
@@ -577,29 +844,36 @@ def watch_and_deploy(config: dict) -> bool:
 
 
 def sync_database_full(config: dict) -> bool:
-    logger.error("当前脚本不含数据库同步能力，请使用 alembic 或专用数据库脚本")
+    logger.error("当前脚本未实现数据库同步，请使用 mysql/mysqldump 手动迁移")
     return False
 
 
 def sync_database_migrations(config: dict) -> bool:
-    logger.error("当前脚本不含数据库同步能力，请使用 alembic 或专用数据库脚本")
+    logger.error("当前脚本未实现数据库迁移，请使用 mysql 命令行执行 SQL")
     return False
 
 
+# ============================================================
+# CLI
+# ============================================================
 def build_config(args: argparse.Namespace) -> dict:
     server_root = args.server_root or _env("DEPLOY_SERVER_ROOT", default=DEFAULT_SERVER_ROOT)
     frontend_preserve = tuple(
         p.strip()
-        for p in (args.frontend_preserve or ".htaccess,.user.ini,404.html,api").split(",")
+        for p in (
+            args.frontend_preserve
+            or ".htaccess,.user.ini,404.html,api,uploads,.well-known"
+        ).split(",")
         if p.strip()
     )
     return {
         "server_host": args.server_host or _env("DEPLOY_SERVER_HOST", default=DEFAULT_SERVER_HOST),
-        "server_user": args.server_user or _env("DEPLOY_SERVER_USER", default="root"),
+        "server_user": args.server_user or _env("DEPLOY_SERVER_USER", default=DEFAULT_SERVER_USER),
         "server_port": int(args.server_port or _env("DEPLOY_SERVER_PORT", default=str(DEFAULT_SERVER_PORT))),
         "server_root": server_root,
-        "server_frontend_path": args.server_frontend_path or _env("DEPLOY_SERVER_FRONTEND", default=server_root),
-        "server_api_path": args.server_api_path or _env("DEPLOY_SERVER_API", default=f"{server_root}/api"),
+        "server_frontend_path": args.server_frontend_path or _env("DEPLOY_SERVER_FRONTEND", default=f"{server_root}/ai-xsread-vue3/dist"),
+        "server_api_path": args.server_api_path or _env("DEPLOY_SERVER_API", default=f"{server_root}/backend"),
+        "server_pm2_config": args.server_pm2_config or _env("DEPLOY_SERVER_PM2_CONFIG", default=f"{server_root}/ecosystem.config.js"),
         "ssh_key_path": args.ssh_key or _env("DEPLOY_SSH_KEY", default=DEFAULT_SSH_KEY),
         "local_dist_path": args.local_dist_path or str(DEFAULT_LOCAL_DIST_PATH),
         "local_api_path": args.local_api_path or str(DEFAULT_LOCAL_API_PATH),
@@ -609,16 +883,22 @@ def build_config(args: argparse.Namespace) -> dict:
         "skip_frontend_build": args.skip_frontend_build,
         "dry_run": args.dry_run,
         "allow_unsafe_remote_path": args.allow_unsafe_remote_path,
-        "backend_supervisor_program": args.backend_supervisor_program
-        or _env("DEPLOY_BACKEND_SUPERVISOR_PROGRAM", default=DEFAULT_BACKEND_SUPERVISOR_PROGRAM),
+        "backend_pm2_name": args.backend_pm2_name
+        or _env("DEPLOY_BACKEND_PM2_NAME", default=DEFAULT_BACKEND_PM2_NAME),
+        "pm2_bin": args.pm2_bin or _env("DEPLOY_PM2_BIN", default="pm2"),
+        "npm_bin": args.npm_bin or _env("DEPLOY_NPM_BIN", default="npm"),
         "backend_healthcheck_url": args.backend_healthcheck_url
         or _env("DEPLOY_BACKEND_HEALTHCHECK_URL", default=DEFAULT_BACKEND_HEALTHCHECK_URL),
         "backend_restart_cmd": args.backend_restart_cmd or _env("DEPLOY_BACKEND_RESTART_CMD", default=""),
+        "frontend_healthcheck_host": args.frontend_healthcheck_host
+        or _env("DEPLOY_FRONTEND_HEALTHCHECK_HOST", default=DEFAULT_FRONTEND_HEALTHCHECK_HOST),
     }
 
 
 def create_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="AI_XS_Vocab 前后端部署脚本")
+    parser = argparse.ArgumentParser(
+        description="文字之境（AI-XsRead）一键部署脚本，目标站点：xs.momofx.cn",
+    )
     parser.add_argument("--once", action="store_true", help="兼容参数：执行一次并退出")
     parser.add_argument("--watch", action="store_true", help="监控 dist 变化并自动部署前端")
     parser.add_argument("--frontend", action="store_true", help="只部署前端")
@@ -628,25 +908,41 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument("--db", action="store_true", help="兼容参数：当前不支持")
     parser.add_argument("--db-full", action="store_true", help="兼容参数：当前不支持")
     parser.add_argument("--db-force", action="store_true", help="兼容参数")
-    parser.add_argument("--server-host", dest="server_host", help="服务器 IP / 域名")
-    parser.add_argument("--server-user", dest="server_user", help="服务器用户")
-    parser.add_argument("--server-port", dest="server_port", help="SSH 端口，默认 22")
-    parser.add_argument("--server-root", dest="server_root", help="服务器站点根目录")
-    parser.add_argument("--server-frontend-path", dest="server_frontend_path", help="服务器前端目录")
-    parser.add_argument("--server-api-path", dest="server_api_path", help="服务器后端目录")
+    # 服务器
+    parser.add_argument("--server-host", dest="server_host", help=f"服务器 IP / 域名，默认 {DEFAULT_SERVER_HOST}")
+    parser.add_argument("--server-user", dest="server_user", help=f"服务器用户，默认 {DEFAULT_SERVER_USER}")
+    parser.add_argument("--server-port", dest="server_port", help=f"SSH 端口，默认 {DEFAULT_SERVER_PORT}")
+    parser.add_argument("--server-root", dest="server_root", help=f"服务器站点根目录，默认 {DEFAULT_SERVER_ROOT}")
+    parser.add_argument("--server-frontend-path", dest="server_frontend_path", help=f"服务器前端目录，默认 {DEFAULT_SERVER_FRONTEND_PATH}")
+    parser.add_argument("--server-api-path", dest="server_api_path", help=f"服务器后端目录，默认 {DEFAULT_SERVER_API_PATH}")
+    parser.add_argument("--server-pm2-config", dest="server_pm2_config", help=f"服务器 PM2 ecosystem 配置路径，默认 {DEFAULT_SERVER_PM2_CONFIG}")
     parser.add_argument("--ssh-key", dest="ssh_key", help="SSH 私钥路径")
+    # 本地路径
     parser.add_argument("--local-dist-path", dest="local_dist_path", help="本地前端 dist 路径")
     parser.add_argument("--local-api-path", dest="local_api_path", help="本地后端路径")
-    parser.add_argument("--frontend-preserve", help="前端保留文件/目录，逗号分隔，默认 .htaccess,.user.ini,404.html,api")
+    parser.add_argument(
+        "--frontend-preserve",
+        help="前端保留文件/目录，逗号分隔，默认 .htaccess,.user.ini,404.html,api,uploads,.well-known",
+    )
     parser.add_argument("--strict-host-key-checking", choices=["yes", "no", "accept-new"], default="accept-new")
     parser.add_argument("--install-frontend-deps", action="store_true", help="部署前先 npm install")
     parser.add_argument("--skip-frontend-build", action="store_true", help="跳过 npm run build")
-    parser.add_argument("--backend-supervisor-program", help="Supervisor 中的后端进程名，默认 ai_xs_backend")
+    # 后端
+    parser.add_argument(
+        "--backend-pm2-name",
+        help=f"PM2 中的后端进程名，默认 {DEFAULT_BACKEND_PM2_NAME}",
+    )
+    parser.add_argument("--pm2-bin", help="远端 pm2 可执行路径，默认 pm2")
+    parser.add_argument("--npm-bin", help="远端 npm 可执行路径，默认 npm")
     parser.add_argument(
         "--backend-healthcheck-url",
-        help="后端上传重启后的健康检查地址，默认 http://127.0.0.1:8000/api/health",
+        help=f"后端健康检查地址，默认 {DEFAULT_BACKEND_HEALTHCHECK_URL}",
     )
-    parser.add_argument("--backend-restart-cmd", help="后端上传后执行的远程命令")
+    parser.add_argument(
+        "--frontend-healthcheck-host",
+        help=f"前端健康检查 Host 头，默认 {DEFAULT_FRONTEND_HEALTHCHECK_HOST}",
+    )
+    parser.add_argument("--backend-restart-cmd", help="自定义后端上传后执行的远程命令（覆盖默认 PM2 流程）")
     parser.add_argument("--dry-run", action="store_true", help="仅打印命令，不实际执行")
     parser.add_argument("--allow-unsafe-remote-path", action="store_true", help="允许部署到 /www/wwwroot/ 之外路径")
     return parser
@@ -669,6 +965,13 @@ def main() -> None:
     if not (do_front or do_back):
         do_front = True
         do_back = True
+
+    logger.info(
+        "目标站点：%s（站点根：%s，后端目录：%s）",
+        config.get("server_host") or DEFAULT_SERVER_HOST,
+        config.get("server_root") or DEFAULT_SERVER_ROOT,
+        config.get("server_api_path") or f"{config.get('server_root') or DEFAULT_SERVER_ROOT}/api",
+    )
 
     ok = True
     if do_front:

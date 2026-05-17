@@ -299,8 +299,9 @@ const handleReset = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 300;
+  background-color: rgba(20, 17, 15, 0.46);
+  backdrop-filter: blur(2px);
+  z-index: 80;
 }
 
 /* 设置面板 */
@@ -309,11 +310,14 @@ const handleReset = () => {
   bottom: 0;
   left: 0;
   right: 0;
-  max-height: 85vh;
-  background-color: var(--color-bg-card);
-  border-radius: 1.5rem 1.5rem 0 0;
-  box-shadow: 0 -4px 16px var(--color-shadow);
-  z-index: 301;
+  max-height: min(82vh, 720px);
+  background: #fffaf3;
+  color: #2f241d;
+  border: 1px solid rgba(88, 61, 42, 0.14);
+  border-bottom: 0;
+  border-radius: 1.25rem 1.25rem 0 0;
+  box-shadow: 0 -18px 48px rgba(36, 25, 18, 0.22);
+  z-index: 90;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -324,58 +328,62 @@ const handleReset = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(88, 61, 42, 0.14);
+  background: rgba(255, 250, 243, 0.98);
+  flex-shrink: 0;
 }
 
 .panel-header h2 {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: #3b2f25;
 }
 
 .close-btn {
   padding: 0.5rem;
   border-radius: 0.5rem;
-  color: var(--color-text-secondary);
+  color: #6b5543;
   transition: all 0.2s;
 }
 
 .close-btn:hover {
-  background-color: var(--color-accent);
-  color: var(--color-primary);
+  background-color: rgba(127, 85, 57, 0.1);
+  color: #8f3f48;
 }
 
 /* 面板内容 */
 .panel-content {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
-  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  padding: 1rem 1.25rem;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  background: #fffaf3;
+  overscroll-behavior: contain;
 }
 
 /* 设置区块 */
 .setting-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.35rem;
 }
 
 .setting-label {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 1rem;
-  color: var(--color-text-primary);
+  margin-bottom: 0.75rem;
+  color: #3b2f25;
   font-weight: 500;
 }
 
 .setting-label svg {
-  color: var(--color-primary);
+  color: #8f3f48;
   flex-shrink: 0;
 }
 
 .setting-value {
   margin-left: auto;
-  color: var(--color-text-muted);
+  color: #806957;
   font-size: 0.875rem;
 }
 
@@ -383,25 +391,25 @@ const handleReset = () => {
 .font-size-control {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .size-btn {
   flex-shrink: 0;
-  width: 3rem;
-  height: 3rem;
+  width: 2.75rem;
+  height: 2.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.75rem;
-  background-color: var(--color-accent);
-  color: var(--color-primary);
+  border-radius: 0.65rem;
+  background-color: #f3eadc;
+  color: #7f4a35;
   font-weight: 600;
   transition: all 0.2s;
 }
 
 .size-btn:hover {
-  background-color: var(--color-primary);
+  background-color: #8f3f48;
   color: white;
 }
 
@@ -410,7 +418,7 @@ const handleReset = () => {
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
-  background: var(--color-border);
+  background: #ded0bd;
   border-radius: 2px;
   outline: none;
 }
@@ -420,7 +428,7 @@ const handleReset = () => {
   appearance: none;
   width: 20px;
   height: 20px;
-  background: var(--color-primary);
+  background: #8f3f48;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -428,7 +436,7 @@ const handleReset = () => {
 .size-slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  background: var(--color-primary);
+  background: #8f3f48;
   border-radius: 50%;
   cursor: pointer;
   border: none;
@@ -438,62 +446,66 @@ const handleReset = () => {
 .line-height-options,
 .flip-mode-options,
 .font-options {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 0.55rem;
 }
 
 .option-btn {
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--color-border);
-  background-color: transparent;
-  color: var(--color-text-secondary);
+  min-height: 2.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid #e2d5c5;
+  background-color: #fffdf8;
+  color: #5f4a3a;
   font-size: 0.875rem;
+  text-align: center;
   transition: all 0.2s;
 }
 
 .option-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: #a75b5f;
+  color: #8f3f48;
 }
 
 .option-btn.active {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
+  background-color: #8f3f48;
+  border-color: #8f3f48;
   color: white;
 }
 
 /* 背景色 */
 .background-colors {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
 .color-btn {
   position: relative;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  border: 2px solid transparent;
+  min-height: 3.25rem;
+  padding: 0.75rem 0.5rem;
+  border-radius: 0.65rem;
+  border: 2px solid rgba(88, 61, 42, 0.12);
   text-align: center;
   font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.2s;
   cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38);
 }
 
 .color-btn.active {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(217, 84, 104, 0.1);
+  border-color: #8f3f48;
+  box-shadow: 0 0 0 3px rgba(143, 63, 72, 0.14);
 }
 
 .check-icon {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 1.25rem;
-  height: 1.25rem;
+  top: 0.45rem;
+  right: 0.45rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 /* 亮度滑块 */
@@ -512,7 +524,7 @@ const handleReset = () => {
   appearance: none;
   width: 24px;
   height: 24px;
-  background: var(--color-primary);
+  background: #8f3f48;
   border-radius: 50%;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -521,7 +533,7 @@ const handleReset = () => {
 .brightness-slider::-moz-range-thumb {
   width: 24px;
   height: 24px;
-  background: var(--color-primary);
+  background: #8f3f48;
   border-radius: 50%;
   cursor: pointer;
   border: none;
@@ -568,7 +580,7 @@ const handleReset = () => {
 }
 
 .toggle-switch input:checked + .toggle-slider {
-  background-color: var(--color-primary);
+  background-color: #8f3f48;
 }
 
 .toggle-switch input:checked + .toggle-slider:before {
@@ -583,7 +595,7 @@ const handleReset = () => {
 .support-tip {
   margin-top: 0.5rem;
   font-size: 0.75rem;
-  color: var(--color-text-muted);
+  color: #806957;
 }
 
 /* 重置按钮 */
@@ -595,9 +607,9 @@ const handleReset = () => {
   width: 100%;
   padding: 1rem;
   border-radius: 0.75rem;
-  border: 1px solid var(--color-border);
-  background-color: transparent;
-  color: var(--color-text-secondary);
+  border: 1px solid #e2d5c5;
+  background-color: #fffdf8;
+  color: #5f4a3a;
   font-size: 0.9375rem;
   font-weight: 500;
   transition: all 0.2s;
@@ -605,9 +617,77 @@ const handleReset = () => {
 }
 
 .reset-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background-color: var(--color-accent);
+  border-color: #a75b5f;
+  color: #8f3f48;
+  background-color: #f3eadc;
+}
+
+:global([data-bg="dark"]) .setting-panel,
+:global(.dark) .setting-panel {
+  background: #211f1d;
+  color: #eee5da;
+  border-color: rgba(238, 229, 218, 0.12);
+  box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.48);
+}
+
+:global([data-bg="dark"]) .panel-header,
+:global([data-bg="dark"]) .panel-content,
+:global(.dark) .panel-header,
+:global(.dark) .panel-content {
+  background: #211f1d;
+}
+
+:global([data-bg="dark"]) .panel-header,
+:global(.dark) .panel-header {
+  border-bottom-color: rgba(238, 229, 218, 0.12);
+}
+
+:global([data-bg="dark"]) .panel-header h2,
+:global([data-bg="dark"]) .setting-label,
+:global(.dark) .panel-header h2,
+:global(.dark) .setting-label {
+  color: #eee5da;
+}
+
+:global([data-bg="dark"]) .close-btn,
+:global([data-bg="dark"]) .setting-value,
+:global([data-bg="dark"]) .support-tip,
+:global(.dark) .close-btn,
+:global(.dark) .setting-value,
+:global(.dark) .support-tip {
+  color: #b8aa9b;
+}
+
+:global([data-bg="dark"]) .option-btn,
+:global([data-bg="dark"]) .reset-btn,
+:global(.dark) .option-btn,
+:global(.dark) .reset-btn {
+  background: #2c2926;
+  border-color: rgba(238, 229, 218, 0.14);
+  color: #ded6cc;
+}
+
+:global([data-bg="dark"]) .size-btn,
+:global(.dark) .size-btn {
+  background: #2c2926;
+}
+
+@media (max-width: 420px) {
+  .panel-header,
+  .panel-content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .background-colors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .line-height-options,
+  .flip-mode-options,
+  .font-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* 动画 */
