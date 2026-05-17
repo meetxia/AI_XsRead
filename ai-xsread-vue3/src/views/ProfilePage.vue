@@ -1,41 +1,54 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import BottomNav from '@/components/v2/layout/BottomNav.vue'
 import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import { useUserStore } from '@/stores/user'
+import { useUserStats } from '@/composables/useUserStats'
+import WeekBarChart from '@/components/profile/WeekBarChart.vue'
+import FollowingAuthorList from '@/components/profile/FollowingAuthorList.vue'
+import { getFollowingAuthors } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { shelfCount, readingStreak, totalMinutes, todayMinutes, joinDays, weekTrend, formatMinutes, loadStats } = useUserStats()
+const followingAuthors = ref([])
 
 const user = computed(() => ({
   name: userStore.userInfo?.username || userStore.userInfo?.nickname || '阮宁',
   handle: '@' + (userStore.userInfo?.username || 'ningning'),
-  joinDays: 287,
+  joinDays: joinDays.value,
   avatar: userStore.userInfo?.avatar || '',
-  shelf: 32,
-  streak: 14,
-  hours: 287,
+  shelf: shelfCount.value,
+  streak: readingStreak.value,
+  hours: formatMinutes(totalMinutes.value),
 }))
 
 const avatarLetter = computed(() => (user.value.name[0] || '阮').toUpperCase())
-
-// 周阅读柱状图（占位数据）
-const weekData = [
-  { day: '一', pct: 30 },
-  { day: '二', pct: 55 },
-  { day: '三', pct: 75 },
-  { day: '四', pct: 45 },
-  { day: '五', pct: 100, today: true },
-  { day: '六', pct: 25 },
-  { day: '日', pct: 65 },
-]
 
 async function doLogout() {
   await userStore.logout()
   router.push('/login')
 }
+
+async function loadFollowingAuthors() {
+  if (!userStore.isLogin) return
+  try {
+    const res = await getFollowingAuthors({ page: 1, pageSize: 10 })
+    const list = Array.isArray(res?.data) ? res.data : (res?.data?.list || [])
+    followingAuthors.value = list
+  } catch (e) {
+    followingAuthors.value = []
+  }
+}
+
+onMounted(() => {
+  if (userStore.isLogin) {
+    loadStats()
+    loadFollowingAuthors()
+  }
+})
 </script>
 
 <template>
@@ -72,7 +85,7 @@ async function doLogout() {
                 </div>
                 <div class="flex-1 min-w-0">
                   <h1 class="font-serif text-xl sm:text-2xl font-semibold tracking-tight truncate">{{ user.name }}</h1>
-                  <p class="text-sm text-cream-200/85 mt-0.5 truncate">{{ user.handle }} · 加入 {{ user.joinDays }} 天</p>
+                  <p class="text-sm text-cream-200/85 mt-0.5 truncate">{{ user.handle }}<span v-if="user.joinDays"> · 加入 {{ user.joinDays }} 天</span></p>
                 </div>
                 <button class="px-3 py-1.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/25 text-xs shrink-0">编辑</button>
               </div>
@@ -89,7 +102,7 @@ async function doLogout() {
                   <p class="text-[10px] tracking-wider uppercase text-cream-200/70 mt-0.5">连读</p>
                 </div>
                 <div>
-                  <p class="font-serif text-lg sm:text-xl font-semibold">{{ user.hours }}<span class="text-xs ml-0.5">h</span></p>
+                  <p class="font-serif text-lg sm:text-xl font-semibold">{{ user.hours }}</p>
                   <p class="text-[10px] tracking-wider uppercase text-cream-200/70 mt-0.5">阅读时长</p>
                 </div>
               </div>
@@ -107,16 +120,30 @@ async function doLogout() {
                 <Icon name="clock" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
                 <span class="text-[11px]">历史</span>
               </RouterLink>
-              <a href="#" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+              <RouterLink to="/profile/achievements" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+                <Icon name="starFill" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="text-[11px]">我的勋章</span>
+              </RouterLink>
+              <RouterLink to="/profile/notes" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
                 <Icon name="heart" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
-                <span class="text-[11px]">收藏</span>
-              </a>
-              <a href="#" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
-                <Icon name="arrowDown" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
-                <span class="text-[11px]">下载</span>
-              </a>
+                <span class="text-[11px]">我的想法</span>
+              </RouterLink>
+              <RouterLink to="/profile/highlights" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+                <Icon name="bookmark" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="text-[11px]">我的划线</span>
+              </RouterLink>
+              <RouterLink to="/profile/bookmarks" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+                <Icon name="bookmarkFill" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="text-[11px]">书签</span>
+              </RouterLink>
+              <RouterLink v-if="!followingAuthors.length" to="/profile/following-authors" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+                <Icon name="user" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="text-[11px]">关注作者</span>
+              </RouterLink>
             </div>
           </section>
+
+          <FollowingAuthorList :authors="followingAuthors" />
 
           <!-- 阅读统计 -->
           <section>
@@ -127,18 +154,10 @@ async function doLogout() {
               </div>
             </div>
             <div class="rounded-2xl bg-cream-100 dark:bg-night-800 p-4 sm:p-5">
-              <div class="flex items-end justify-between gap-2 h-28 sm:h-32 mb-3">
-                <div v-for="(d, i) in weekData" :key="i" class="flex-1 flex flex-col items-center gap-1.5">
-                  <div
-                    :class="['w-full rounded-t', d.today ? 'bg-clay-500' : 'bg-clay-500/40']"
-                    :style="{ height: d.pct + '%' }"
-                  ></div>
-                  <span :class="['text-[10px]', d.today ? 'text-clay-700 font-medium' : 'text-ink-500']">{{ d.day }}</span>
-                </div>
-              </div>
+              <WeekBarChart :data="weekTrend" />
               <div class="flex items-center justify-between text-xs text-ink-500 dark:text-ink-300 pt-3 border-t border-cream-200 dark:border-night-700">
-                <span>共 12.5 小时 · 读完 1 本</span>
-                <span class="text-moss-600 dark:text-moss-500 font-medium">↑ 比上周多 28%</span>
+                <span>今日 {{ formatMinutes(todayMinutes) }}</span>
+                <span class="text-moss-600 dark:text-moss-500 font-medium">总计 {{ formatMinutes(totalMinutes) }}</span>
               </div>
             </div>
           </section>

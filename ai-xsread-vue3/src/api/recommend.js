@@ -54,6 +54,21 @@ export function getCategoryRecommend(categoryId, params = {}) {
   })
 }
 
+// 获取分榜 Top 10
+export function getRankList(params = {}) {
+  return request({
+    url: '/novels',
+    method: 'get',
+    params: {
+      sortBy: 'views',
+      order: 'DESC',
+      page: 1,
+      pageSize: 10,
+      ...params,
+    }
+  })
+}
+
 // 获取新书推荐（按创建时间排序）
 export function getNewBooks(params = {}) {
   return request({

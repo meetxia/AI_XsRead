@@ -1,16 +1,27 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import BookCover from '@/components/v2/book/BookCover.vue'
+import EnhancedSearchBar from '@/components/search/EnhancedSearchBar.vue'
+import SearchFilterPanel from '@/components/novel/SearchFilterPanel.vue'
 import {
   getSearchHistory, saveSearchHistory, clearSearchHistory,
   getHotSearch, searchNovels
 } from '@/api/search'
 
 const router = useRouter()
+const route = useRoute()
 
 const keyword = ref('')
+const filters = ref({
+  hasFinished: '',
+  wordCount: '',
+  wordCountMin: '',
+  wordCountMax: '',
+  ratingMin: '',
+  sortBy: 'default',
+})
 const history = ref([])
 const hotList = ref([
   { id: 1, label: '山有木兮：那一年长安飘雪', tag: 'HOT' },
@@ -25,6 +36,8 @@ const guesses = ref([
   { id:'g1', title:'霜信',      author:'林深', cat:'都市言情', rating:9.0, variant:0 },
   { id:'g2', title:'深巷里的灯', author:'江聿', cat:'悬疑',     rating:9.1, variant:2 },
 ])
+const searched = ref(false)
+const loading = ref(false)
 
 function loadHistory() {
   history.value = getSearchHistory()
@@ -38,14 +51,54 @@ function removeOne(k) {
   localStorage.setItem('searchHistory', JSON.stringify(history.value))
 }
 
-async function doSearch(k) {
+function readQuery() {
+  keyword.value = route.query.keyword || route.query.q || ''
+  filters.value = {
+    hasFinished: route.query.hasFinished || '',
+    wordCount: route.query.wordCount || '',
+    wordCountMin: route.query.wordCountMin || '',
+    wordCountMax: route.query.wordCountMax || '',
+    ratingMin: route.query.ratingMin || '',
+    sortBy: route.query.sortBy || 'default',
+  }
+}
+
+function syncUrl(q) {
+  const query = { ...route.query }
+  if (q) query.keyword = q
+  else delete query.keyword
+
+  Object.entries(filters.value).forEach(([key, value]) => {
+    if (value && value !== 'default') query[key] = value
+    else delete query[key]
+  })
+  router.replace({ path: '/search', query })
+}
+
+async function doSearch(k, sync = true) {
   const q = (k || keyword.value || '').trim()
-  if (!q) return
+  if (!q && !hasActiveFilters()) return
   keyword.value = q
-  saveSearchHistory(q)
-  loadHistory()
+  if (q) {
+    saveSearchHistory(q)
+    loadHistory()
+  }
+  if (sync) syncUrl(q)
+  loading.value = true
+  searched.value = true
   try {
-    const res = await searchNovels({ keyword: q, page: 1, limit: 10 })
+    const params = {
+      keyword: q,
+      page: 1,
+      limit: 10,
+      pageSize: 10,
+      hasFinished: filters.value.hasFinished || undefined,
+      wordCountMin: filters.value.wordCountMin || undefined,
+      wordCountMax: filters.value.wordCountMax || undefined,
+      ratingMin: filters.value.ratingMin || undefined,
+      sortBy: filters.value.sortBy === 'default' ? undefined : filters.value.sortBy,
+    }
+    const res = await searchNovels(params)
     if (res?.code === 200) {
       const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
       guesses.value = list.map((n, i) => ({
@@ -59,6 +112,16 @@ async function doSearch(k) {
       }))
     }
   } catch (e) { /* ignore */ }
+  finally { loading.value = false }
+}
+
+function hasActiveFilters() {
+  return Boolean(filters.value.hasFinished || filters.value.wordCountMin || filters.value.wordCountMax || filters.value.ratingMin || (filters.value.sortBy && filters.value.sortBy !== 'default'))
+}
+
+function resetFilters() {
+  filters.value = { hasFinished: '', wordCount: '', wordCountMin: '', wordCountMax: '', ratingMin: '', sortBy: 'default' }
+  doSearch(keyword.value)
 }
 
 async function loadHot() {
@@ -75,9 +138,18 @@ async function loadHot() {
 }
 
 onMounted(() => {
+  readQuery()
   loadHistory()
   loadHot()
+  if (keyword.value || hasActiveFilters()) doSearch(keyword.value, false)
 })
+
+watch(() => route.query, () => {
+  readQuery()
+  if (keyword.value || hasActiveFilters()) doSearch(keyword.value, false)
+})
+
+watch(filters, () => doSearch(keyword.value), { deep: true })
 </script>
 
 <template>
@@ -89,15 +161,7 @@ onMounted(() => {
           <Icon name="back" class="w-5 h-5" />
         </button>
         <div class="flex-1 relative">
-          <Icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-500 pointer-events-none" />
-          <input
-            v-model="keyword"
-            type="search"
-            autofocus
-            placeholder="搜书名、作者、标签…"
-            class="w-full h-10 pl-10 pr-4 rounded-full bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition-colors"
-            @keydown.enter="doSearch()"
-          />
+          <EnhancedSearchBar v-model="keyword" placeholder="搜书名、作者、标签..." @search="doSearch" />
         </div>
         <button @click="doSearch()" class="px-3 h-9 rounded-full text-sm text-clay-700 dark:text-clay-400 font-medium hover:bg-cream-100 dark:hover:bg-night-800 transition">搜索</button>
       </div>
@@ -114,6 +178,8 @@ onMounted(() => {
           <button v-for="h in history" :key="h" @click="doSearch(h)" class="px-3 py-1.5 rounded-full bg-cream-100 dark:bg-night-800 text-sm hover:bg-cream-200 dark:hover:bg-night-700 transition">{{ h }}</button>
         </div>
       </section>
+
+      <SearchFilterPanel v-model="filters" class="mt-5" @reset="resetFilters" />
 
       <!-- PC 双栏：左 热搜榜单+分类；右 猜你想看 -->
       <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
@@ -162,6 +228,8 @@ onMounted(() => {
             </div>
           </div>
           <div class="space-y-2.5">
+            <div v-if="loading" class="rounded-2xl bg-cream-100 dark:bg-night-800 p-4 text-sm text-ink-500">搜索中...</div>
+            <div v-else-if="searched && !guesses.length" class="rounded-2xl bg-cream-100 dark:bg-night-800 p-4 text-sm text-ink-500">没有符合条件的小说，试试放宽筛选 →</div>
             <RouterLink v-for="g in guesses" :key="g.id" :to="`/novel/${g.id}`" class="flex items-center gap-3 p-3 rounded-2xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200/60 dark:hover:bg-night-700/60 transition">
               <div class="w-12 h-16 rounded-lg overflow-hidden shadow-cream shrink-0">
                 <BookCover :title="g.title.slice(0,2)" :variant="g.variant" :cover="g.cover" :footer="false" />

@@ -1,243 +1,198 @@
-/**
- * 阅读设置管理 Composable
- * 管理字体大小、行间距、背景色等阅读偏好
- */
+import { computed, reactive, watch } from 'vue'
 
-import { ref, watch, computed } from 'vue'
+export const READING_SETTINGS_KEY = 'reading-settings'
 
-// 背景色预设
-export const backgroundColors = [
-  { name: '纯白', value: '#ffffff', textColor: '#1a202c' },
-  { name: '米黄', value: '#f5f1e8', textColor: '#2d3748' },
-  { name: '绿豆沙', value: '#e3edcd', textColor: '#2d3748' },
-  { name: '护眼绿', value: '#cce8cf', textColor: '#2d3748' },
-  { name: '暗夜', value: '#1a202c', textColor: '#e2e8f0' }
-]
-
-// 字体预设
 export const fontFamilies = [
-  { name: '默认', value: "'Noto Serif SC', serif" },
-  { name: '宋体', value: "'SimSun', serif" },
-  { name: '黑体', value: "'SimHei', sans-serif" },
-  { name: '楷体', value: "'KaiTi', serif" },
-  { name: '微软雅黑', value: "'Microsoft YaHei', sans-serif" }
+  { name: '默认', value: 'default', family: '"Noto Serif SC", "Source Han Serif SC", serif' },
+  { name: '宋体', value: 'songti', family: 'SimSun, "Songti SC", serif' },
+  { name: '黑体', value: 'heiti', family: 'SimHei, "Heiti SC", sans-serif' },
+  { name: '楷体', value: 'kaiti', family: 'KaiTi, "Kaiti SC", serif' },
+  { name: '雅黑', value: 'yahei', family: '"Microsoft YaHei", "PingFang SC", sans-serif' },
 ]
 
-// 行间距预设
 export const lineHeights = [
-  { name: '紧凑', value: 1.5 },
-  { name: '适中', value: 1.8 },
-  { name: '舒适', value: 2.0 },
-  { name: '宽松', value: 2.2 },
-  { name: '超宽', value: 2.5 }
+  { name: '1.4', value: 1.4 },
+  { name: '1.6', value: 1.6 },
+  { name: '1.8', value: 1.8 },
+  { name: '2.0', value: 2.0 },
+  { name: '2.2', value: 2.2 },
 ]
 
-// 翻页方式
+export const paragraphSpacings = [
+  { name: '紧凑', value: 'compact', margin: '0.5em' },
+  { name: '标准', value: 'normal', margin: '1em' },
+  { name: '疏朗', value: 'relaxed', margin: '1.5em' },
+]
+
+export const pageMargins = [
+  { name: '窄', value: 'narrow', padding: 16 },
+  { name: '标准', value: 'normal', padding: 24 },
+  { name: '宽', value: 'wide', padding: 40 },
+]
+
 export const pageFlipModes = [
   { name: '滚动', value: 'scroll' },
-  { name: '点击', value: 'click' },
-  { name: '滑动', value: 'swipe' }
+  { name: '点击', value: 'tap' },
+  { name: '滑动', value: 'swipe' },
 ]
 
-// 默认设置
-const defaultSettings = {
-  fontSize: 18,          // 字体大小 (12-24px)
-  lineHeight: 1.8,       // 行间距
-  backgroundColor: '#f5f1e8',  // 背景色
-  textColor: '#2d3748',  // 文字颜色
-  fontFamily: "'Noto Serif SC', serif",  // 字体
-  pageFlipMode: 'scroll',  // 翻页方式
-  brightness: 1.0,       // 亮度 (0.5-1.0)
-  autoRead: false,       // 自动朗读
-  autoReadSpeed: 1.0     // 朗读速度
+export const backgroundColors = [
+  { name: '日间', value: 'white', bg: '#fafaf9', text: '#1c1917' },
+  { name: '柔黄', value: 'sepia', bg: '#f5eedc', text: '#3b2f25' },
+  { name: '护眼', value: 'green', bg: '#e6efe4', text: '#223026' },
+  { name: '夜间', value: 'dark', bg: '#12110f', text: '#ded8ce' },
+]
+
+export const ttsSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+
+export const defaultReadingSettings = Object.freeze({
+  fontSize: 18,
+  lineHeight: 1.8,
+  paragraphSpacing: 'normal',
+  pageMargin: 'normal',
+  fontFamily: 'default',
+  brightness: 100,
+  pageFlipMode: 'scroll',
+  keepAwake: false,
+  background: 'sepia',
+  ttsRate: 1,
+  ttsVoiceURI: '',
+})
+
+const settings = reactive({ ...defaultReadingSettings })
+let loaded = false
+
+function normalize(raw = {}) {
+  const next = { ...defaultReadingSettings, ...raw }
+  const fontSize = Number(next.fontSize)
+  const brightness = Number(next.brightness)
+
+  next.fontSize = Number.isFinite(fontSize) ? Math.min(28, Math.max(12, fontSize)) : defaultReadingSettings.fontSize
+  next.brightness = Number.isFinite(brightness) ? Math.min(100, Math.max(50, brightness)) : defaultReadingSettings.brightness
+
+  if (!lineHeights.some((item) => item.value === Number(next.lineHeight))) next.lineHeight = defaultReadingSettings.lineHeight
+  else next.lineHeight = Number(next.lineHeight)
+
+  if (!paragraphSpacings.some((item) => item.value === next.paragraphSpacing)) next.paragraphSpacing = defaultReadingSettings.paragraphSpacing
+  if (!pageMargins.some((item) => item.value === next.pageMargin)) next.pageMargin = defaultReadingSettings.pageMargin
+  if (!fontFamilies.some((item) => item.value === next.fontFamily)) next.fontFamily = defaultReadingSettings.fontFamily
+  if (!pageFlipModes.some((item) => item.value === next.pageFlipMode)) next.pageFlipMode = defaultReadingSettings.pageFlipMode
+  if (!backgroundColors.some((item) => item.value === next.background)) next.background = defaultReadingSettings.background
+  if (!ttsSpeeds.includes(Number(next.ttsRate))) next.ttsRate = defaultReadingSettings.ttsRate
+  else next.ttsRate = Number(next.ttsRate)
+
+  next.keepAwake = Boolean(next.keepAwake)
+  next.ttsVoiceURI = typeof next.ttsVoiceURI === 'string' ? next.ttsVoiceURI : ''
+  return next
 }
 
-// 从 localStorage 加载设置
-const loadSettings = () => {
+function readStoredSettings() {
+  if (typeof localStorage === 'undefined') return {}
+
   try {
-    const saved = localStorage.getItem('reading-settings')
-    if (saved) {
-      return { ...defaultSettings, ...JSON.parse(saved) }
+    const next = localStorage.getItem(READING_SETTINGS_KEY)
+    if (next) return JSON.parse(next)
+
+    const legacy = localStorage.getItem('xs-reading-prefs-v2')
+    if (!legacy) return {}
+
+    const parsed = JSON.parse(legacy)
+    return {
+      fontSize: parsed.fontSize,
+      lineHeight: parsed.lineHeight,
+      fontFamily: parsed.font === 'sans' ? 'yahei' : 'default',
+      background: parsed.bg === 'eye' ? 'green' : parsed.bg,
     }
   } catch (error) {
-    console.error('加载阅读设置失败:', error)
-  }
-  return { ...defaultSettings }
-}
-
-// 保存设置到 localStorage
-const saveSettingsToStorage = (settings) => {
-  try {
-    localStorage.setItem('reading-settings', JSON.stringify(settings))
-  } catch (error) {
-    console.error('保存阅读设置失败:', error)
+    console.warn('[reading-settings] load failed', error)
+    return {}
   }
 }
 
-/**
- * 阅读设置 Hook
- */
-export const useReadingSettings = () => {
-  // 设置状态
-  const settings = ref(loadSettings())
-  
-  /**
-   * 设置字体大小
-   * @param {number} size - 字体大小 (12-24)
-   */
-  const setFontSize = (size) => {
-    if (size >= 12 && size <= 24) {
-      settings.value.fontSize = size
-    }
-  }
-  
-  /**
-   * 增加字体大小
-   */
-  const increaseFontSize = () => {
-    if (settings.value.fontSize < 24) {
-      settings.value.fontSize += 1
-    }
-  }
-  
-  /**
-   * 减小字体大小
-   */
-  const decreaseFontSize = () => {
-    if (settings.value.fontSize > 12) {
-      settings.value.fontSize -= 1
-    }
-  }
-  
-  /**
-   * 设置行间距
-   * @param {number} height - 行间距
-   */
-  const setLineHeight = (height) => {
-    settings.value.lineHeight = height
-  }
-  
-  /**
-   * 设置背景色
-   * @param {string} color - 背景色
-   * @param {string} textColor - 文字颜色
-   */
-  const setBackgroundColor = (color, textColor) => {
-    settings.value.backgroundColor = color
-    settings.value.textColor = textColor
-  }
-  
-  /**
-   * 设置字体
-   * @param {string} family - 字体族
-   */
-  const setFontFamily = (family) => {
-    settings.value.fontFamily = family
-  }
-  
-  /**
-   * 设置翻页方式
-   * @param {string} mode - 翻页方式
-   */
-  const setPageFlipMode = (mode) => {
-    settings.value.pageFlipMode = mode
-  }
-  
-  /**
-   * 设置亮度
-   * @param {number} brightness - 亮度 (0.5-1.0)
-   */
-  const setBrightness = (brightness) => {
-    if (brightness >= 0.5 && brightness <= 1.0) {
-      settings.value.brightness = brightness
-    }
-  }
-  
-  /**
-   * 切换自动朗读
-   */
-  const toggleAutoRead = () => {
-    settings.value.autoRead = !settings.value.autoRead
-  }
-  
-  /**
-   * 设置朗读速度
-   * @param {number} speed - 速度 (0.5-2.0)
-   */
-  const setAutoReadSpeed = (speed) => {
-    if (speed >= 0.5 && speed <= 2.0) {
-      settings.value.autoReadSpeed = speed
-    }
-  }
-  
-  /**
-   * 重置所有设置
-   */
-  const resetSettings = () => {
-    settings.value = { ...defaultSettings }
-  }
-  
-  /**
-   * 获取当前背景色配置
-   */
-  const getCurrentBackgroundConfig = computed(() => {
-    return backgroundColors.find(
-      bg => bg.value === settings.value.backgroundColor
-    ) || backgroundColors[0]
-  })
-  
-  /**
-   * 获取当前字体配置
-   */
-  const getCurrentFontConfig = computed(() => {
-    return fontFamilies.find(
-      font => font.value === settings.value.fontFamily
-    ) || fontFamilies[0]
-  })
-  
-  /**
-   * 获取当前行间距配置
-   */
-  const getCurrentLineHeightConfig = computed(() => {
-    return lineHeights.find(
-      lh => lh.value === settings.value.lineHeight
-    ) || lineHeights[1]
-  })
-  
-  // 监听设置变化，自动保存
-  watch(settings, (newSettings) => {
-    saveSettingsToStorage(newSettings)
-  }, { deep: true })
-  
+function persistSettings() {
+  if (typeof localStorage === 'undefined') return
+  localStorage.setItem(READING_SETTINGS_KEY, JSON.stringify({ ...settings }))
+}
+
+function load() {
+  Object.assign(settings, normalize(readStoredSettings()))
+  loaded = true
+  return settings
+}
+
+function save(patch = {}) {
+  Object.assign(settings, normalize({ ...settings, ...patch }))
+  persistSettings()
+}
+
+function reset() {
+  Object.assign(settings, { ...defaultReadingSettings })
+  persistSettings()
+}
+
+function applyToDocument(root = document?.documentElement) {
+  if (!root) return
+  const font = fontFamilies.find((item) => item.value === settings.fontFamily) || fontFamilies[0]
+  const spacing = paragraphSpacings.find((item) => item.value === settings.paragraphSpacing) || paragraphSpacings[1]
+  const margin = pageMargins.find((item) => item.value === settings.pageMargin) || pageMargins[1]
+  const bg = backgroundColors.find((item) => item.value === settings.background) || backgroundColors[1]
+
+  root.style.setProperty('--reading-font-size', `${settings.fontSize}px`)
+  root.style.setProperty('--reading-line-height', String(settings.lineHeight))
+  root.style.setProperty('--reading-paragraph-spacing', spacing.margin)
+  root.style.setProperty('--reading-page-padding', `${margin.padding}px`)
+  root.style.setProperty('--reading-font', font.family)
+  root.style.setProperty('--reading-bg', bg.bg)
+  root.style.setProperty('--reading-text', bg.text)
+  root.style.setProperty('--reading-dim-opacity', String((100 - settings.brightness) / 100))
+}
+
+watch(
+  settings,
+  () => {
+    if (!loaded) return
+    persistSettings()
+    if (typeof document !== 'undefined') applyToDocument()
+  },
+  { deep: true }
+)
+
+export function useReadingSettings() {
+  if (!loaded) load()
+  if (typeof document !== 'undefined') applyToDocument()
+
+  const currentBackground = computed(() => backgroundColors.find((item) => item.value === settings.background) || backgroundColors[1])
+  const wakeLockSupported = computed(() => typeof navigator !== 'undefined' && 'wakeLock' in navigator)
+
   return {
-    // 状态
     settings,
-    
-    // 预设选项
     backgroundColors,
     fontFamilies,
     lineHeights,
+    paragraphSpacings,
+    pageMargins,
     pageFlipModes,
-    
-    // 计算属性
-    getCurrentBackgroundConfig,
-    getCurrentFontConfig,
-    getCurrentLineHeightConfig,
-    
-    // 方法
-    setFontSize,
-    increaseFontSize,
-    decreaseFontSize,
-    setLineHeight,
-    setBackgroundColor,
-    setFontFamily,
-    setPageFlipMode,
-    setBrightness,
-    toggleAutoRead,
-    setAutoReadSpeed,
-    resetSettings
+    ttsSpeeds,
+    currentBackground,
+    wakeLockSupported,
+    load,
+    save,
+    reset,
+    applyToDocument,
+    setFontSize: (value) => save({ fontSize: value }),
+    increaseFontSize: () => save({ fontSize: settings.fontSize + 1 }),
+    decreaseFontSize: () => save({ fontSize: settings.fontSize - 1 }),
+    setLineHeight: (value) => save({ lineHeight: value }),
+    setParagraphSpacing: (value) => save({ paragraphSpacing: value }),
+    setPageMargin: (value) => save({ pageMargin: value }),
+    setFontFamily: (value) => save({ fontFamily: value }),
+    setBrightness: (value) => save({ brightness: value }),
+    setPageFlipMode: (value) => save({ pageFlipMode: value }),
+    setBackground: (value) => save({ background: value }),
+    setKeepAwake: (value) => save({ keepAwake: value }),
+    setTtsRate: (value) => save({ ttsRate: value }),
+    setTtsVoiceURI: (value) => save({ ttsVoiceURI: value }),
   }
 }
 
 export default useReadingSettings
-

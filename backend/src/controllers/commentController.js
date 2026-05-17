@@ -1,45 +1,20 @@
 /**
  * 评论控制器
+ *
+ * 注：历史上这里曾在请求处理路径中调用一段运行时建表 helper
+ * （CREATE TABLE IF NOT EXISTS comments / comment_likes）作为兜底。
+ * 该副作用已在迁移
+ * `database/migrations/202605170909__migrate_comment_tables.sql`
+ * 启动期落地后于本任务（37.3）物理移除——comments / comment_likes
+ * 两张表的存在性由 runPendingMigrations 在 app.listen 之前保证。
+ *
+ * 因此：当本控制器再次遇到 `ER_NO_SUCH_TABLE` 时，应视为运维异常
+ * （环境未跑迁移、连错库等），直接打日志并向上抛，由全局错误处理器返回 500。
  */
 const { pool } = require('../config/database');
 const { ErrorCodes, getErrorMessage } = require('../constants/errorCodes');
 const AppError = require('../utils/AppError');
 const { sanitizeComment } = require('../utils/sanitize');
-
-// 确保评论相关表存在（首次使用时自动创建）
-async function ensureCommentTables() {
-  const createCommentsSQL = `
-    CREATE TABLE IF NOT EXISTS comments (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      novel_id INT NOT NULL,
-      user_id INT NOT NULL,
-      content TEXT NOT NULL,
-      parent_id INT DEFAULT NULL,
-      reply_to_user_id INT DEFAULT NULL,
-      likes INT DEFAULT 0,
-      created_at DATETIME NOT NULL,
-      deleted_at DATETIME DEFAULT NULL,
-      INDEX idx_novel_id (novel_id),
-      INDEX idx_user_id (user_id),
-      INDEX idx_parent_id (parent_id),
-      INDEX idx_created_at (created_at),
-      INDEX idx_deleted_at (deleted_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
-
-  const createLikesSQL = `
-    CREATE TABLE IF NOT EXISTS comment_likes (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL,
-      comment_id INT NOT NULL,
-      created_at DATETIME NOT NULL,
-      UNIQUE KEY uk_user_comment (user_id, comment_id),
-      INDEX idx_comment_id (comment_id),
-      INDEX idx_created_at (created_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
-
-  await pool.query(createCommentsSQL);
-  await pool.query(createLikesSQL);
-}
 
 /**
  * 获取小说评论列表
@@ -256,15 +231,15 @@ exports.createComment = async (req, res, next) => {
       );
     } catch (e) {
       if (e && e.code === 'ER_NO_SUCH_TABLE') {
-        await ensureCommentTables();
-        [result] = await pool.query(
-          `INSERT INTO comments (novel_id, user_id, content, images, parent_id, reply_to_user_id, created_at) 
-           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-          [novelId, userId, sanitizedContent, imagesJson, parentId, replyToUserId]
+        // 启动期 migration（202605170909__migrate_comment_tables.sql）应当已经
+        // 创建好 comments 表；此时仍报 ER_NO_SUCH_TABLE 属于运维异常，记录日志后向上抛。
+        console.error(
+          '[commentController.createComment] comments 表缺失，请检查 runPendingMigrations 是否在 app.listen 之前成功执行：',
+          e.message
         );
-      } else {
         throw e;
       }
+      throw e;
     }
 
     // 获取刚插入的评论
@@ -393,14 +368,15 @@ exports.likeComment = async (req, res, next) => {
       );
     } catch (e) {
       if (e && e.code === 'ER_NO_SUCH_TABLE') {
-        await ensureCommentTables();
-        await connection.query(
-          'INSERT INTO comment_likes (user_id, comment_id, created_at) VALUES (?, ?, NOW())',
-          [userId, commentId]
+        // 启动期 migration（202605170909__migrate_comment_tables.sql）应当已经
+        // 创建好 comment_likes 表；此时仍报 ER_NO_SUCH_TABLE 属于运维异常，记录日志后向上抛。
+        console.error(
+          '[commentController.likeComment] comment_likes 表缺失，请检查 runPendingMigrations 是否在 app.listen 之前成功执行：',
+          e.message
         );
-      } else {
         throw e;
       }
+      throw e;
     }
 
     // 更新评论点赞数

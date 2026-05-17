@@ -41,7 +41,7 @@
               :value="settings.fontSize"
               @input="handleFontSizeChange"
               min="12"
-              max="24"
+              max="28"
               step="1"
               class="size-slider"
             />
@@ -71,6 +71,40 @@
           </div>
         </div>
 
+        <!-- 段间距 -->
+        <div class="setting-section">
+          <div class="setting-label">
+            <span>段间距</span>
+          </div>
+          <div class="line-height-options">
+            <button
+              v-for="item in paragraphSpacings"
+              :key="item.value"
+              @click="setParagraphSpacing(item.value)"
+              :class="['option-btn', { 'active': settings.paragraphSpacing === item.value }]"
+            >
+              {{ item.name }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 页边距 -->
+        <div class="setting-section">
+          <div class="setting-label">
+            <span>页边距</span>
+          </div>
+          <div class="line-height-options">
+            <button
+              v-for="item in pageMargins"
+              :key="item.value"
+              @click="setPageMargin(item.value)"
+              :class="['option-btn', { 'active': settings.pageMargin === item.value }]"
+            >
+              {{ item.name }}
+            </button>
+          </div>
+        </div>
+
         <!-- 背景色 -->
         <div class="setting-section">
           <div class="setting-label">
@@ -83,12 +117,12 @@
             <button
               v-for="bg in backgroundColors"
               :key="bg.value"
-              @click="setBackgroundColor(bg.value, bg.textColor)"
-              :class="['color-btn', { 'active': settings.backgroundColor === bg.value }]"
-              :style="{ backgroundColor: bg.value }"
+              @click="setBackground(bg.value)"
+              :class="['color-btn', { 'active': settings.background === bg.value }]"
+              :style="{ backgroundColor: bg.bg }"
             >
-              <span :style="{ color: bg.textColor }">{{ bg.name }}</span>
-              <svg v-if="settings.backgroundColor === bg.value" class="check-icon" fill="currentColor" viewBox="0 0 20 20">
+              <span :style="{ color: bg.text }">{{ bg.name }}</span>
+              <svg v-if="settings.background === bg.value" class="check-icon" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
               </svg>
             </button>
@@ -143,35 +177,37 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
             </svg>
             <span>亮度</span>
-            <span class="setting-value">{{ (settings.brightness * 100).toFixed(0) }}%</span>
+            <span class="setting-value">{{ settings.brightness }}%</span>
           </div>
           <input
             type="range"
             :value="settings.brightness"
             @input="handleBrightnessChange"
-            min="0.5"
-            max="1.0"
-            step="0.05"
+            min="50"
+            max="100"
+            step="5"
             class="brightness-slider"
           />
         </div>
 
-        <!-- 自动朗读 -->
+        <!-- 屏幕常亮 -->
         <div class="setting-section">
           <div class="setting-label">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
             </svg>
-            <span>自动朗读</span>
+            <span>阅读时保持屏幕常亮</span>
           </div>
           <label class="toggle-switch">
             <input
               type="checkbox"
-              :checked="settings.autoRead"
-              @change="toggleAutoRead"
+              :checked="settings.keepAwake"
+              :disabled="!wakeLockSupported"
+              @change="setKeepAwake($event.target.checked)"
             />
             <span class="toggle-slider"></span>
           </label>
+          <p v-if="!wakeLockSupported" class="support-tip">当前浏览器不支持，建议使用最新版 Chrome / Edge / Safari</p>
         </div>
 
         <!-- 重置设置 -->
@@ -206,17 +242,22 @@ const {
   backgroundColors,
   fontFamilies,
   lineHeights,
+  paragraphSpacings,
+  pageMargins,
   pageFlipModes,
+  wakeLockSupported,
   setFontSize,
   increaseFontSize,
   decreaseFontSize,
   setLineHeight,
-  setBackgroundColor,
+  setParagraphSpacing,
+  setPageMargin,
+  setBackground,
   setFontFamily,
   setPageFlipMode,
   setBrightness,
-  toggleAutoRead,
-  resetSettings
+  setKeepAwake,
+  reset
 } = useReadingSettings()
 
 /**
@@ -237,7 +278,7 @@ const handleFontSizeChange = (event) => {
  * 处理亮度变化
  */
 const handleBrightnessChange = (event) => {
-  setBrightness(parseFloat(event.target.value))
+  setBrightness(parseInt(event.target.value, 10))
 }
 
 /**
@@ -245,7 +286,7 @@ const handleBrightnessChange = (event) => {
  */
 const handleReset = () => {
   if (confirm('确定要恢复默认设置吗？')) {
-    resetSettings()
+    reset()
   }
 }
 </script>
@@ -532,6 +573,17 @@ const handleReset = () => {
 
 .toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(22px);
+}
+
+.toggle-switch input:disabled + .toggle-slider {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.support-tip {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
 }
 
 /* 重置按钮 */

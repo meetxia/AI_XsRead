@@ -9,6 +9,11 @@ const router = createRouter({
     { path: '/bookshelf',  name: 'bookshelf',    component: () => import('@/views/BookshelfPage.vue'),    meta: { title: '我的书架', keepAlive: true, requiresAuth: false } },
     { path: '/history',    name: 'history',      component: () => import('@/views/HistoryPage.vue'),      meta: { title: '浏览记录', keepAlive: true, requiresAuth: false } },
     { path: '/profile',    name: 'profile',      component: () => import('@/views/ProfilePage.vue'),      meta: { title: '我的',     keepAlive: true } },
+    { path: '/profile/achievements', name: 'achievements', component: () => import('@/views/AchievementsPage.vue'), meta: { title: '我的勋章', requiresAuth: true } },
+    { path: '/profile/bookmarks', name: 'profile-bookmarks', component: () => import('@/views/ProfileListPage.vue'), meta: { title: '我的书签', requiresAuth: true, kind: 'bookmarks' } },
+    { path: '/profile/highlights', name: 'profile-highlights', component: () => import('@/views/ProfileListPage.vue'), meta: { title: '我的划线', requiresAuth: true, kind: 'highlights' } },
+    { path: '/profile/notes', name: 'profile-notes', component: () => import('@/views/ProfileListPage.vue'), meta: { title: '我的想法', requiresAuth: true, kind: 'notes' } },
+    { path: '/profile/following-authors', name: 'profile-following-authors', component: () => import('@/views/FollowingAuthorsPage.vue'), meta: { title: '关注作者', requiresAuth: true } },
     { path: '/security',   name: 'security',     component: () => import('@/views/SecurityPage.vue'),     meta: { title: '账号安全', requiresAuth: true } },
 
     // 阅读
@@ -23,6 +28,7 @@ const router = createRouter({
     // 鉴权
     { path: '/login',     name: 'login',     component: () => import('@/views/LoginPage.vue'),     meta: { title: '登录' } },
     { path: '/register',  name: 'register',  component: () => import('@/views/RegisterPage.vue'),  meta: { title: '注册' } },
+    { path: '/onboarding/interests', name: 'onboarding-interests', component: () => import('@/views/OnboardingInterestsPage.vue'), meta: { title: '选择兴趣', requiresAuth: true } },
 
     // 其它
     { path: '/upload',    name: 'upload',    component: () => import('@/views/UploadNovelPage.vue'), meta: { title: '上传小说', requiresAuth: true } },

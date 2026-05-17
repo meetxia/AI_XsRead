@@ -22,6 +22,7 @@ class Response {
     const response = {
       code,
       message,
+      data: null,
       timestamp: Date.now()
     };
     

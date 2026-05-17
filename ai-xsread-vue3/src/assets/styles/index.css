@@ -123,15 +123,25 @@ img, svg, video, iframe, canvas {
   --reading-font-size: 18px;
   --reading-line-height: 1.85;
   --reading-letter-spacing: 0.02em;
-  --reading-paragraph-gap: 1.4em;
+  --reading-paragraph-spacing: 1em;
+  --reading-page-padding: 24px;
   --reading-font: 'Noto Serif SC', 'Source Han Serif', Georgia, serif;
+  --reading-bg: #F4ECD8;
+  --reading-text: #3E2C1B;
+  --reading-dim-opacity: 0;
 }
 
 /* ─── 阅读区背景预设（D 主题 4 种背景） ─────────────────── */
 [data-bg="white"] { background: #FAFAF9; color: #1A1917; }
 [data-bg="sepia"] { background: #F4ECD8; color: #3E2C1B; }
 [data-bg="eye"]   { background: #CCE0CC; color: #1F2F22; }
+[data-bg="green"] { background: #e6efe4; color: #223026; }
 [data-bg="dark"]  { background: #0A0A0A; color: #B5B0A8; }
+
+.reading-area {
+  padding-left: var(--reading-page-padding);
+  padding-right: var(--reading-page-padding);
+}
 
 .reading-text {
   font-family: var(--reading-font);
@@ -140,8 +150,17 @@ img, svg, video, iframe, canvas {
   letter-spacing: var(--reading-letter-spacing);
 }
 .reading-text p {
-  margin-bottom: var(--reading-paragraph-gap);
+  margin-bottom: var(--reading-paragraph-spacing);
   text-indent: 2em;
+}
+
+.reading-dimmer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: #000;
+  opacity: var(--reading-dim-opacity);
 }
 
 /* ─── 阅读页进度滑块 ─────────────────── */

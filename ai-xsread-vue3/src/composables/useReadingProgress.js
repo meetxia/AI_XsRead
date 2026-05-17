@@ -10,6 +10,26 @@ const STORAGE_KEY_PREFIX = 'reading-progress-'
 const BOOKMARKS_KEY_PREFIX = 'bookmarks-'
 
 /**
+ * 纯函数：根据 updatedAt 选择 local / server 中较新的一份进度。
+ * 若两侧 updatedAt 相等（包括都为 0 / undefined），优先 local；
+ * 若一侧为 null/undefined，返回另一侧；都为空返回 null。
+ *
+ * @param {Object|null} local
+ * @param {Object|null} server
+ * @returns {Object|null}
+ */
+export function mergeProgress(local, server) {
+  if (!local && !server) return null
+  if (!local) return server
+  if (!server) return local
+  const localTs = Number(local.updatedAt) || 0
+  const serverTs = Number(server.updatedAt) || 0
+  if (serverTs > localTs) return server
+  // server <= local → prefer local（包括等值情况）
+  return local
+}
+
+/**
  * 阅读进度 Hook
  * @param {string|number} novelId - 小说ID
  */

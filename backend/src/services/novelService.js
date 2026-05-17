@@ -16,6 +16,12 @@ class NovelService {
       pageSize = 20,
       categoryId,
       status,
+      wordCountMin,
+      wordCountMax,
+      ratingMin,
+      hasFinished,
+      tags,
+      exclude,
       sortBy = 'updated_at',
       order = 'DESC'
     } = options;
@@ -32,9 +38,63 @@ class NovelService {
     }
     
     if (status) {
-      whereClause += ' AND n.status = ?';
-      params.push(status);
+      if (status === 'finished') {
+        whereClause += ' AND n.status = 0';
+      } else {
+        whereClause += ' AND n.status = ?';
+        params.push(status);
+      }
     }
+
+    if (hasFinished !== undefined) {
+      whereClause += hasFinished === 'true' || hasFinished === true
+        ? ' AND n.status = 0'
+        : ' AND n.status <> 0';
+    }
+
+    if (wordCountMin) {
+      whereClause += ' AND n.word_count >= ?';
+      params.push(Number.parseInt(wordCountMin, 10));
+    }
+
+    if (wordCountMax) {
+      whereClause += ' AND n.word_count <= ?';
+      params.push(Number.parseInt(wordCountMax, 10));
+    }
+
+    if (ratingMin) {
+      whereClause += ' AND n.rating >= ?';
+      params.push(Number(ratingMin));
+    }
+
+    if (exclude) {
+      whereClause += ' AND n.id <> ?';
+      params.push(Number.parseInt(exclude, 10));
+    }
+
+    const tagList = typeof tags === 'string'
+      ? tags.split(',').map(tag => tag.trim()).filter(Boolean)
+      : [];
+    if (tagList.length > 0) {
+      whereClause += ` AND EXISTS (
+        SELECT 1 FROM novel_tags nt
+        JOIN tags t ON t.id = nt.tag_id
+        WHERE nt.novel_id = n.id AND t.name IN (${tagList.map(() => '?').join(',')})
+      )`;
+      params.push(...tagList);
+    }
+
+    const sortMap = {
+      updated_at: 'n.updated_at',
+      last_update_time: 'n.last_update_time',
+      word_count: 'n.word_count',
+      views: 'n.views',
+      rating: 'n.rating',
+      likes: 'n.likes',
+      default: 'n.updated_at'
+    };
+    const safeSort = sortMap[sortBy] || sortMap.default;
+    const safeOrder = String(order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     
     // 查询总数
     const [countResult] = await pool.query(
@@ -55,7 +115,7 @@ class NovelService {
        FROM novels n 
        LEFT JOIN categories c ON n.category_id = c.id 
        ${whereClause}
-       ORDER BY n.${sortBy} ${order}
+       ORDER BY ${safeSort} ${safeOrder}
        LIMIT ? OFFSET ?`,
       [...params, parseInt(pageSize), offset]
     );
@@ -215,6 +275,12 @@ class NovelService {
       page = 1, 
       pageSize = 20,
       categoryId,
+      wordCountMin,
+      wordCountMax,
+      ratingMin,
+      hasFinished,
+      tags,
+      exclude,
       sortBy = 'views',
       order = 'DESC'
     } = options;
@@ -234,6 +300,54 @@ class NovelService {
       whereClause += ' AND n.category_id = ?';
       params.push(categoryId);
     }
+
+    if (wordCountMin) {
+      whereClause += ' AND n.word_count >= ?';
+      params.push(Number.parseInt(wordCountMin, 10));
+    }
+
+    if (wordCountMax) {
+      whereClause += ' AND n.word_count <= ?';
+      params.push(Number.parseInt(wordCountMax, 10));
+    }
+
+    if (ratingMin) {
+      whereClause += ' AND n.rating >= ?';
+      params.push(Number(ratingMin));
+    }
+
+    if (hasFinished !== undefined) {
+      whereClause += hasFinished === 'true' || hasFinished === true
+        ? ' AND n.status = 0'
+        : ' AND n.status <> 0';
+    }
+
+    if (exclude) {
+      whereClause += ' AND n.id <> ?';
+      params.push(Number.parseInt(exclude, 10));
+    }
+
+    const tagList = typeof tags === 'string'
+      ? tags.split(',').map(tag => tag.trim()).filter(Boolean)
+      : [];
+    if (tagList.length > 0) {
+      whereClause += ` AND EXISTS (
+        SELECT 1 FROM novel_tags nt
+        JOIN tags t ON t.id = nt.tag_id
+        WHERE nt.novel_id = n.id AND t.name IN (${tagList.map(() => '?').join(',')})
+      )`;
+      params.push(...tagList);
+    }
+
+    const sortMap = {
+      updated_at: 'n.updated_at',
+      word_count: 'n.word_count',
+      views: 'n.views',
+      rating: 'n.rating',
+      default: 'n.views'
+    };
+    const safeSort = sortMap[sortBy] || sortMap.default;
+    const safeOrder = String(order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     
     // 查询总数
     const [countResult] = await pool.query(
@@ -253,7 +367,7 @@ class NovelService {
        FROM novels n
        LEFT JOIN categories c ON n.category_id = c.id
        ${whereClause}
-       ORDER BY n.${sortBy} ${order}
+       ORDER BY ${safeSort} ${safeOrder}
        LIMIT ? OFFSET ?`,
       [...params, parseInt(pageSize), offset]
     );
@@ -332,13 +446,20 @@ class NovelService {
    * @returns {Promise<Object>} 章节列表和分页信息
    */
   async getChapterList(novelId, options = {}) {
-    const { page = 1, pageSize = 50 } = options;
+    const { page = 1, pageSize = 50, keyword } = options;
     const offset = (page - 1) * pageSize;
+    const params = [novelId];
+    let whereClause = 'WHERE novel_id = ?';
+
+    if (keyword && String(keyword).trim()) {
+      whereClause += ' AND title LIKE ?';
+      params.push(`${String(keyword).trim()}%`);
+    }
     
     // 查询总数
     const [countResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM chapters WHERE novel_id = ?',
-      [novelId]
+      `SELECT COUNT(*) as total FROM chapters ${whereClause}`,
+      params
     );
     const total = countResult[0].total;
     
@@ -348,10 +469,10 @@ class NovelService {
         id, novel_id, chapter_number, title, word_count,
         is_free, created_at, updated_at
        FROM chapters
-       WHERE novel_id = ?
+       ${whereClause}
        ORDER BY chapter_number ASC
        LIMIT ? OFFSET ?`,
-      [novelId, parseInt(pageSize), offset]
+      [...params, parseInt(pageSize), offset]
     );
     
     return {

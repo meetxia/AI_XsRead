@@ -1,42 +1,128 @@
 const { pool } = require('../config/database');
 const Response = require('../utils/response');
 const { getRandomAvatarUrl } = require('../utils/avatar');
+const { hasColumn } = require('../utils/schemaCompat');
+const achievementService = require('../services/achievementService');
+const { attachUnreadUpdate } = require('../services/unreadUpdateService');
+const { resolveParagraphAnchor } = require('../utils/paragraphAnchor');
+
+const ALLOWED_SHELF_TYPES = ['reading', 'finished', 'collected', 'wishlist'];
+const SORTABLE_FIELDS = {
+  recent_read: 'b.last_read_time',
+  recent_update: 'n.updated_at',
+  added_at: 'b.added_time',
+  title: 'n.title'
+};
 
 /**
  * 获取用户书架
+ *
+ * Query:
+ *   - page, pageSize
+ *   - type: reading | finished | collected | wishlist | all（缺省 all）
+ *   - sortBy: recent_read | recent_update | added_at | title（缺省 recent_read）
+ *
+ * 行为：
+ *   - 置顶项 (is_top = 1) 永远排在前面（与列存在性兼容降级）
+ *   - 当 type !== 'wishlist' 且 type !== 'all' 时，仅返回该类型；type === 'all' 默认排除 wishlist
+ *     避免 wishlist 与"在读 / 已读"混在一起
+ *   - 响应附加 hasUnreadUpdate（Requirement 24.3）
+ *   - 响应同时附带 totals：reading / finished / collected / wishlist；wishlist 不计入"在读 / 已读"统计
  */
 const getBookshelf = async (req, res) => {
   try {
     const userId = req.user.id;
     const { page = 1, pageSize = 20 } = req.query;
-    
-    const offset = (page - 1) * pageSize;
-    
+    const requestedType = typeof req.query.type === 'string' ? req.query.type.trim() : '';
+    const requestedSortBy = typeof req.query.sortBy === 'string' ? req.query.sortBy.trim() : '';
+
+    const filterType = ALLOWED_SHELF_TYPES.includes(requestedType) ? requestedType : null;
+    const sortField = SORTABLE_FIELDS[requestedSortBy] || SORTABLE_FIELDS.recent_read;
+    const sortDirection = requestedSortBy === 'title' ? 'ASC' : 'DESC';
+
+    const hasIsTop = await hasColumn('bookshelf', 'is_top');
+    const hasGroupName = await hasColumn('bookshelf', 'group_name');
+    const hasLastSeen = await hasColumn('bookshelf', 'last_seen_chapter_id');
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const sizeNum = Math.min(100, Math.max(1, parseInt(pageSize, 10) || 20));
+    const offset = (pageNum - 1) * sizeNum;
+
+    const whereClauses = ['b.user_id = ?'];
+    const whereParams = [userId];
+    if (filterType) {
+      whereClauses.push('b.type = ?');
+      whereParams.push(filterType);
+    } else {
+      whereClauses.push("(b.type IS NULL OR b.type <> 'wishlist')");
+    }
+    const whereSql = whereClauses.join(' AND ');
+
     // 查询总数
     const [countResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM bookshelf WHERE user_id = ?',
-      [userId]
+      `SELECT COUNT(*) as total FROM bookshelf b WHERE ${whereSql}`,
+      whereParams
     );
-    const total = countResult[0].total;
-    
+    const total = Number(countResult[0]?.total || 0);
+
+    // 排序：置顶优先 + 用户选择字段
+    const orderClauses = [];
+    if (hasIsTop) {
+      orderClauses.push('COALESCE(b.is_top, 0) DESC');
+    }
+    orderClauses.push(`${sortField} ${sortDirection}`);
+    orderClauses.push('b.updated_at DESC');
+    const orderSql = orderClauses.join(', ');
+
+    const extraSelect = [
+      hasIsTop ? 'b.is_top' : 'NULL AS is_top',
+      hasGroupName ? 'b.group_name' : 'NULL AS group_name',
+      hasLastSeen ? 'b.last_seen_chapter_id' : 'NULL AS last_seen_chapter_id'
+    ].join(', ');
+
     // 查询书架数据
-    const [bookshelf] = await pool.query(
-      `SELECT b.*, n.title, n.author, n.cover, n.category_id, c.name as category_name,
+    const [bookshelfRows] = await pool.query(
+      `SELECT b.*, ${extraSelect}, n.title, n.author, n.cover, n.category_id,
+              n.updated_at AS novel_updated_at, c.name as category_name,
               rp.chapter_id as current_chapter_id, rp.progress as reading_progress
        FROM bookshelf b
        INNER JOIN novels n ON b.novel_id = n.id
        LEFT JOIN categories c ON n.category_id = c.id
        LEFT JOIN reading_progress rp ON rp.user_id = b.user_id AND rp.novel_id = b.novel_id
-       WHERE b.user_id = ?
-       ORDER BY b.updated_at DESC
+       WHERE ${whereSql}
+       ORDER BY ${orderSql}
        LIMIT ? OFFSET ?`,
-      [userId, parseInt(pageSize), offset]
+      [...whereParams, sizeNum, offset]
     );
-    
-    return Response.paginate(res, bookshelf, {
-      page: parseInt(page),
-      pageSize: parseInt(pageSize),
-      total
+
+    // 附加 hasUnreadUpdate
+    const enriched = await attachUnreadUpdate(bookshelfRows);
+
+    // 类型分桶 totals（wishlist 不计入"在读 / 已读"统计）
+    const [totalsRows] = await pool.query(
+      `SELECT type, COUNT(*) as cnt FROM bookshelf WHERE user_id = ? GROUP BY type`,
+      [userId]
+    );
+    const totals = { reading: 0, finished: 0, collected: 0, wishlist: 0 };
+    for (const row of totalsRows) {
+      const key = row.type && totals.hasOwnProperty(row.type) ? row.type : null;
+      if (key) {
+        totals[key] = Number(row.cnt || 0);
+      }
+    }
+
+    return res.status(200).json({
+      code: 200,
+      message: 'success',
+      data: enriched,
+      pagination: {
+        page: pageNum,
+        pageSize: sizeNum,
+        total,
+        totalPages: sizeNum > 0 ? Math.ceil(total / sizeNum) : 0
+      },
+      totals,
+      timestamp: Date.now()
     });
   } catch (error) {
     console.error('Get bookshelf error:', error);
@@ -46,38 +132,55 @@ const getBookshelf = async (req, res) => {
 
 /**
  * 添加到书架
+ *
+ * 行为：
+ *   - 当 type === 'reading' 且已有同书 type='wishlist' 记录时，自动晋升 type 为 'reading'
+ *     （Requirement 21.4：想读 → 开始阅读）
+ *   - 其它情况下若已存在记录，则返回 400
  */
 const addToBookshelf = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { novelId } = req.body;
-    
+    const { novelId, type = 'reading' } = req.body;
+    const shelfType = ALLOWED_SHELF_TYPES.includes(type) ? type : 'reading';
+
     // 检查小说是否存在
     const [novels] = await pool.query(
       'SELECT id FROM novels WHERE id = ?',
       [novelId]
     );
-    
+
     if (novels.length === 0) {
       return Response.error(res, '小说不存在', 404);
     }
-    
+
     // 检查是否已在书架
     const [existing] = await pool.query(
-      'SELECT id FROM bookshelf WHERE user_id = ? AND novel_id = ?',
+      'SELECT id, type FROM bookshelf WHERE user_id = ? AND novel_id = ?',
       [userId, novelId]
     );
-    
+
     if (existing.length > 0) {
+      const existingType = existing[0].type;
+      // wishlist → reading 自动晋升
+      if (shelfType === 'reading' && existingType === 'wishlist') {
+        await pool.query(
+          `UPDATE bookshelf
+             SET type = 'reading', updated_at = NOW()
+           WHERE user_id = ? AND novel_id = ?`,
+          [userId, novelId]
+        );
+        return Response.success(res, { promoted: true, type: 'reading' }, '已切换为在读');
+      }
       return Response.error(res, '该小说已在书架中', 400);
     }
-    
+
     // 添加到书架
     await pool.query(
-      'INSERT INTO bookshelf (user_id, novel_id) VALUES (?, ?)',
-      [userId, novelId]
+      'INSERT INTO bookshelf (user_id, novel_id, type) VALUES (?, ?, ?)',
+      [userId, novelId, shelfType]
     );
-    
+
     return Response.created(res, null, '添加成功');
   } catch (error) {
     console.error('Add to bookshelf error:', error);
@@ -112,9 +215,22 @@ const getReadingProgress = async (req, res) => {
   try {
     const userId = req.user.id;
     const { novelId } = req.params;
-    
+
+    const hasParagraphIndex = await hasColumn('reading_progress', 'paragraph_index');
+    const hasCharOffset = await hasColumn('reading_progress', 'char_offset');
+    const hasParagraphHash = await hasColumn('reading_progress', 'paragraph_hash');
+    const extraFields = [
+      hasParagraphIndex ? 'rp.paragraph_index' : 'NULL AS paragraph_index',
+      hasCharOffset ? 'rp.char_offset' : 'NULL AS char_offset',
+      hasParagraphHash ? 'rp.paragraph_hash' : 'NULL AS paragraph_hash'
+    ].join(', ');
+
     const [progress] = await pool.query(
-      'SELECT * FROM reading_progress WHERE user_id = ? AND novel_id = ?',
+      `SELECT rp.*, ${extraFields}, c.title AS chapterTitle, c.title AS chapter_title
+       FROM reading_progress rp
+       LEFT JOIN chapters c ON c.id = rp.chapter_id
+       WHERE rp.user_id = ? AND rp.novel_id = ?
+       LIMIT 1`,
       [userId, novelId]
     );
     
@@ -122,7 +238,14 @@ const getReadingProgress = async (req, res) => {
       return Response.success(res, null);
     }
     
-    return Response.success(res, progress[0]);
+    return Response.success(res, {
+      ...progress[0],
+      progress: Number(progress[0].progress || 0),
+      paragraph_index: progress[0].paragraph_index ?? null,
+      char_offset: progress[0].char_offset ?? null,
+      paragraph_hash: progress[0].paragraph_hash ?? null,
+      chapterTitle: progress[0].chapterTitle || progress[0].chapter_title || null
+    });
   } catch (error) {
     console.error('Get reading progress error:', error);
     return Response.error(res, '获取阅读进度失败', 500);
@@ -135,7 +258,18 @@ const getReadingProgress = async (req, res) => {
 const updateReadingProgress = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { novelId, chapterId, progress } = req.body;
+    const {
+      novelId,
+      chapterId,
+      progress = 0,
+      paragraphIndex,
+      paragraph_index,
+      charOffset,
+      char_offset,
+      paragraphHash,
+      paragraph_hash,
+      duration = 0
+    } = req.body;
     
     // 参数验证
     if (!novelId) {
@@ -145,6 +279,66 @@ const updateReadingProgress = async (req, res) => {
     // 确保 chapterId 为 null 而不是 undefined
     const finalChapterId = chapterId || null;
     
+    const hasParagraphIndex = await hasColumn('reading_progress', 'paragraph_index');
+    const hasCharOffset = await hasColumn('reading_progress', 'char_offset');
+    const hasParagraphHash = await hasColumn('reading_progress', 'paragraph_hash');
+    const nextParagraphIndex = paragraphIndex ?? paragraph_index ?? null;
+    const nextCharOffset = charOffset ?? char_offset ?? null;
+    const nextParagraphHash = paragraphHash ?? paragraph_hash ?? null;
+
+    const extraInsertColumns = [];
+    const extraInsertValues = [];
+    const extraInsertParams = [];
+    const extraUpdateAssignments = [];
+    const extraUpdateParams = [];
+
+    if (hasParagraphIndex && nextParagraphIndex !== null && nextParagraphIndex !== undefined) {
+      extraInsertColumns.push('paragraph_index');
+      extraInsertValues.push('?');
+      extraInsertParams.push(Number.parseInt(nextParagraphIndex, 10));
+      extraUpdateAssignments.push('paragraph_index = ?');
+      extraUpdateParams.push(Number.parseInt(nextParagraphIndex, 10));
+    }
+    if (hasCharOffset && nextCharOffset !== null && nextCharOffset !== undefined) {
+      extraInsertColumns.push('char_offset');
+      extraInsertValues.push('?');
+      extraInsertParams.push(Number.parseInt(nextCharOffset, 10));
+      extraUpdateAssignments.push('char_offset = ?');
+      extraUpdateParams.push(Number.parseInt(nextCharOffset, 10));
+    }
+    if (hasParagraphHash && nextParagraphHash) {
+      extraInsertColumns.push('paragraph_hash');
+      extraInsertValues.push('?');
+      extraInsertParams.push(String(nextParagraphHash).slice(0, 16));
+      extraUpdateAssignments.push('paragraph_hash = ?');
+      extraUpdateParams.push(String(nextParagraphHash).slice(0, 16));
+    }
+
+    // 段落锚点解析（Requirement 4.5）：
+    // - 缺失 chapterId / paragraphIndex / paragraphHash 时不解析，progressApplied = null；
+    // - 提供 chapterId 与 paragraphHash 时通过 resolveParagraphAnchor 返回 status：
+    //     'exact'    — 索引 + hash 完全命中；
+    //     'rehashed' — 章节正文修订后通过 hash 在新正文中线性回找；
+    //     'fallback' — 仍未命中或越界，回退到 clamp 后的索引。
+    let progressApplied = null;
+    if (finalChapterId !== null && (nextParagraphIndex !== null || nextParagraphHash)) {
+      try {
+        const resolved = await resolveParagraphAnchor(
+          finalChapterId,
+          nextParagraphIndex,
+          nextParagraphHash,
+          pool
+        );
+        progressApplied = {
+          paragraphIndex: resolved.paragraphIndex,
+          status: resolved.status
+        };
+      } catch (anchorError) {
+        // 锚点解析失败不应阻塞进度写入；记录 WARN 后继续。
+        console.warn('resolveParagraphAnchor warning:', anchorError.message);
+      }
+    }
+
     // 检查是否已有记录
     const [existing] = await pool.query(
       'SELECT id FROM reading_progress WHERE user_id = ? AND novel_id = ?',
@@ -154,14 +348,18 @@ const updateReadingProgress = async (req, res) => {
     if (existing.length > 0) {
       // 更新
       await pool.query(
-        'UPDATE reading_progress SET chapter_id = ?, progress = ?, updated_at = NOW() WHERE user_id = ? AND novel_id = ?',
-        [finalChapterId, progress, userId, novelId]
+        `UPDATE reading_progress
+         SET chapter_id = ?, progress = ?, ${extraUpdateAssignments.length ? `${extraUpdateAssignments.join(', ')}, ` : ''}updated_at = NOW()
+         WHERE user_id = ? AND novel_id = ?`,
+        [finalChapterId, progress, ...extraUpdateParams, userId, novelId]
       );
     } else {
       // 插入
       await pool.query(
-        'INSERT INTO reading_progress (user_id, novel_id, chapter_id, progress, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
-        [userId, novelId, finalChapterId, progress]
+        `INSERT INTO reading_progress
+           (user_id, novel_id, chapter_id, progress${extraInsertColumns.length ? `, ${extraInsertColumns.join(', ')}` : ''}, created_at, updated_at)
+         VALUES (?, ?, ?, ?${extraInsertValues.length ? `, ${extraInsertValues.join(', ')}` : ''}, NOW(), NOW())`,
+        [userId, novelId, finalChapterId, progress, ...extraInsertParams]
       );
     }
     
@@ -177,11 +375,19 @@ const updateReadingProgress = async (req, res) => {
         [userId, novelId, finalChapterId, finalChapterId]
       );
       
+      const clampedDuration = Number(duration) > 120 ? 60 : Math.max(0, Number.parseInt(duration, 10) || 0);
       // 只有在5分钟内没有相同记录时才插入
       if (recentHistory.length === 0) {
         await pool.query(
-          'INSERT INTO reading_history (user_id, novel_id, chapter_id, read_time) VALUES (?, ?, ?, NOW())',
-          [userId, novelId, finalChapterId]
+          'INSERT INTO reading_history (user_id, novel_id, chapter_id, duration, read_time) VALUES (?, ?, ?, ?, NOW())',
+          [userId, novelId, finalChapterId, clampedDuration]
+        );
+      } else if (clampedDuration > 0) {
+        await pool.query(
+          `UPDATE reading_history
+           SET duration = LEAST(COALESCE(duration, 0) + ?, 86400), read_time = NOW()
+           WHERE id = ?`,
+          [clampedDuration, recentHistory[0].id]
         );
       }
     } catch (historyError) {
@@ -189,7 +395,30 @@ const updateReadingProgress = async (req, res) => {
       console.warn('Insert reading history warning:', historyError.message);
     }
     
-    return Response.success(res, null, '更新成功');
+    await pool.query(
+      `UPDATE bookshelf
+       SET current_chapter_id = COALESCE(?, current_chapter_id),
+           progress = ?,
+           last_read_time = NOW(),
+           updated_at = NOW()
+       WHERE user_id = ? AND novel_id = ?`,
+      [finalChapterId, progress, userId, novelId]
+    ).catch(() => {});
+
+    // 单调推进 last_seen_chapter_id（红点清除）— Requirement 24.2
+    if (finalChapterId) {
+      try {
+        const { markChapterAsRead } = require('../services/unreadUpdateService');
+        await markChapterAsRead(userId, novelId, finalChapterId);
+      } catch (markError) {
+        console.warn('markChapterAsRead warning:', markError.message);
+      }
+    }
+
+    return Response.success(res, {
+      updatedAt: new Date().toISOString(),
+      progressApplied
+    }, '更新成功');
   } catch (error) {
     console.error('Update reading progress error:', error);
     // 提供更详细的错误信息
@@ -359,111 +588,8 @@ const getUserStatistics = async (req, res) => {
 const getUserAchievements = async (req, res) => {
   try {
     const userId = req.user.id;
-
-    // 获取各项统计数据
-    const [stats] = await pool.query(
-      `SELECT 
-        (SELECT COUNT(DISTINCT chapter_id) FROM reading_history WHERE user_id = ?) as total_chapters,
-        (SELECT COUNT(DISTINCT novel_id) FROM reading_history WHERE user_id = ?) as total_novels,
-        (SELECT COUNT(*) FROM bookshelf WHERE user_id = ? AND type = 'finished') as finished_novels,
-        (SELECT COALESCE(SUM(duration), 0) FROM reading_history WHERE user_id = ?) as total_read_time,
-        (SELECT COUNT(DISTINCT DATE(read_time)) FROM reading_history WHERE user_id = ? AND read_time >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as reading_days`,
-      [userId, userId, userId, userId, userId]
-    );
-
-    const data = stats[0];
-    const achievements = [];
-
-    // 定义成就规则
-    const achievementRules = [
-      // 阅读章节成就
-      { id: 'chapters_10', name: '初出茅庐', description: '阅读10个章节', type: 'chapters', threshold: 10, icon: '📖' },
-      { id: 'chapters_100', name: '勤奋读者', description: '阅读100个章节', type: 'chapters', threshold: 100, icon: '📚' },
-      { id: 'chapters_500', name: '阅读达人', description: '阅读500个章节', type: 'chapters', threshold: 500, icon: '📕' },
-      { id: 'chapters_1000', name: '书海无涯', description: '阅读1000个章节', type: 'chapters', threshold: 1000, icon: '🎓' },
-
-      // 阅读小说成就
-      { id: 'novels_5', name: '书虫新手', description: '阅读5本小说', type: 'novels', threshold: 5, icon: '🐛' },
-      { id: 'novels_20', name: '阅读爱好者', description: '阅读20本小说', type: 'novels', threshold: 20, icon: '💚' },
-      { id: 'novels_50', name: '资深书友', description: '阅读50本小说', type: 'novels', threshold: 50, icon: '⭐' },
-      { id: 'novels_100', name: '阅读大师', description: '阅读100本小说', type: 'novels', threshold: 100, icon: '🏆' },
-
-      // 完成小说成就
-      { id: 'finished_1', name: '善始善终', description: '完成1本小说', type: 'finished', threshold: 1, icon: '✅' },
-      { id: 'finished_10', name: '坚持不懈', description: '完成10本小说', type: 'finished', threshold: 10, icon: '🎯' },
-      { id: 'finished_30', name: '追书达人', description: '完成30本小说', type: 'finished', threshold: 30, icon: '🌟' },
-
-      // 阅读时长成就（分钟）
-      { id: 'time_60', name: '初识文字', description: '累计阅读1小时', type: 'time', threshold: 60, icon: '⏰' },
-      { id: 'time_600', name: '时间投资者', description: '累计阅读10小时', type: 'time', threshold: 600, icon: '⏳' },
-      { id: 'time_3600', name: '时光旅人', description: '累计阅读60小时', type: 'time', threshold: 3600, icon: '🕐' },
-
-      // 连续阅读成就
-      { id: 'streak_7', name: '七日之约', description: '连续阅读7天', type: 'streak', threshold: 7, icon: '📅' },
-      { id: 'streak_30', name: '月度坚持', description: '连续阅读30天', type: 'streak', threshold: 30, icon: '📆' }
-    ];
-
-    // 计算成就完成情况
-    achievementRules.forEach(rule => {
-      let currentValue = 0;
-      switch (rule.type) {
-        case 'chapters':
-          currentValue = data.total_chapters;
-          break;
-        case 'novels':
-          currentValue = data.total_novels;
-          break;
-        case 'finished':
-          currentValue = data.finished_novels;
-          break;
-        case 'time':
-          currentValue = Math.floor(data.total_read_time / 60); // 转换为分钟
-          break;
-        case 'streak':
-          currentValue = data.reading_days;
-          break;
-      }
-
-      achievements.push({
-        id: rule.id,
-        name: rule.name,
-        description: rule.description,
-        icon: rule.icon,
-        type: rule.type,
-        threshold: rule.threshold,
-        currentValue: currentValue,
-        progress: Math.min((currentValue / rule.threshold) * 100, 100),
-        unlocked: currentValue >= rule.threshold,
-        unlockedAt: currentValue >= rule.threshold ? new Date() : null
-      });
-    });
-
-    // 按分类对成就分组
-    const achievementsByCategory = {
-      all: achievements,
-      bookshelf: achievements.filter(a => ['chapters', 'novels', 'finished'].includes(a.type)),
-      reading: achievements.filter(a => a.type === 'chapters'),
-      habit: achievements.filter(a => a.type === 'streak'),
-      milestone: achievements.filter(a => a.type === 'time')
-    };
-
-    return Response.success(res, {
-      totalAchievements: achievements.length,
-      unlockedAchievements: achievements.filter(a => a.unlocked).length,
-      summary: {
-        unlocked: achievements.filter(a => a.unlocked).length,
-        total: achievements.length,
-        percentage: Math.round((achievements.filter(a => a.unlocked).length / achievements.length) * 100) || 0
-      },
-      achievements: achievements.map(a => ({
-        ...a,
-        category: a.type === 'chapters' ? 'reading' : 
-                  a.type === 'novels' || a.type === 'finished' ? 'bookshelf' :
-                  a.type === 'streak' ? 'habit' : 'milestone',
-        progress: a.currentValue,
-        target: a.threshold
-      }))
-    });
+    const result = await achievementService.evaluate(userId);
+    return Response.success(res, result);
   } catch (error) {
     console.error('Get user achievements error:', error);
     return Response.error(res, '获取成就数据失败', 500);
@@ -641,21 +767,59 @@ module.exports = {
   async batchOperateBookshelf(req, res) {
     try {
       const userId = req.user.id;
-      const { ids = [], action } = req.body;
+      const { ids = [], action, groupName } = req.body || {};
 
       if (!Array.isArray(ids) || ids.length === 0) {
         return Response.error(res, '缺少书籍ID列表', 400);
       }
-      if (action !== 'delete') {
+      const allowedActions = ['delete', 'group', 'top', 'untop'];
+      if (!allowedActions.includes(action)) {
         return Response.error(res, '不支持的批量操作', 400);
       }
 
-      await pool.query(
-        `DELETE FROM bookshelf WHERE user_id = ? AND novel_id IN (${ids.map(() => '?').join(',')})`,
-        [userId, ...ids]
-      );
+      // 仅保留合法的整数 id
+      const sanitizedIds = ids
+        .map(id => Number.parseInt(id, 10))
+        .filter(id => Number.isInteger(id) && id > 0);
+      if (sanitizedIds.length === 0) {
+        return Response.error(res, '缺少书籍ID列表', 400);
+      }
 
-      return Response.success(res, null, '批量操作完成');
+      const placeholders = sanitizedIds.map(() => '?').join(',');
+      let result;
+
+      if (action === 'delete') {
+        [result] = await pool.query(
+          `DELETE FROM bookshelf WHERE user_id = ? AND novel_id IN (${placeholders})`,
+          [userId, ...sanitizedIds]
+        );
+      } else if (action === 'group') {
+        const hasGroupName = await hasColumn('bookshelf', 'group_name');
+        if (!hasGroupName) {
+          return Response.error(res, '分组功能尚未启用', 400);
+        }
+        const normalizedGroup = typeof groupName === 'string' ? groupName.trim().slice(0, 50) : '';
+        [result] = await pool.query(
+          `UPDATE bookshelf
+             SET group_name = ?, updated_at = NOW()
+           WHERE user_id = ? AND novel_id IN (${placeholders})`,
+          [normalizedGroup || null, userId, ...sanitizedIds]
+        );
+      } else if (action === 'top' || action === 'untop') {
+        const hasIsTop = await hasColumn('bookshelf', 'is_top');
+        if (!hasIsTop) {
+          return Response.error(res, '置顶功能尚未启用', 400);
+        }
+        const isTopValue = action === 'top' ? 1 : 0;
+        [result] = await pool.query(
+          `UPDATE bookshelf
+             SET is_top = ?, updated_at = NOW()
+           WHERE user_id = ? AND novel_id IN (${placeholders})`,
+          [isTopValue, userId, ...sanitizedIds]
+        );
+      }
+
+      return Response.success(res, { affected: result?.affectedRows || 0 }, '批量操作完成');
     } catch (error) {
       console.error('Batch operate bookshelf error:', error);
       return Response.error(res, '批量操作失败', 500);

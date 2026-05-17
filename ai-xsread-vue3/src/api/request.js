@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { requestCache, requestDeduplicator } from '@/utils/request-cache'
+import { buildLoginUrl } from '@/composables/useReturnUrl'
 
 // 创建 axios 实例
 const request = axios.create({
@@ -99,19 +100,7 @@ request.interceptors.response.use(
       console.error('API Error:', res.message)
 
       // 特殊错误码处理
-      if (res.code === 401) {
-        // Token 过期或无效，清除本地存储
-        console.log('🔒 Token 失效，清除登录信息')
-        localStorage.removeItem('token')
-        localStorage.removeItem('userInfo')
-        localStorage.removeItem('refreshToken')
-
-        // 提示用户并跳转到登录页
-        if (window.location.pathname !== '/login') {
-          alert('登录已失效，请重新登录')
-          window.location.href = '/login'
-        }
-      }
+      if (res.code === 401) handleUnauthorized()
 
       return Promise.reject(new Error(res.message || 'Error'))
     }
@@ -130,6 +119,11 @@ request.interceptors.response.use(
       return Promise.reject(error)
     }
     
+    if (error.response?.status === 401 || error.response?.data?.code === 401) {
+      handleUnauthorized()
+      return Promise.reject(new Error(error.response?.data?.message || '请先登录'))
+    }
+
     // 网络错误处理
     if (error.message) {
       if (error.message.includes('timeout')) {
@@ -222,4 +216,14 @@ request.batch = async function(requests, concurrency = 5) {
 }
 
 export default request
+
+function handleUnauthorized() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('userInfo')
+  localStorage.removeItem('refreshToken')
+
+  if (window.location.pathname === '/login') return
+  const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
+  window.location.href = buildLoginUrl(currentPath)
+}
 

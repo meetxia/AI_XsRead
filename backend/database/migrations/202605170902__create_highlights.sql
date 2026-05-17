@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS highlights (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  novel_id INT UNSIGNED NOT NULL,
+  chapter_id INT UNSIGNED NULL,
+  paragraph_index INT NULL,
+  paragraph_hash CHAR(16) NULL,
+  start_offset INT NOT NULL DEFAULT 0,
+  end_offset INT NOT NULL DEFAULT 0,
+  content TEXT NOT NULL,
+  color ENUM('yellow','green','red') NOT NULL DEFAULT 'yellow',
+  note VARCHAR(500) NULL,
+  is_public TINYINT(1) NOT NULL DEFAULT 0,
+  likes INT NOT NULL DEFAULT 0,
+  reply_count INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  INDEX idx_user_novel_chapter (user_id, novel_id, chapter_id),
+  INDEX idx_chapter_anchor (chapter_id, paragraph_index),
+  INDEX idx_novel_public (novel_id, is_public, deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

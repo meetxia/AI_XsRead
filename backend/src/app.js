@@ -5,7 +5,8 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const swaggerUi = require('swagger-ui-express');
 const config = require('./config');
-const { testConnection } = require('./config/database');
+const { pool, testConnection } = require('./config/database');
+const { runPendingMigrations } = require('../database/migrate');
 const routes = require('./routes');
 const { errorHandler, notFound } = require('./middlewares/errorHandler');
 const requestLogger = require('./middlewares/logger');
@@ -96,6 +97,11 @@ const startServer = async () => {
       console.error('❌ 数据库连接失败，服务器启动中止');
       process.exit(1);
     }
+
+    console.log('🔧 正在执行数据库迁移...');
+    const migrationsState = await runPendingMigrations(pool);
+    app.locals.migrationsState = migrationsState;
+    console.log(`✅ 数据库迁移完成，最新版本: ${migrationsState.latestVersion || 'none'}`);
     
     // 启动服务器
     const PORT = config.server.port;
@@ -139,8 +145,10 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// 启动服务器
-startServer();
+// 直接运行时启动服务器；测试或 supertest require(app) 时只导出 Express 实例。
+if (require.main === module) {
+  startServer();
+}
 
 module.exports = app;
 

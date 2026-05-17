@@ -106,6 +106,17 @@ export const getReadingHistory = (params) => {
 }
 
 /**
+ * 获取关注作者列表
+ */
+export const getFollowingAuthors = (params) => {
+  return request({
+    url: '/user/following-authors',
+    method: 'get',
+    params
+  })
+}
+
+/**
  * 上传头像
  */
 export const uploadAvatarApi = (formData, onProgress) => {

@@ -22,6 +22,14 @@ export function getNovelDetail(id) {
   })
 }
 
+// 获取当前用户对小说的书架/点赞状态
+export function getNovelStatus(id) {
+  return request({
+    url: `/novels/${id}/status`,
+    method: 'get'
+  })
+}
+
 // 获取推荐小说
 export function getRecommendNovels(params) {
   return request({
@@ -65,11 +73,37 @@ export function likeNovel(novelId) {
   })
 }
 
+// 取消点赞小说
+export function unlikeNovel(novelId) {
+  return request({
+    url: `/novels/${novelId}/like`,
+    method: 'delete'
+  })
+}
+
 // 收藏小说
 export function collectNovel(novelId) {
   return request({
     url: `/novels/${novelId}/collect`,
     method: 'post'
+  })
+}
+
+// 获取同标签好书
+export function getNovelByTags(params) {
+  return request({
+    url: '/novels',
+    method: 'get',
+    params
+  })
+}
+
+// 获取搜索建议
+export function getNovelSuggestions(keyword) {
+  return request({
+    url: '/novels/search/suggestions',
+    method: 'get',
+    params: { keyword }
   })
 }
 

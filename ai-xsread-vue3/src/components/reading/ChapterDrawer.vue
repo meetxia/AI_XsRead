@@ -47,7 +47,7 @@
       </div>
 
       <!-- 章节列表 -->
-      <div ref="listRef" class="chapter-list">
+      <div ref="listRef" class="chapter-list" @scroll="handleScroll">
         <div
           v-for="chapter in filteredChapters"
           :key="chapter.id"
@@ -79,6 +79,10 @@
           </svg>
           <p>没有找到相关章节</p>
         </div>
+
+        <div v-if="loading" class="loading-state">
+          <div v-for="i in 3" :key="i" class="chapter-skeleton"></div>
+        </div>
       </div>
 
       <!-- 快捷操作 -->
@@ -108,6 +112,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
+import { getChapterList } from '@/api/novel'
 
 // Props
 const props = defineProps({
@@ -118,6 +123,14 @@ const props = defineProps({
   chapters: {
     type: Array,
     default: () => []
+  },
+  novelId: {
+    type: [Number, String],
+    default: null
+  },
+  pageSize: {
+    type: Number,
+    default: 50
   },
   currentChapterId: {
     type: [Number, String],
@@ -130,29 +143,75 @@ const emit = defineEmits(['close', 'select-chapter'])
 
 // 搜索关键词
 const searchQuery = ref('')
+const loadedChapters = ref([])
+const page = ref(1)
+const total = ref(0)
+const loading = ref(false)
+const finished = ref(false)
+let searchTimer = null
 
 // 列表引用
 const listRef = ref(null)
 
+const sourceChapters = computed(() => props.chapters.length ? props.chapters : loadedChapters.value)
+
+function normalizeChapter(chapter, indexOffset = 0) {
+  return {
+    ...chapter,
+    id: Number(chapter.id || chapter.chapter_id),
+    title: chapter.title || chapter.chapter_title || `第${chapter.chapter_number || indexOffset + 1}章`,
+    chapterNumber: chapter.chapterNumber || chapter.chapter_number || chapter.sort_order || indexOffset + 1,
+    wordCount: chapter.wordCount || chapter.word_count || 0,
+    isRead: Boolean(chapter.isRead || chapter.is_read),
+    isVip: Boolean(chapter.isVip || chapter.is_vip),
+  }
+}
+
+async function loadChapters({ reset = false, keyword = '' } = {}) {
+  if (!props.novelId || props.chapters.length || loading.value || (finished.value && !reset)) return
+  loading.value = true
+  try {
+    const nextPage = reset ? 1 : page.value
+    const res = await getChapterList(props.novelId, {
+      page: nextPage,
+      pageSize: props.pageSize,
+      keyword: keyword || undefined,
+    })
+    if (res?.code === 200) {
+      const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data?.chapters || [])
+      const pagination = res.data?.pagination || {}
+      const normalized = list.map((item, index) => normalizeChapter(item, (nextPage - 1) * props.pageSize + index))
+      loadedChapters.value = reset ? normalized : loadedChapters.value.concat(normalized)
+      total.value = pagination.total || res.data?.total || loadedChapters.value.length
+      page.value = nextPage + 1
+      finished.value = normalized.length < props.pageSize || loadedChapters.value.length >= total.value
+    }
+  } catch (error) {
+    console.warn('[chapter-drawer] load failed', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 // 过滤后的章节列表
 const filteredChapters = computed(() => {
   if (!searchQuery.value) {
-    return props.chapters
+    return sourceChapters.value.map((chapter, index) => normalizeChapter(chapter, index))
   }
   
   const query = searchQuery.value.toLowerCase()
-  return props.chapters.filter(chapter => 
+  return sourceChapters.value.map((chapter, index) => normalizeChapter(chapter, index)).filter(chapter => 
     chapter.title.toLowerCase().includes(query) ||
     chapter.chapterNumber.toString().includes(query)
   )
 })
 
 // 总章节数
-const totalChapters = computed(() => props.chapters.length)
+const totalChapters = computed(() => total.value || sourceChapters.value.length)
 
 // 已读章节数
 const readChapters = computed(() => 
-  props.chapters.filter(ch => ch.isRead).length
+  sourceChapters.value.filter(ch => ch.isRead || ch.is_read).length
 )
 
 /**
@@ -214,13 +273,34 @@ const scrollToLast = () => {
   }
 }
 
+const handleScroll = () => {
+  const el = listRef.value
+  if (!el || props.chapters.length || searchQuery.value) return
+  if (el.scrollHeight - el.scrollTop - el.clientHeight <= 200) {
+    loadChapters()
+  }
+}
+
 // 监听visible变化，自动滚动到当前章节
 watch(() => props.visible, (visible) => {
   if (visible) {
+    if (!props.chapters.length && !loadedChapters.value.length) {
+      loadChapters({ reset: true })
+    }
     nextTick(() => {
       scrollToCurrent()
     })
   }
+})
+
+watch(searchQuery, (keyword) => {
+  clearTimeout(searchTimer)
+  if (!props.novelId || props.chapters.length) return
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    finished.value = false
+    loadChapters({ reset: true, keyword: keyword.trim() })
+  }, 250)
 })
 </script>
 
@@ -445,6 +525,17 @@ watch(() => props.visible, (visible) => {
 .empty-state p {
   margin-top: 1rem;
   font-size: 0.875rem;
+}
+
+.loading-state {
+  padding: 0.75rem;
+}
+
+.chapter-skeleton {
+  height: 4.25rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, rgba(120, 113, 108, 0.08), rgba(120, 113, 108, 0.18), rgba(120, 113, 108, 0.08));
 }
 
 /* 快捷操作 */

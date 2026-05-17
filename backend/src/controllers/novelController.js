@@ -1,5 +1,8 @@
 const Response = require('../utils/response');
 const novelService = require('../services/novelService');
+const recommendationService = require('../services/recommendationService');
+const memoryCache = require('../utils/memoryCache');
+const { hasColumn } = require('../utils/schemaCompat');
 
 /**
  * 获取小说列表
@@ -55,19 +58,22 @@ const getNovelDetail = async (req, res, next) => {
 const getRecommendNovels = async (req, res, next) => {
   try {
     const userId = req.user?.id;
-    const novels = await novelService.getRecommendNovels({ 
-      limit: req.query.limit || 10,
-      userId 
+    const result = await recommendationService.recommend(userId, {
+      limit: req.query.limit || req.query.pageSize || 10
     });
-    // 统一返回 { list, pagination } 格式，与 getNovelList 保持一致
-    return Response.success(res, {
-      list: novels,
-      pagination: { page: 1, pageSize: novels.length, total: novels.length, totalPages: 1 }
-    });
+    return Response.success(res, result);
   } catch (error) {
     next(error);
   }
 };
+
+function activeCommentWhere(hasDeletedAt) {
+  return hasDeletedAt ? 'AND deleted_at IS NULL' : '';
+}
+
+function ratingActiveSubquery(hasDeletedAt) {
+  return hasDeletedAt ? 'AND deleted_at IS NULL' : '';
+}
 
 /**
  * 获取热门小说
@@ -161,8 +167,14 @@ const getSearchSuggestions = async (req, res, next) => {
   try {
     const { keyword } = req.query;
     
-    if (!keyword || keyword.trim().length < 2) {
+    if (!keyword || keyword.trim().length < 1) {
       return Response.success(res, []);
+    }
+    const normalizedKeyword = keyword.trim();
+    const cacheKey = `novel:suggestions:${normalizedKeyword}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      return Response.success(res, cached);
     }
     
     const { pool } = require('../config/database');
@@ -174,7 +186,7 @@ const getSearchSuggestions = async (req, res, next) => {
        WHERE title LIKE ? 
        ORDER BY views DESC 
        LIMIT 5`,
-      [`%${keyword}%`]
+      [`%${normalizedKeyword}%`]
     );
     
     // 搜索作者
@@ -184,7 +196,7 @@ const getSearchSuggestions = async (req, res, next) => {
        WHERE author LIKE ? 
        ORDER BY views DESC 
        LIMIT 3`,
-      [`%${keyword}%`]
+      [`%${normalizedKeyword}%`]
     );
     
     // 合并结果
@@ -193,7 +205,9 @@ const getSearchSuggestions = async (req, res, next) => {
       ...authorSuggestions.map(s => ({ text: s.suggestion, type: s.type }))
     ];
     
-    return Response.success(res, suggestions.slice(0, 8));
+    const data = suggestions.slice(0, 8);
+    memoryCache.set(cacheKey, data, 60_000);
+    return Response.success(res, data);
   } catch (error) {
     next(error);
   }
@@ -385,15 +399,23 @@ const getNovelStatus = async (req, res, next) => {
       [userId, id]
     );
     
-    // 查询收藏状态
+    // 查询书架状态
     const [bookshelf] = await pool.query(
-      'SELECT id FROM bookshelf WHERE user_id = ? AND novel_id = ?',
+      'SELECT id, type FROM bookshelf WHERE user_id = ? AND novel_id = ?',
       [userId, id]
+    );
+    const [novelRows] = await pool.query(
+      'SELECT likes, collections FROM novels WHERE id = ? LIMIT 1',
+      [id]
     );
     
     return Response.success(res, {
       isLiked: likes.length > 0,
-      isCollected: bookshelf.length > 0
+      isCollected: bookshelf.length > 0,
+      inBookshelf: bookshelf.length > 0,
+      shelfType: bookshelf[0]?.type || null,
+      likeCount: Number(novelRows[0]?.likes || 0),
+      collectionCount: Number(novelRows[0]?.collections || 0)
     });
   } catch (error) {
     next(error);
@@ -435,6 +457,8 @@ module.exports = {
       const { id } = req.params;
       const userId = req.user?.id || null;
       const { pool } = require('../config/database');
+      const hasDeletedAt = await hasColumn('comments', 'deleted_at');
+      const activeWhere = hasDeletedAt ? 'AND deleted_at IS NULL' : '';
 
       // 汇总评分：基于 comments.rating 与 status=1 的评论
       const [agg] = await pool.query(
@@ -447,7 +471,7 @@ module.exports = {
            SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) AS star2,
            SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) AS star1
          FROM comments 
-         WHERE novel_id = ? AND deleted_at IS NULL`,
+         WHERE novel_id = ? ${activeWhere}`,
         [id]
       );
 
@@ -455,7 +479,7 @@ module.exports = {
       if (userId) {
         const [mine] = await pool.query(
           `SELECT id, rating, created_at FROM comments 
-           WHERE novel_id = ? AND user_id = ? AND deleted_at IS NULL 
+           WHERE novel_id = ? AND user_id = ? ${activeWhere}
            ORDER BY created_at DESC LIMIT 1`,
           [id, userId]
         );
@@ -489,6 +513,8 @@ module.exports = {
       const userId = req.user.id;
       const { rating } = req.body;
       const { pool } = require('../config/database');
+      const hasDeletedAt = await hasColumn('comments', 'deleted_at');
+      const activeWhere = activeCommentWhere(hasDeletedAt);
 
       const value = Number(rating);
       if (!Number.isFinite(value) || value < 1 || value > 5) {
@@ -497,7 +523,7 @@ module.exports = {
 
       // 若用户已有带评分的评论，阻止重复提交；建议使用更新接口
       const [exists] = await pool.query(
-        `SELECT id FROM comments WHERE novel_id = ? AND user_id = ? AND rating > 0 AND deleted_at IS NULL LIMIT 1`,
+        `SELECT id FROM comments WHERE novel_id = ? AND user_id = ? AND rating > 0 ${activeWhere} LIMIT 1`,
         [id, userId]
       );
       if (exists.length > 0) {
@@ -511,10 +537,11 @@ module.exports = {
       );
 
       // 触发平均分更新：直接更新 novels.rating 与 rating_count
+      const ratingWhere = ratingActiveSubquery(hasDeletedAt);
       await pool.query(
         `UPDATE novels n SET 
-           rating = IFNULL((SELECT ROUND(AVG(rating), 2) FROM comments WHERE novel_id = n.id AND rating > 0 AND deleted_at IS NULL), 0),
-           rating_count = (SELECT COUNT(*) FROM comments WHERE novel_id = n.id AND rating > 0 AND deleted_at IS NULL),
+           rating = IFNULL((SELECT ROUND(AVG(rating), 2) FROM comments WHERE novel_id = n.id AND rating > 0 ${ratingWhere}), 0),
+           rating_count = (SELECT COUNT(*) FROM comments WHERE novel_id = n.id AND rating > 0 ${ratingWhere}),
            updated_at = NOW()
          WHERE n.id = ?`,
         [id]
@@ -532,6 +559,8 @@ module.exports = {
       const userId = req.user.id;
       const { rating } = req.body;
       const { pool } = require('../config/database');
+      const hasDeletedAt = await hasColumn('comments', 'deleted_at');
+      const activeWhere = activeCommentWhere(hasDeletedAt);
 
       const value = Number(rating);
       if (!Number.isFinite(value) || value < 1 || value > 5) {
@@ -540,7 +569,7 @@ module.exports = {
 
       // 找到用户最近一条评分记录（或创建一条）
       const [mine] = await pool.query(
-        `SELECT id FROM comments WHERE novel_id = ? AND user_id = ? AND rating > 0 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1`,
+        `SELECT id FROM comments WHERE novel_id = ? AND user_id = ? AND rating > 0 ${activeWhere} ORDER BY created_at DESC LIMIT 1`,
         [id, userId]
       );
 
@@ -557,10 +586,11 @@ module.exports = {
         );
       }
 
+      const ratingWhere = ratingActiveSubquery(hasDeletedAt);
       await pool.query(
         `UPDATE novels n SET 
-           rating = IFNULL((SELECT ROUND(AVG(rating), 2) FROM comments WHERE novel_id = n.id AND rating > 0 AND deleted_at IS NULL), 0),
-           rating_count = (SELECT COUNT(*) FROM comments WHERE novel_id = n.id AND rating > 0 AND deleted_at IS NULL),
+           rating = IFNULL((SELECT ROUND(AVG(rating), 2) FROM comments WHERE novel_id = n.id AND rating > 0 ${ratingWhere}), 0),
+           rating_count = (SELECT COUNT(*) FROM comments WHERE novel_id = n.id AND rating > 0 ${ratingWhere}),
            updated_at = NOW()
          WHERE n.id = ?`,
         [id]

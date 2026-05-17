@@ -19,7 +19,7 @@ const authenticate = async (req, res, next) => {
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.log('❌ 认证失败: 未提供认证令牌或格式错误');
-      return Response.error(res, '未提供认证令牌', 401);
+      return Response.error(res, '请先登录', 401);
     }
 
     const token = authHeader.substring(7); // 移除 "Bearer " 前缀
@@ -48,12 +48,12 @@ const authenticate = async (req, res, next) => {
     });
 
     if (error.name === 'TokenExpiredError') {
-      return Response.error(res, '登录已过期,请重新登录', 401);
+      return Response.error(res, '请先登录', 401);
     } else if (error.name === 'JsonWebTokenError') {
       // Token 签名无效,可能是密钥更改了
-      return Response.error(res, '登录信息已失效,请重新登录', 401);
+      return Response.error(res, '请先登录', 401);
     }
-    return Response.error(res, '认证失败,请重新登录', 401);
+    return Response.error(res, '请先登录', 401);
   }
 };
 
@@ -103,6 +103,7 @@ const authorize = (...roles) => {
 module.exports = {
   authenticate,
   optionalAuthenticate,
+  optionalAuth: optionalAuthenticate,
   authorize
 };
 

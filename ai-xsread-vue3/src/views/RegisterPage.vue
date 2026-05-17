@@ -54,7 +54,9 @@ async function onSubmit() {
       email: phone.value + '@example.com', // 后端如果只接受邮箱，这里临时占位
       password: password.value,
     })
-    router.replace('/')
+    // 注册成功后跳转到兴趣标签 onboarding 页（Requirement 20.1）
+    // 通过 ?from=register 标记新用户，OnboardingInterestsPage 可据此区分
+    router.push({ path: '/onboarding/interests', query: { from: 'register' } })
   } catch (err) {
     errorMsg.value = err.message || '注册失败'
   } finally {

@@ -5,8 +5,8 @@ import AppHeader from '@/components/v2/layout/AppHeader.vue'
 import BottomNav from '@/components/v2/layout/BottomNav.vue'
 import BookCard from '@/components/v2/book/BookCard.vue'
 import Icon from '@/components/v2/icons/Icon.vue'
+import RankTabSection from '@/components/novel/RankTabSection.vue'
 import { getRecommendNovels, getNovelList } from '@/api/novel'
-import { getReadingProgress } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -112,14 +112,20 @@ async function loadContinueReading() {
       const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
       if (list.length > 0) {
         const h = list[0]
+        const progress = Math.max(0, Math.min(100, Math.round(Number(h.progress || h.reading_progress || 0))))
+        const wordCount = Number(h.word_count || h.total_words || 0)
+        const remainWords = wordCount && progress < 100 ? Math.round(wordCount * (100 - progress) / 100) : 0
+        const remainMinutes = remainWords ? Math.max(1, Math.ceil(remainWords / 350)) : null
+        const chapterNumber = h.chapter_number || h.chapter_no || ''
+        const chapterTitle = h.chapter_title || '继续阅读'
         continueBook.value = {
           id: h.novel_id,
           title: h.title || '未知小说',
           category: h.category_name || '',
           author: h.author || '佚名',
-          chapter: h.chapter_title ? `${h.chapter_title}` : '继续阅读',
-          progress: h.progress || 0,
-          remaining: '',
+          chapter: chapterNumber ? `第 ${chapterNumber} 章 · ${chapterTitle}` : `上次读到 · ${chapterTitle}`,
+          progress,
+          remaining: remainMinutes ? `预计剩余 ${remainMinutes} 分钟` : '点此继续',
           chapterId: h.chapter_id,
         }
         hasContinue.value = true
@@ -169,7 +175,7 @@ onMounted(loadData)
               <div class="min-w-0">
                 <span class="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/20 font-medium">
                   <span class="w-1.5 h-1.5 rounded-full bg-cream-50 animate-pulse"></span>
-                  <span class="truncate max-w-[14ch]">{{ continueBook.chapter }}</span>
+                  <span class="truncate max-w-[18ch]">{{ continueBook.chapter }}</span>
                 </span>
                 <h3 class="mt-2 font-serif text-lg sm:text-xl font-semibold leading-tight">{{ continueBook.title }}</h3>
                 <p class="mt-0.5 text-xs text-cream-200/80">{{ continueBook.author }}<span v-if="continueBook.category"> · {{ continueBook.category }}</span></p>
@@ -182,7 +188,7 @@ onMounted(loadData)
             <div>
               <div class="flex items-center justify-between text-[11px] text-cream-200/90 mb-1">
                 <span>已读 {{ continueBook.progress }}%</span>
-                <span class="opacity-75">点此继续</span>
+                <span class="opacity-75">{{ continueBook.remaining }}</span>
               </div>
               <div class="h-1 rounded-full bg-cream-50/20 overflow-hidden">
                 <div class="h-full bg-cream-50 rounded-full transition-[width] duration-500" :style="{ width: continueBook.progress + '%' }"></div>
@@ -344,6 +350,10 @@ onMounted(loadData)
           </div>
         </section>
       </div>
+
+      <section class="mt-8">
+        <RankTabSection />
+      </section>
 
       <!-- 推荐书单 -->
       <section class="mt-8">

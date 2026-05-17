@@ -35,13 +35,18 @@ export function removeFromBookshelf(id) {
   })
 }
 
-// 批量删除
-export function batchDeleteBookshelf(ids) {
+// 批量操作
+export function batchBookshelf(action, ids, extra = {}) {
   return request({
     url: '/user/bookshelf/batch',
     method: 'post',
-    data: { ids, action: 'delete' }
+    data: { ids, action, ...extra }
   })
+}
+
+// 批量删除
+export function batchDeleteBookshelf(ids) {
+  return batchBookshelf('delete', ids)
 }
 
 // 检查是否在书架中

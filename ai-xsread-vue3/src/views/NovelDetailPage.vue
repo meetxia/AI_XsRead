@@ -1,74 +1,59 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import BookCover from '@/components/v2/book/BookCover.vue'
-import { getNovelDetail, getChapterList, getComments } from '@/api/novel'
+import SameAuthorRail from '@/components/novel/SameAuthorRail.vue'
+import SameTagRail from '@/components/novel/SameTagRail.vue'
+import HotNotesSection from '@/components/novel/HotNotesSection.vue'
+import FollowAuthorButton from '@/components/novel/FollowAuthorButton.vue'
+import { getNovelDetail, getChapterList, getComments, getNovelStatus, likeNovel, unlikeNovel, getNovelRating } from '@/api/novel'
+import { addToBookshelf, removeFromBookshelf, getReadingProgress } from '@/api/user'
+import { useUserStore } from '@/stores/user'
+import { buildLoginUrl } from '@/composables/useReturnUrl'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const novelId = computed(() => route.params.id || 'demo')
 
-// ─── 占位数据（接 API 失败时使用） ───
 const novel = ref({
-  id: 'demo',
-  title: '山有木兮',
-  subtitle: '那一年长安飘雪',
-  category: '古风',
-  subCategory: '言情',
-  author: '沈砚白',
-  authorId: 'sengyanbai',
-  authorAvatar: '沈',
-  authorFans: '12.3k',
-  rating: 9.2,
-  wordCount: '32 万',
-  readers: '12.4 万',
-  status: '完结',
-  tags: ['甜虐交织', '将军言情', '失忆梗', 'HE', '慢热'],
-  intro: '她是失了记忆的将军遗孤，他是江湖最不该现身的剑客。命运把两个人推向一座无名雪山，所有的爱恨都在那里——重新写一遍。一卷长安雪，一壶月下酒，一个不肯说出口的名字。本以为是路人，却在三年后的元宵夜，撞见彼此最不愿被人知道的过往。',
-  introExtra: '沈砚白以诗一般的笔触，写尽了一段错过又重逢的旧梦。书中既有家国大义，也有儿女情长；既有金戈铁马的紧张感，也有炉火夜话的温度。每一回都像一帧古画，慢慢展开。',
+  id: null,
+  title: '',
+  subtitle: '',
+  category: '',
+  subCategory: '',
+  author: '',
+  authorId: null,
+  authorAvatar: '',
+  authorFans: null,
+  rating: null,
+  wordCount: '',
+  readers: null,
+  likeCount: null,
+  commentCount: null,
+  status: '',
+  tags: [],
+  intro: '',
+  introExtra: '',
   cover: '',
   variant: 1,
 })
 
-const chapters = ref([
-  { id:1, title:'第一章 · 雪夜初见',     date:'2025-08-14', words:'4,231 字', free:true },
-  { id:2, title:'第二章 · 长安城里的旧人', date:'2025-08-15', words:'5,012 字', free:true },
-  { id:12, title:'第十二章 · 雪夜归人',  date:'2025-09-01', words:'6,138 字', current:true },
-  { id:13, title:'第十三章 · 春寒料峭',  date:'2025-09-02', words:'4,867 字' },
-])
-const totalChapters = ref(36)
+const chapters = ref([])
+const totalChapters = ref(0)
 
-const comments = ref([
-  {
-    id: 1,
-    user: '林深时见鹿',
-    avatarColor: 'from-clay-400 to-clay-600',
-    avatarLetter: '林',
-    rating: 5,
-    time: '3 天前',
-    content: '沈大写的故事总是有一种慢慢渗进心里的力量，像北方冬天的炉火。第十二章看哭了，强烈推荐。',
-    likes: 238,
-    replies: 12,
-  },
-  {
-    id: 2,
-    user: '夜雨临轩',
-    avatarColor: 'from-moss-500 to-moss-600',
-    avatarLetter: '夜',
-    rating: 5,
-    time: '5 天前',
-    content: '古风言情写得这么有重量的不多了。"一壶月下酒"那一段，反复看了三次。',
-    likes: 87,
-    replies: 5,
-  }
-])
-const totalComments = ref(1284)
-
-// 评分分布
-const distribution = [78, 15, 5, 1, 1]
+const comments = ref([])
+const totalComments = ref(0)
+const toast = ref('')
+const statusState = ref({ inBookshelf: false, liked: false })
+const statusLoading = ref(false)
+const bookshelfLoading = ref(false)
+const likeLoading = ref(false)
+const progress = ref(null)
+const ratingInfo = ref({ ratingCount: 0, average: null, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } })
 
 // 简介展开
 const introExpanded = ref(false)
@@ -80,13 +65,25 @@ const sortedChapters = computed(() => {
   return reverse.value ? arr.reverse() : arr
 })
 
-// 类似推荐
-const similarBooks = ref([
-  { id:'sim-1', title:'归棠记事',         author:'沈砚白', variant:0 },
-  { id:'sim-2', title:'长安的秋天',       author:'沈砚白', variant:2 },
-  { id:'sim-3', title:'流光记',           author:'温知秋', variant:3 },
-  { id:'sim-4', title:'迷雾镇·第七封信',  author:'江聿',   variant:5 },
-])
+const ratingRows = computed(() => [5, 4, 3, 2, 1].map(star => ({
+  star,
+  pct: Number(ratingInfo.value.distribution?.[star] || 0),
+})))
+
+const displayRating = computed(() => {
+  const value = ratingInfo.value.average ?? novel.value.rating
+  return value === null || value === undefined || value === '' ? '0.0' : Number(value || 0).toFixed(1)
+})
+
+const continueChapter = computed(() => {
+  if (!progress.value?.chapter_id) return null
+  return chapters.value.find(c => String(c.id) === String(progress.value.chapter_id)) || {
+    id: progress.value.chapter_id,
+    title: progress.value.chapter_title || progress.value.chapterTitle || '上次阅读章节',
+  }
+})
+
+const ctaText = computed(() => continueChapter.value?.title ? `续读 · ${continueChapter.value.title}` : '开始阅读')
 
 // ─── 加载真实数据 ───
 async function loadDetail() {
@@ -97,18 +94,23 @@ async function loadDetail() {
       novel.value = {
         ...novel.value,
         id: d.id,
-        title: d.title || novel.value.title,
+        title: d.title || '',
         subtitle: d.subtitle || '',
-        author: d.author || novel.value.author,
+        author: d.author || '',
         authorId: d.author_id || d.authorId || null,
-        category: d.category_name || d.category || novel.value.category,
+        authorAvatar: (d.author || '作')[0],
+        authorFans: d.author_fans ?? d.authorFans ?? null,
+        category: d.category_name || d.category || '',
         subCategory: d.category_name || '',
-        rating: Number(d.rating || 0).toFixed(1),
-        wordCount: d.word_count ? `${Math.round(d.word_count / 10000)} 万` : novel.value.wordCount,
-        readers: d.views ? `${(d.views / 10000).toFixed(1)} 万` : novel.value.readers,
-        status: d.status === 0 ? '完结' : '连载中',
-        tags: d.tags ? d.tags.split(',').map(t => t.trim()).filter(Boolean) : novel.value.tags,
-        intro: d.description || novel.value.intro,
+        rating: d.rating ?? null,
+        wordCount: d.word_count ? `${Math.round(d.word_count / 10000)} 万` : '',
+        readers: d.readers ?? d.views ?? null,
+        likeCount: d.like_count ?? d.likeCount ?? null,
+        commentCount: d.comment_count ?? d.commentCount ?? null,
+        status: d.status === 0 || d.status === 'finished' ? '完结' : '连载中',
+        tags: Array.isArray(d.tags) ? d.tags : (d.tags ? d.tags.split(',').map(t => t.trim()).filter(Boolean) : []),
+        intro: d.description || '',
+        introExtra: d.introExtra || '',
         cover: d.cover,
       }
     }
@@ -127,6 +129,7 @@ async function loadChapters() {
         date: (c.created_at || '').slice(0, 10),
         words: c.word_count ? `${c.word_count.toLocaleString()} 字` : '',
         free: !c.is_vip,
+        current: String(c.id) === String(progress.value?.chapter_id),
       }))
       totalChapters.value = res.data.total || chapters.value.length
     }
@@ -149,12 +152,56 @@ async function loadComments() {
         replies: c.reply_count || 0,
       }))
       totalComments.value = res.data.total || comments.value.length
+      if (novel.value.commentCount === null) novel.value.commentCount = totalComments.value
     }
   } catch (e) { /* ignore */ }
 }
 
+async function loadStatus() {
+  statusLoading.value = true
+  try {
+    const res = await getNovelStatus(novelId.value)
+    if (res?.code === 200 && res.data) {
+      statusState.value = {
+        inBookshelf: Boolean(res.data.inBookshelf),
+        liked: Boolean(res.data.liked),
+      }
+    }
+  } catch (e) {
+    statusState.value = { inBookshelf: false, liked: false }
+  } finally {
+    statusLoading.value = false
+  }
+}
+
+async function loadProgress() {
+  if (!userStore.isLogin) return
+  try {
+    const res = await getReadingProgress(novelId.value)
+    if (res?.code === 200 && res.data) progress.value = res.data
+  } catch (e) {
+    progress.value = null
+  }
+}
+
+async function loadRating() {
+  try {
+    const res = await getNovelRating(novelId.value)
+    if (res?.code === 200 && res.data) {
+      ratingInfo.value = {
+        ratingCount: Number(res.data.ratingCount || res.data.rating_count || 0),
+        average: res.data.average ?? res.data.rating ?? null,
+        distribution: res.data.distribution || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      }
+    }
+  } catch (e) {
+    ratingInfo.value = { ratingCount: 0, average: null, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } }
+  }
+}
+
 function formatNumber(n) {
-  if (!n) return '0'
+  if (n === null || n === undefined || n === '') return ''
+  n = Number(n)
   if (n >= 10000) return `${(n/10000).toFixed(1)} 万`
   return n.toLocaleString()
 }
@@ -172,28 +219,94 @@ function relativeTime(s) {
   } catch (e) { return s }
 }
 
-    // 作者链接：优先用 author_id，没有则用 author 名字搜索
-    const authorLink = computed(() => {
-      if (novel.value.authorId) return `/author/${novel.value.authorId}`
-      return `/search?keyword=${encodeURIComponent(novel.value.author)}`
-    })
+const authorLink = computed(() => {
+  if (novel.value.authorId) return `/author/${novel.value.authorId}`
+  return `/search?keyword=${encodeURIComponent(novel.value.author || '')}`
+})
 
-    const goReading = () => {
-      // 找到续读章节（当前进度章节或第一章）
-      const currentCh = chapters.value.find(c => c.current)
-      const firstCh = chapters.value[0]
-      const targetCh = currentCh || firstCh
-      if (targetCh) {
-        router.push(`/reading/${novelId.value}?chapter=${targetCh.id}`)
-      } else {
-        router.push(`/reading/${novelId.value}`)
-      }
+async function loadAll() {
+  introExpanded.value = false
+  await Promise.allSettled([loadDetail(), loadStatus(), loadProgress(), loadRating(), loadComments()])
+  await loadChapters()
+}
+
+function showToast(message) {
+  toast.value = message
+  window.setTimeout(() => {
+    if (toast.value === message) toast.value = ''
+  }, 1800)
+}
+
+function onFollowError() {
+  showToast('操作失败，请稍后再试')
+}
+
+function onFollowChange(payload) {
+  if (payload?.redirected) return
+  if (payload?.following) showToast('已关注作者')
+  else showToast('已取消关注')
+}
+
+function requireLogin() {
+  if (userStore.isLogin) return true
+  router.push(buildLoginUrl(route.fullPath))
+  return false
+}
+
+async function toggleBookshelf() {
+  if (!requireLogin() || bookshelfLoading.value) return
+  const previous = statusState.value.inBookshelf
+  bookshelfLoading.value = true
+  statusState.value.inBookshelf = !previous
+  try {
+    if (previous) {
+      await removeFromBookshelf(novelId.value)
+      showToast('已从书架移除')
+    } else {
+      await addToBookshelf({ novelId: novelId.value, type: 'reading' })
+      showToast('已加入书架')
     }
+  } catch (e) {
+    statusState.value.inBookshelf = previous
+    showToast('操作失败，请稍后再试')
+  } finally {
+    bookshelfLoading.value = false
+  }
+}
 
-onMounted(() => {
-  loadDetail()
-  loadChapters()
-  loadComments()
+async function toggleLike() {
+  if (!requireLogin() || likeLoading.value) return
+  const previous = statusState.value.liked
+  const count = novel.value.likeCount
+  likeLoading.value = true
+  statusState.value.liked = !previous
+  if (count !== null) novel.value.likeCount = Math.max(0, Number(count) + (previous ? -1 : 1))
+  try {
+    if (previous) await unlikeNovel(novelId.value)
+    else await likeNovel(novelId.value)
+  } catch (e) {
+    statusState.value.liked = previous
+    novel.value.likeCount = count
+    showToast('操作失败，请稍后再试')
+  } finally {
+    likeLoading.value = false
+  }
+}
+
+const goReading = () => {
+  const targetCh = continueChapter.value || chapters.value[0]
+  if (targetCh) {
+    router.push(`/reading/${novelId.value}?chapter=${targetCh.id}`)
+  } else {
+    router.push(`/reading/${novelId.value}`)
+  }
+}
+
+onMounted(loadAll)
+watch(novelId, loadAll)
+
+watch(progress, () => {
+  chapters.value = chapters.value.map(c => ({ ...c, current: String(c.id) === String(progress.value?.chapter_id) }))
 })
 </script>
 
@@ -245,22 +358,32 @@ onMounted(() => {
               <BookCover :title="novel.title" :sub="novel.subtitle" :variant="novel.variant" :cover="novel.cover" />
             </div>
             <div class="flex-1 min-w-0 text-cream-50 mt-2 sm:mt-4">
-              <p class="text-[11px] uppercase tracking-[0.2em] opacity-70 mb-1">{{ novel.category }} · {{ novel.subCategory }}</p>
-              <h1 class="font-serif text-xl sm:text-2xl lg:text-3xl font-semibold leading-tight">{{ novel.title }}</h1>
+              <p class="text-[11px] uppercase tracking-[0.2em] opacity-70 mb-1">{{ novel.category }}<span v-if="novel.subCategory"> · {{ novel.subCategory }}</span></p>
+              <h1 class="font-serif text-xl sm:text-2xl lg:text-3xl font-semibold leading-tight">{{ novel.title || '小说详情' }}</h1>
               <p class="mt-1 text-sm opacity-85 line-clamp-1">{{ novel.subtitle }}</p>
               <RouterLink :to="authorLink" class="mt-2 inline-flex items-center gap-2 text-sm">
-                <span class="w-6 h-6 rounded-full bg-cream-50/20 grid place-items-center text-[10px] font-serif">{{ novel.authorAvatar }}</span>
-                <span>{{ novel.author }}</span>
-                <span class="w-1 h-1 rounded-full bg-cream-50/40"></span>
-                <span class="opacity-75">关注 {{ novel.authorFans }}</span>
+                <span class="w-6 h-6 rounded-full bg-cream-50/20 grid place-items-center text-[10px] font-serif">{{ novel.authorAvatar || '作' }}</span>
+                <span>{{ novel.author || '佚名' }}</span>
+                <template v-if="novel.authorFans !== null">
+                  <span class="w-1 h-1 rounded-full bg-cream-50/40"></span>
+                  <span class="opacity-75">关注 {{ formatNumber(novel.authorFans) }}</span>
+                </template>
               </RouterLink>
+              <FollowAuthorButton
+                v-if="novel.authorId"
+                :author-id="novel.authorId"
+                variant="translucent"
+                class="mt-2"
+                @error="onFollowError"
+                @change="onFollowChange"
+              />
             </div>
           </div>
 
           <!-- 数据条 -->
           <div class="relative mt-5 flex items-center justify-around py-3 px-2 rounded-2xl bg-cream-50 dark:bg-night-800 shadow-cream">
             <div class="text-center">
-              <p class="font-serif text-lg sm:text-xl font-semibold text-clay-700 dark:text-clay-400">{{ novel.rating }}</p>
+              <p class="font-serif text-lg sm:text-xl font-semibold text-clay-700 dark:text-clay-400">{{ displayRating }}</p>
               <p class="text-[10px] text-ink-500 dark:text-ink-300 mt-0.5 tracking-wider">EVALUATION</p>
             </div>
             <div class="w-px h-8 bg-cream-200 dark:bg-night-700"></div>
@@ -268,9 +391,9 @@ onMounted(() => {
               <p class="font-serif text-lg sm:text-xl font-semibold">{{ novel.wordCount.replace(' ', '') }}</p>
               <p class="text-[10px] text-ink-500 dark:text-ink-300 mt-0.5 tracking-wider">字数</p>
             </div>
-            <div class="w-px h-8 bg-cream-200 dark:bg-night-700"></div>
-            <div class="text-center">
-              <p class="font-serif text-lg sm:text-xl font-semibold">{{ novel.readers.replace(' ', '') }}</p>
+            <div v-if="novel.readers !== null" class="w-px h-8 bg-cream-200 dark:bg-night-700"></div>
+            <div v-if="novel.readers !== null" class="text-center">
+              <p class="font-serif text-lg sm:text-xl font-semibold">{{ formatNumber(novel.readers).replace(' ', '') }}</p>
               <p class="text-[10px] text-ink-500 dark:text-ink-300 mt-0.5 tracking-wider">在读</p>
             </div>
             <div class="w-px h-8 bg-cream-200 dark:bg-night-700"></div>
@@ -294,7 +417,7 @@ onMounted(() => {
         <!-- 左栏 -->
         <div class="lg:col-span-1 min-w-0 space-y-6">
           <!-- 简介 -->
-          <section>
+          <section v-if="novel.intro">
             <h2 class="font-serif text-base font-semibold mb-3 flex items-center gap-2">
               <span class="w-1 h-4 rounded-full bg-clay-500"></span>
               故事简介
@@ -315,19 +438,20 @@ onMounted(() => {
             <div class="rounded-2xl bg-cream-100 dark:bg-night-800 p-4">
               <div class="flex items-center gap-5">
                 <div class="text-center shrink-0">
-                  <p class="font-serif text-4xl font-bold text-clay-700 dark:text-clay-400 leading-none">{{ novel.rating }}</p>
+                  <p class="font-serif text-4xl font-bold text-clay-700 dark:text-clay-400 leading-none">{{ displayRating }}</p>
                   <div class="flex justify-center gap-0.5 mt-1.5 text-clay-500 dark:text-clay-400">
-                    <Icon v-for="i in 5" :key="i" name="starFill" class="w-3 h-3" />
+                    <Icon v-for="i in 5" :key="i" :name="ratingInfo.ratingCount ? 'starFill' : 'star'" class="w-3 h-3" />
                   </div>
-                  <p class="text-[11px] text-ink-500 mt-1">3,421 人评分</p>
+                  <p class="text-[11px] text-ink-500 mt-1">{{ ratingInfo.ratingCount ? `${formatNumber(ratingInfo.ratingCount)} 人评分` : '本书暂无评分' }}</p>
                 </div>
                 <div class="flex-1 space-y-1.5">
-                  <div v-for="(pct, i) in distribution" :key="i" class="flex items-center gap-2 text-xs">
-                    <span class="text-ink-500 dark:text-ink-300 w-3">{{ 5 - i }}</span>
+                  <p v-if="!ratingInfo.ratingCount" class="text-xs text-ink-500 dark:text-ink-300 mb-2">成为第一个评分的人 →</p>
+                  <div v-for="row in ratingRows" :key="row.star" class="flex items-center gap-2 text-xs">
+                    <span class="text-ink-500 dark:text-ink-300 w-3">{{ row.star }}</span>
                     <div class="flex-1 h-1.5 rounded-full bg-cream-200 dark:bg-night-700 overflow-hidden">
-                      <div class="h-full bg-clay-500 rounded-full" :style="{ width: pct + '%' }"></div>
+                      <div class="h-full bg-clay-500 rounded-full" :style="{ width: row.pct + '%' }"></div>
                     </div>
-                    <span class="text-ink-500 dark:text-ink-300 w-8 text-right">{{ pct }}%</span>
+                    <span class="text-ink-500 dark:text-ink-300 w-8 text-right">{{ row.pct }}%</span>
                   </div>
                 </div>
               </div>
@@ -364,6 +488,7 @@ onMounted(() => {
                 <span v-else-if="ch.free" class="text-[11px] px-2 py-0.5 rounded-full bg-cream-200 dark:bg-night-700 text-ink-700 dark:text-ink-300 shrink-0">免费</span>
               </RouterLink>
             </div>
+            <div v-if="!chapters.length" class="rounded-2xl bg-cream-100 dark:bg-night-800 p-4 text-sm text-ink-500 dark:text-ink-300">目录暂未开放</div>
             <button class="w-full mt-3 py-2.5 text-sm text-ink-700 dark:text-ink-300 font-medium border border-cream-200 dark:border-night-700 rounded-xl hover:bg-cream-100 dark:hover:bg-night-800 transition">
               查看全部 {{ totalChapters }} 章
             </button>
@@ -374,7 +499,7 @@ onMounted(() => {
             <div class="flex items-end justify-between mb-3">
               <h2 class="font-serif text-base font-semibold flex items-center gap-2">
                 <span class="w-1 h-4 rounded-full bg-clay-500"></span>
-                书友评论 · {{ totalComments.toLocaleString() }}
+                书友评论<span v-if="novel.commentCount !== null || totalComments"> · {{ formatNumber(novel.commentCount ?? totalComments) }}</span>
               </h2>
               <a href="#" class="text-xs text-ink-700 dark:text-ink-300 hover:text-clay-700 dark:hover:text-clay-400 transition">查看全部</a>
             </div>
@@ -405,24 +530,12 @@ onMounted(() => {
                 </div>
               </div>
             </div>
+            <div v-if="!comments.length" class="rounded-2xl bg-cream-100 dark:bg-night-800 p-4 text-sm text-ink-500 dark:text-ink-300">还没有书友评论</div>
           </section>
 
-          <!-- 类似推荐 -->
-          <section>
-            <h2 class="font-serif text-base font-semibold mb-3 flex items-center gap-2">
-              <span class="w-1 h-4 rounded-full bg-clay-500"></span>
-              看过的人还看了
-            </h2>
-            <div class="flex gap-3 overflow-x-auto no-scrollbar -mx-4 sm:-mx-6 lg:mx-0 px-4 sm:px-6 lg:px-0 pb-1">
-              <RouterLink v-for="b in similarBooks" :key="b.id" :to="`/novel/${b.id}`" class="shrink-0 w-24 sm:w-28">
-                <div class="aspect-[3/4] rounded-lg overflow-hidden shadow-cream">
-                  <BookCover :title="b.title" :variant="b.variant" :cover="b.cover" />
-                </div>
-                <p class="mt-2 text-xs font-medium line-clamp-1">{{ b.title }}</p>
-                <p class="text-[10px] text-ink-500 dark:text-ink-300">{{ b.author }}</p>
-              </RouterLink>
-            </div>
-          </section>
+          <SameAuthorRail :author-id="novel.authorId" :exclude-id="novelId" />
+          <HotNotesSection :novel-id="novelId" />
+          <SameTagRail :tags="novel.tags" :exclude-id="novelId" />
         </div>
       </div>
     </main>
@@ -430,18 +543,31 @@ onMounted(() => {
     <!-- 浮动 CTA 条 -->
     <div class="fixed bottom-0 inset-x-0 z-40 bg-cream-50/95 dark:bg-night-900/95 backdrop-blur-xl border-t border-cream-200 dark:border-night-700 pb-safe">
       <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-2">
-        <button class="flex flex-col items-center gap-0.5 px-3 py-1.5 text-ink-700 dark:text-ink-300 hover:text-clay-700 dark:hover:text-clay-400 transition" aria-label="加入书架">
-          <Icon name="bookmark" class="w-5 h-5" />
-          <span class="text-[10px]">加书架</span>
+        <button
+          class="flex flex-col items-center gap-0.5 px-3 py-1.5 text-ink-700 dark:text-ink-300 hover:text-clay-700 dark:hover:text-clay-400 transition disabled:opacity-60"
+          :disabled="statusLoading || bookshelfLoading"
+          aria-label="加入书架"
+          @click="toggleBookshelf"
+        >
+          <Icon :name="statusState.inBookshelf ? 'bookmarkFill' : 'bookmark'" class="w-5 h-5" />
+          <span class="text-[10px]">{{ bookshelfLoading ? '...' : (statusState.inBookshelf ? '已加入' : '加书架') }}</span>
         </button>
-        <button class="flex flex-col items-center gap-0.5 px-3 py-1.5 text-ink-700 dark:text-ink-300 hover:text-clay-700 dark:hover:text-clay-400 transition" aria-label="点赞">
-          <Icon name="heart" class="w-5 h-5" />
-          <span class="text-[10px]">2.1k</span>
+        <button
+          class="flex flex-col items-center gap-0.5 px-3 py-1.5 text-ink-700 dark:text-ink-300 hover:text-clay-700 dark:hover:text-clay-400 transition disabled:opacity-60"
+          :disabled="statusLoading || likeLoading"
+          aria-label="点赞"
+          @click="toggleLike"
+        >
+          <Icon :name="statusState.liked ? 'heartFill' : 'heart'" class="w-5 h-5" />
+          <span class="text-[10px]">{{ likeLoading ? '...' : (novel.likeCount !== null ? formatNumber(novel.likeCount) : '喜欢') }}</span>
         </button>
         <button @click="goReading" class="flex-1 h-12 rounded-full bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif text-base font-semibold grid place-items-center hover:bg-clay-600 active:scale-[0.98] transition shadow-cream">
-          续读 · 第十二章
+          {{ ctaText }}
         </button>
       </div>
+    </div>
+    <div v-if="toast" class="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 rounded-full bg-night-900 text-cream-50 px-4 py-2 text-sm shadow-cream">
+      {{ toast }}
     </div>
   </div>
 </template>

@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import BookCard from '@/components/v2/book/BookCard.vue'
+import FollowAuthorButton from '@/components/novel/FollowAuthorButton.vue'
 import { getAuthorInfo, getAuthorWorks } from '@/api/novel'
 
 const route = useRoute()
@@ -25,7 +26,26 @@ const works = ref([
   { id:3, title:'长安的秋天', cat:'古风', author:'沈砚白', rating:9.3, variant:2 },
 ])
 
-const followed = ref(false)
+const toast = ref('')
+
+function showToast(message) {
+  toast.value = message
+  if (typeof window !== 'undefined') {
+    window.setTimeout(() => {
+      if (toast.value === message) toast.value = ''
+    }, 1800)
+  }
+}
+
+function onFollowError() {
+  showToast('操作失败，请稍后再试')
+}
+
+function onFollowChange(payload) {
+  if (payload?.redirected) return
+  if (payload?.following) showToast('已关注作者')
+  else showToast('已取消关注')
+}
 
 async function load() {
   try {
@@ -86,14 +106,13 @@ onMounted(load)
               <h1 class="font-serif text-xl sm:text-2xl font-semibold tracking-tight truncate">{{ author.name }}</h1>
               <p class="text-sm text-cream-200/85 mt-0.5">{{ author.fans }} 关注 · {{ author.works }} 部作品</p>
             </div>
-            <button
-              @click="followed = !followed"
-              :class="['px-4 py-1.5 rounded-full text-xs font-medium transition shrink-0',
-                followed
-                  ? 'bg-cream-50/15 backdrop-blur border border-cream-50/25'
-                  : 'bg-cream-50 text-clay-700 hover:bg-cream-100'
-              ]"
-            >{{ followed ? '已关注' : '关注' }}</button>
+            <FollowAuthorButton
+              :author-id="author.id"
+              variant="translucent"
+              class="shrink-0"
+              @error="onFollowError"
+              @change="onFollowChange"
+            />
           </div>
 
           <p class="relative mt-3 text-sm text-cream-200/90 italic font-serif leading-relaxed">"{{ author.bio }}"</p>
@@ -108,5 +127,9 @@ onMounted(load)
         </div>
       </section>
     </main>
+
+    <div v-if="toast" class="fixed left-1/2 -translate-x-1/2 bottom-10 z-50 rounded-full bg-night-900 text-cream-50 px-4 py-2 text-sm shadow-cream">
+      {{ toast }}
+    </div>
   </div>
 </template>

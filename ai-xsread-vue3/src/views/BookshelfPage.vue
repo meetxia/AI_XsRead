@@ -5,73 +5,43 @@ import AppHeader from '@/components/v2/layout/AppHeader.vue'
 import BottomNav from '@/components/v2/layout/BottomNav.vue'
 import BookCover from '@/components/v2/book/BookCover.vue'
 import Icon from '@/components/v2/icons/Icon.vue'
-import { useBookshelfStore } from '@/stores/bookshelf'
+import BookshelfTabBar from '@/components/bookshelf/BookshelfTabBar.vue'
+import GroupSelector from '@/components/bookshelf/GroupSelector.vue'
+import BatchActionBar from '@/components/bookshelf/BatchActionBar.vue'
+import UnreadBadge from '@/components/bookshelf/UnreadBadge.vue'
+import { getBookshelf, batchBookshelf } from '@/api/bookshelf'
 
-const bookshelfStore = useBookshelfStore()
-
-// ─── Tab/视图状态 ───
-const activeTab = ref('all') // all | reading | finished
+const activeTab = ref('all') // all | reading | finished | wishlist
 const viewMode = ref('grid') // grid | list
-
-// ─── 占位数据（接 API 后会被覆盖） ───
-const localBooks = ref([
-  { id:1, title:'山有木兮',          author:'沈砚白', cat:'古风',   progress:42, last:'2 小时前', status:'reading',  variant:1 },
-  { id:2, title:'归棠记事',          author:'沈砚白', cat:'古风',   progress:78, last:'昨日',     status:'reading',  variant:0 },
-  { id:3, title:'夜窗集',            author:'阮宁',   cat:'治愈',   progress:100,last:'3 天前',   status:'finished', variant:1 },
-  { id:4, title:'流光记',            author:'温知秋', cat:'都市',   progress:35, last:'本周',     status:'reading',  variant:4 },
-  { id:5, title:'迷雾镇·第七封信',   author:'江聿',   cat:'悬疑',   progress:100,last:'上月',     status:'finished', variant:5 },
-  { id:6, title:'长安的秋天',        author:'沈砚白', cat:'古风',   progress:62, last:'3 天前',   status:'reading',  variant:0 },
-  { id:7, title:'霜降',              author:'林深',   cat:'都市',   progress:100,last:'2 月前',   status:'finished', variant:2 },
-  { id:8, title:'第七个春天',        author:'温知秋', cat:'治愈',   progress:18, last:'1 周前',   status:'reading',  variant:4 },
-  { id:9, title:'春寒料峭',          author:'温知秋', cat:'校园',   progress:100,last:'去年',     status:'finished', variant:1 },
-])
-
-// 合并 store 数据（如果有）
-const books = computed(() => {
-  const reading = bookshelfStore.reading || []
-  const finished = bookshelfStore.finished || []
-  if (!reading.length && !finished.length) return localBooks.value
-
-  const mapped = [
-    ...reading.map(b => ({
-      id: b.id,
-      title: b.title,
-      author: b.author || '佚名',
-      cat: b.category_name || b.cat || '',
-      progress: b.progress || 0,
-      last: '最近',
-      status: 'reading',
-      variant: (b.id % 6),
-      cover: b.cover,
-    })),
-    ...finished.map(b => ({
-      id: b.id,
-      title: b.title,
-      author: b.author || '佚名',
-      cat: b.category_name || b.cat || '',
-      progress: 100,
-      last: '已读完',
-      status: 'finished',
-      variant: (b.id % 6),
-      cover: b.cover,
-    })),
-  ]
-  return mapped.length ? mapped : localBooks.value
-})
+const sortBy = ref('lastRead')
+const groupName = ref('')
+const manageMode = ref(false)
+const selectedIds = ref([])
+const books = ref([])
+const loading = ref(false)
 
 const filtered = computed(() => {
-  if (activeTab.value === 'all') return books.value
-  return books.value.filter(b => b.status === activeTab.value)
+  let list = activeTab.value === 'all' ? books.value : books.value.filter(b => b.status === activeTab.value)
+  if (groupName.value) list = list.filter(b => b.groupName === groupName.value)
+  const sorted = [...list]
+  sorted.sort((a, b) => {
+    if (sortBy.value === 'title') return a.title.localeCompare(b.title)
+    if (sortBy.value === 'progress') return b.progress - a.progress
+    if (sortBy.value === 'updated') return new Date(b.updateTime || 0) - new Date(a.updateTime || 0)
+    return Number(b.isTop) - Number(a.isTop) || new Date(b.lastReadTime || b.addTime || 0) - new Date(a.lastReadTime || a.addTime || 0)
+  })
+  return sorted
 })
 
 const stats = computed(() => {
   const r = books.value.filter(b => b.status === 'reading').length
   const f = books.value.filter(b => b.status === 'finished').length
+  const w = books.value.filter(b => b.status === 'wishlist').length
   return {
     reading: r,
     finished: f,
-    total: r + f,
-    hours: 287,
+    wishlist: w,
+    total: r + f + w,
   }
 })
 
@@ -79,7 +49,10 @@ const tabs = computed(() => [
   { key: 'all',      label: '全部', count: stats.value.total },
   { key: 'reading',  label: '在读', count: stats.value.reading },
   { key: 'finished', label: '已读', count: stats.value.finished },
+  { key: 'wishlist', label: '想读', count: stats.value.wishlist },
 ])
+
+const groups = computed(() => [...new Set(books.value.map(b => b.groupName).filter(Boolean))])
 
 // 推荐补全
 const recommends = ref([])
@@ -101,8 +74,67 @@ async function loadRecommends() {
   } catch (e) { /* ignore */ }
 }
 
+function normalizeBook(item, index) {
+  const id = item.novel_id || item.id
+  const type = item.type || (Number(item.progress || item.reading_progress || 0) >= 100 ? 'finished' : 'reading')
+  return {
+    id,
+    title: item.title || '未命名小说',
+    author: item.author || '佚名',
+    cat: item.category_name || item.cat || '',
+    progress: Math.max(0, Math.min(100, Math.round(Number(item.progress || item.reading_progress || 0)))),
+    last: relativeTime(item.last_read_time || item.updated_at || item.added_time),
+    status: type === 'wishlist' ? 'wishlist' : (type === 'finished' ? 'finished' : 'reading'),
+    variant: Number(id || index) % 6,
+    cover: item.cover,
+    groupName: item.group_name || item.groupName || '',
+    isTop: Boolean(item.is_top || item.isTop),
+    hasUnreadUpdate: Boolean(item.hasUnreadUpdate || item.has_unread_update),
+    lastReadTime: item.last_read_time,
+    addTime: item.added_time || item.created_at,
+    updateTime: item.updated_at,
+  }
+}
+
+function relativeTime(value) {
+  if (!value) return '最近'
+  const days = Math.floor((Date.now() - new Date(value).getTime()) / 86400000)
+  if (days <= 0) return '今天'
+  if (days === 1) return '昨天'
+  if (days < 30) return `${days} 天前`
+  return new Date(value).toLocaleDateString('zh-CN')
+}
+
+async function loadBookshelf() {
+  loading.value = true
+  try {
+    const res = await getBookshelf({ sortBy: sortBy.value, type: activeTab.value === 'all' ? undefined : activeTab.value })
+    const list = Array.isArray(res?.data) ? res.data : (res?.data?.data || res?.data?.list || [])
+    books.value = list.map(normalizeBook)
+  } catch (e) {
+    books.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+function toggleSelect(id) {
+  if (!manageMode.value) return
+  selectedIds.value = selectedIds.value.includes(id)
+    ? selectedIds.value.filter(item => item !== id)
+    : [...selectedIds.value, id]
+}
+
+async function runBatch(action, extra = {}) {
+  if (!selectedIds.value.length) return
+  await batchBookshelf(action, selectedIds.value, extra).catch(() => {})
+  selectedIds.value = []
+  manageMode.value = false
+  await loadBookshelf()
+}
+
 onMounted(async () => {
-  try { await bookshelfStore.fetchBookshelf() } catch (e) { /* ignore */ }
+  await loadBookshelf()
   loadRecommends()
 })
 </script>
@@ -132,8 +164,8 @@ onMounted(async () => {
               <p class="text-[10px] text-ink-500 dark:text-ink-300 mt-0.5 tracking-wider">已读</p>
             </div>
             <div class="text-center border-l border-cream-200 dark:border-night-700">
-              <p class="font-serif text-lg sm:text-xl font-semibold">{{ stats.hours }}<span class="text-xs ml-0.5 text-ink-500">h</span></p>
-              <p class="text-[10px] text-ink-500 dark:text-ink-300 mt-0.5 tracking-wider">阅读</p>
+              <p class="font-serif text-lg sm:text-xl font-semibold">{{ stats.wishlist }}</p>
+              <p class="text-[10px] text-ink-500 dark:text-ink-300 mt-0.5 tracking-wider">想读</p>
             </div>
             <div class="text-center border-l border-cream-200 dark:border-night-700">
               <p class="font-serif text-lg sm:text-xl font-semibold">{{ stats.total }}</p>
@@ -144,20 +176,28 @@ onMounted(async () => {
       </section>
 
       <!-- Tabs + 视图切换 -->
-      <section class="mt-5 flex items-center justify-between">
-        <div class="flex gap-1 bg-cream-100 dark:bg-night-800 p-1 rounded-full">
+      <section class="mt-5 space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <BookshelfTabBar v-model:active="activeTab" :tabs="tabs" />
           <button
-            v-for="t in tabs"
-            :key="t.key"
-            @click="activeTab = t.key"
-            :class="['px-3 sm:px-4 py-1.5 rounded-full text-sm font-medium transition',
-              activeTab === t.key ? 'bg-clay-700 text-cream-50 dark:bg-clay-500' : 'hover:bg-cream-200 dark:hover:bg-night-700'
-            ]"
+            class="px-3 h-9 rounded-full bg-cream-100 dark:bg-night-800 text-xs font-medium"
+            @click="manageMode = !manageMode; selectedIds = []"
           >
-            {{ t.label }} <span class="ml-1 opacity-75 text-xs">{{ t.count }}</span>
+            {{ manageMode ? '完成' : '管理' }}
           </button>
         </div>
-        <div class="flex gap-1">
+
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <select v-model="sortBy" class="h-9 rounded-full bg-cream-100 dark:bg-night-800 px-3 text-xs outline-none">
+              <option value="lastRead">最近阅读</option>
+              <option value="updated">最近更新</option>
+              <option value="progress">阅读进度</option>
+              <option value="title">书名排序</option>
+            </select>
+            <GroupSelector v-model="groupName" :groups="groups" />
+          </div>
+          <div class="flex gap-1">
           <button
             @click="viewMode = 'grid'"
             :class="['w-9 h-9 grid place-items-center rounded-full transition',
@@ -172,15 +212,27 @@ onMounted(async () => {
             ]"
             aria-label="列表视图"
           ><Icon name="list" class="w-[18px] h-[18px]" /></button>
+          </div>
         </div>
       </section>
 
       <!-- 网格视图 -->
       <section v-if="viewMode === 'grid'" class="mt-4">
         <div v-if="filtered.length" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4">
-          <RouterLink v-for="b in filtered" :key="b.id" :to="`/novel/${b.id}`" class="book-card group">
+          <component
+            :is="manageMode ? 'button' : RouterLink"
+            v-for="b in filtered"
+            :key="b.id"
+            :to="`/novel/${b.id}`"
+            class="book-card group text-left"
+            @click="toggleSelect(b.id)"
+          >
             <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-cream relative bg-cream-200 dark:bg-night-800">
               <BookCover :title="b.title.slice(0,2)" :variant="b.variant" :cover="b.cover" />
+              <UnreadBadge v-if="b.hasUnreadUpdate && b.progress < 100" class="absolute top-2 right-2" />
+              <div v-if="manageMode" :class="['absolute top-2 left-2 w-5 h-5 rounded-full border-2 grid place-items-center', selectedIds.includes(b.id) ? 'bg-clay-500 border-clay-500 text-cream-50' : 'bg-cream-50/80 border-cream-50']">
+                <Icon v-if="selectedIds.includes(b.id)" name="check" class="w-3 h-3" />
+              </div>
               <div v-if="b.progress < 100" class="absolute bottom-0 inset-x-0 h-1 bg-cream-50/30">
                 <div class="h-full bg-cream-50" :style="{ width: b.progress + '%' }"></div>
               </div>
@@ -189,9 +241,10 @@ onMounted(async () => {
               </div>
             </div>
             <p class="mt-2 text-xs font-medium line-clamp-1">{{ b.title }}</p>
-            <p class="text-[10px] text-ink-500 dark:text-ink-300 line-clamp-1">{{ b.progress < 100 ? `进度 ${b.progress}%` : '已读完' }}</p>
-          </RouterLink>
+            <p class="text-[10px] text-ink-500 dark:text-ink-300 line-clamp-1">{{ b.status === 'wishlist' ? '想读' : (b.progress < 100 ? `进度 ${b.progress}%` : '已读完') }}</p>
+          </component>
         </div>
+        <div v-else-if="loading" class="py-20 text-center text-sm text-ink-500">书架加载中...</div>
         <div v-else class="py-20 text-center">
           <p class="text-sm text-ink-500 dark:text-ink-300">书架空空如也</p>
           <RouterLink to="/recommend" class="inline-block mt-4 px-5 py-2 rounded-full bg-clay-700 dark:bg-clay-500 text-cream-50 text-sm">去发现新故事</RouterLink>
@@ -201,7 +254,17 @@ onMounted(async () => {
       <!-- 列表视图 -->
       <section v-else class="mt-4">
         <div v-if="filtered.length" class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
-          <RouterLink v-for="b in filtered" :key="b.id" :to="`/novel/${b.id}`" class="flex items-center gap-3 p-3 hover:bg-cream-200/40 dark:hover:bg-night-700/40 transition">
+          <component
+            :is="manageMode ? 'button' : RouterLink"
+            v-for="b in filtered"
+            :key="b.id"
+            :to="`/novel/${b.id}`"
+            class="w-full text-left flex items-center gap-3 p-3 hover:bg-cream-200/40 dark:hover:bg-night-700/40 transition"
+            @click="toggleSelect(b.id)"
+          >
+            <span v-if="manageMode" :class="['w-5 h-5 rounded-full border-2 grid place-items-center shrink-0', selectedIds.includes(b.id) ? 'bg-clay-500 border-clay-500 text-cream-50' : 'border-ink-300']">
+              <Icon v-if="selectedIds.includes(b.id)" name="check" class="w-3 h-3" />
+            </span>
             <div class="w-12 h-16 rounded-lg overflow-hidden shadow-cream shrink-0 bg-cream-200 dark:bg-night-700">
               <BookCover :title="b.title.slice(0,2)" :variant="b.variant" :cover="b.cover" :footer="false" />
             </div>
@@ -213,8 +276,9 @@ onMounted(async () => {
               </div>
               <p v-else class="mt-1.5 text-[10px] text-moss-600 dark:text-moss-500 font-medium">已读完 ✓</p>
             </div>
+            <UnreadBadge v-if="b.hasUnreadUpdate && b.progress < 100" />
             <span v-if="b.status === 'reading'" class="text-[11px] px-2 py-0.5 rounded-full bg-clay-500/10 text-clay-700 dark:text-clay-400 shrink-0">{{ b.progress }}%</span>
-          </RouterLink>
+          </component>
         </div>
       </section>
 
@@ -240,5 +304,14 @@ onMounted(async () => {
     </main>
 
     <BottomNav />
+    <BatchActionBar
+      v-if="manageMode && selectedIds.length"
+      :count="selectedIds.length"
+      :groups="groups"
+      @delete="runBatch('delete')"
+      @top="runBatch('top')"
+      @untop="runBatch('untop')"
+      @group="runBatch('group', { groupName: $event })"
+    />
   </div>
 </template>

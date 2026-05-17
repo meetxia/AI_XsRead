@@ -1,0 +1,12 @@
+{
+  "name": "ai-xsread-quality-gates",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

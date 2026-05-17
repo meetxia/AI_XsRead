@@ -4,6 +4,7 @@ import { useRouter, useRoute, RouterLink } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import { useUserStore } from '@/stores/user'
+import { safeReturnUrl } from '@/composables/useReturnUrl'
 
 const router = useRouter()
 const route = useRoute()
@@ -29,7 +30,7 @@ async function onSubmit() {
       password: password.value,
       rememberMe: remember.value,
     })
-    const redirect = route.query.redirect || '/'
+    const redirect = safeReturnUrl(route.query.returnUrl || route.query.redirect || '/')
     router.replace(redirect)
   } catch (err) {
     errorMsg.value = err.message || '登录失败'

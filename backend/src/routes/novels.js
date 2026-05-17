@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const novelController = require('../controllers/novelController');
 const { idValidation, paginationValidation, textPaginationValidation } = require('../utils/validators');
-const { authenticate } = require('../middlewares/auth');
+const { authenticate, optionalAuth } = require('../middlewares/auth');
 const { asyncHandler } = require('../middlewares/errorHandler');
+const writeRateLimiter = require('../middlewares/writeRateLimiter');
 
 /**
  * @swagger
@@ -92,7 +93,7 @@ router.get('/novels', paginationValidation, novelController.getNovelList);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.get('/novels/recommend', novelController.getRecommendNovels);
+router.get('/novels/recommend', optionalAuth, novelController.getRecommendNovels);
 
 /**
  * @swagger
@@ -105,6 +106,7 @@ router.get('/novels/recommend', novelController.getRecommendNovels);
  *         description: 成功返回分类列表
  */
 router.get('/novels/categories', novelController.getCategories);
+router.get('/categories', novelController.getCategories);
 
 /**
  * @swagger
@@ -241,6 +243,7 @@ router.get(
 // 获取小说评分概览与我的评分（可选登录）
 router.get(
   '/novels/:id/rating',
+  optionalAuth,
   idValidation,
   asyncHandler(novelController.getNovelRating)
 );
@@ -249,6 +252,7 @@ router.get(
 router.post(
   '/novels/:id/rating',
   authenticate,
+  writeRateLimiter,
   idValidation,
   asyncHandler(novelController.submitNovelRating)
 );
@@ -257,6 +261,7 @@ router.post(
 router.put(
   '/novels/:id/rating',
   authenticate,
+  writeRateLimiter,
   idValidation,
   asyncHandler(novelController.updateNovelRating)
 );
@@ -300,6 +305,7 @@ router.put(
 router.post(
   '/novels/:id/like',
   authenticate,
+  writeRateLimiter,
   idValidation,
   asyncHandler(novelController.likeNovel)
 );
@@ -307,6 +313,7 @@ router.post(
 router.delete(
   '/novels/:id/like',
   authenticate,
+  writeRateLimiter,
   idValidation,
   asyncHandler(novelController.unlikeNovel)
 );
@@ -346,6 +353,7 @@ router.delete(
 router.post(
   '/novels/:id/collect',
   authenticate,
+  writeRateLimiter,
   idValidation,
   asyncHandler(novelController.collectNovel)
 );
@@ -353,6 +361,7 @@ router.post(
 router.delete(
   '/novels/:id/collect',
   authenticate,
+  writeRateLimiter,
   idValidation,
   asyncHandler(novelController.uncollectNovel)
 );

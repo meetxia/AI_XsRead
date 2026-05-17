@@ -18,6 +18,15 @@ export function searchNovels(params) {
   })
 }
 
+// 兼容榜单/筛选使用的列表接口
+export function listNovels(params) {
+  return request({
+    url: '/novels',
+    method: 'get',
+    params
+  })
+}
+
 // 获取热门搜索（使用新的热门搜索接口）
 export function getHotSearch() {
   return request({
