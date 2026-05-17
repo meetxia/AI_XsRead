@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- MOMO小说 white app logo variant for dark login/register surfaces. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="MOMO小说">
+  <defs>
+    <linearGradient id="momoWhiteMark" x1="262" y1="266" x2="760" y2="744" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF94A8"/>
+      <stop offset="0.52" stop-color="#FF7893"/>
+      <stop offset="1" stop-color="#E84E7E"/>
+    </linearGradient>
+    <radialGradient id="momoWhiteGlow" cx="0.68" cy="0.22" r="0.72">
+      <stop offset="0" stop-color="#FFE1E8" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="momoWhiteShadow" x="-10%" y="-8%" width="120%" height="122%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#210015" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect x="96" y="96" width="832" height="832" rx="176" fill="#FFFFFF"/>
+  <rect x="96" y="96" width="832" height="832" rx="176" fill="url(#momoWhiteGlow)"/>
+  <path
+    d="M292 620V340C292 294 358 284 389 324L512 512L635 324C666 284 732 294 732 340V620"
+    fill="none"
+    stroke="url(#momoWhiteMark)"
+    stroke-width="132"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#momoWhiteShadow)"
+  />
+  <path
+    d="M296 330C314 288 366 284 394 319L512 501"
+    fill="none"
+    stroke="#FFC0CA"
+    stroke-width="34"
+    stroke-linecap="round"
+    opacity="0.42"
+  />
+</svg>

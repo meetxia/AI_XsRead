@@ -87,7 +87,7 @@ watch(() => userStore.isLogin, (val) => {
     <header class="sticky top-0 z-40 bg-cream-50/85 dark:bg-night-900/85 backdrop-blur-xl pt-safe">
       <div class="max-w-screen-xl mx-auto px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
         <RouterLink to="/" class="flex items-center gap-2 px-2">
-          <span class="w-8 h-8 rounded-full bg-clay-500 grid place-items-center text-cream-50 font-serif font-semibold">M</span>
+          <img src="/logo.svg" alt="MOMO小说" class="w-8 h-8 rounded-lg" />
           <span class="font-serif text-lg font-semibold tracking-tight">MOMO小说</span>
         </RouterLink>
         <div class="flex items-center gap-1">

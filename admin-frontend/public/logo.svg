@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- MOMO小说 app logo: rounded-square M mark, designed for small app-icon usage. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="MOMO小说">
+  <style>
+    :root {
+      --momo-logo-bg-start: #5A0B3B;
+      --momo-logo-bg-mid: #4A082F;
+      --momo-logo-bg-end: #3B0627;
+      --momo-logo-mark-start: #FF94A8;
+      --momo-logo-mark-mid: #FF7893;
+      --momo-logo-mark-end: #FF9AAE;
+      --momo-logo-highlight: #FFB4C0;
+      --momo-logo-glow: #8B1B60;
+      --momo-logo-shadow: #210015;
+    }
+  </style>
+  <defs>
+    <linearGradient id="momoLogoBg" x1="120" y1="96" x2="920" y2="940" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="var(--momo-logo-bg-start)"/>
+      <stop offset="0.58" stop-color="var(--momo-logo-bg-mid)"/>
+      <stop offset="1" stop-color="var(--momo-logo-bg-end)"/>
+    </linearGradient>
+    <linearGradient id="momoLogoM" x1="262" y1="266" x2="760" y2="744" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="var(--momo-logo-mark-start)"/>
+      <stop offset="0.52" stop-color="var(--momo-logo-mark-mid)"/>
+      <stop offset="1" stop-color="var(--momo-logo-mark-end)"/>
+    </linearGradient>
+    <radialGradient id="momoLogoGlow" cx="0.72" cy="0.2" r="0.72">
+      <stop offset="0" stop-color="var(--momo-logo-glow)" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="var(--momo-logo-glow)" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="momoLogoShadow" x="-10%" y="-8%" width="120%" height="122%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="var(--momo-logo-shadow)" flood-opacity="0.28"/>
+    </filter>
+    <filter id="momoLogoInnerSoft" x="-18%" y="-18%" width="136%" height="136%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="var(--momo-logo-glow)" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <rect x="96" y="96" width="832" height="832" rx="176" fill="url(#momoLogoBg)"/>
+  <rect x="96" y="96" width="832" height="832" rx="176" fill="url(#momoLogoGlow)"/>
+
+  <path
+    d="M292 620V340C292 294 358 284 389 324L512 512L635 324C666 284 732 294 732 340V620"
+    fill="none"
+    stroke="url(#momoLogoM)"
+    stroke-width="132"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#momoLogoShadow)"
+  />
+  <path
+    d="M292 620V340C292 294 358 284 389 324L512 512L635 324C666 284 732 294 732 340V620"
+    fill="none"
+    stroke="url(#momoLogoM)"
+    stroke-width="132"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#momoLogoInnerSoft)"
+    opacity="0.96"
+  />
+  <path
+    d="M296 330C314 288 366 284 394 319L512 501"
+    fill="none"
+    stroke="var(--momo-logo-highlight)"
+    stroke-width="34"
+    stroke-linecap="round"
+    opacity="0.28"
+  />
+</svg>

@@ -26,9 +26,7 @@ const profileLink = computed(() => userStore.isLogin ? '/profile' : '/login')
     <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
       <!-- Logo -->
       <RouterLink to="/" class="flex items-center gap-2 group">
-        <span class="w-8 h-8 rounded-full bg-clay-500 dark:bg-clay-400 grid place-items-center text-cream-50 font-serif font-semibold transition-transform group-active:scale-95">
-          M
-        </span>
+        <img src="/logo.svg" alt="MOMO小说" class="w-8 h-8 rounded-lg transition-transform group-active:scale-95" />
         <span class="font-serif text-lg font-semibold tracking-tight">MOMO小说</span>
       </RouterLink>
 

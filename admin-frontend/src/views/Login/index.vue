@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-box">
       <div class="login-header">
-        <img src="@/assets/vue.svg" alt="Logo" class="logo" />
+        <img src="/logo.svg" alt="MOMO小说" class="logo" />
         <h1 class="title">MOMO小说后台管理系统</h1>
         <p class="subtitle">Admin Management System</p>
       </div>

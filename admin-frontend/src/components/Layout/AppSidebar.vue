@@ -1,7 +1,7 @@
 <template>
   <aside class="app-sidebar" :class="{ collapsed: !appStore.sidebarOpened }">
     <div class="logo">
-      <img src="@/assets/vue.svg" alt="Logo" />
+      <img src="/logo.svg" alt="MOMO小说" />
       <span v-show="appStore.sidebarOpened" class="logo-title">MOMO小说</span>
     </div>
     
@@ -108,7 +108,7 @@ const handleMenuClick = (route) => {
     margin-left: 10px;
     font-size: 18px;
     font-weight: bold;
-    color: #3B82F6;
+    color: #5A0B3B;
     white-space: nowrap;
   }
 }

@@ -54,7 +54,7 @@ async function onSubmit() {
     <main class="max-w-md mx-auto px-6 pt-12 pb-12 min-h-[calc(100vh-3.5rem)] flex flex-col">
       <!-- Logo -->
       <div class="text-center mb-12">
-        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-clay-500 text-cream-50 font-serif text-2xl font-semibold mb-4 shadow-cream-lg">M</div>
+        <img src="/logo-white.svg" alt="MOMO小说" class="inline-block w-14 h-14 rounded-2xl mb-4 shadow-cream-lg" />
         <h1 class="font-serif text-3xl font-semibold tracking-tight">欢迎回来</h1>
         <p class="text-sm text-ink-700 dark:text-ink-300 mt-2">故事入境，杂念自消</p>
       </div>
