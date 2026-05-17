@@ -61,15 +61,23 @@ export const useUserStore = defineStore('user', () => {
   /**
    * 注册
    * @param {Object} registerData - 注册数据
+   * @returns 后端响应（带 activation_status / activation_message 等）
    */
   const register = async (registerData) => {
     try {
       // 调用注册API
-      const response = await registerApi({
+      const payload = {
         username: registerData.username,
         email: registerData.email,
         password: registerData.password
-      })
+      }
+      // 可选激活码（去空格、转大写、去 - 后传递）
+      if (registerData.activationCode || registerData.activation_code) {
+        payload.activation_code = String(registerData.activationCode || registerData.activation_code)
+          .replace(/[\s-]/g, '')
+          .toUpperCase()
+      }
+      const response = await registerApi(payload)
       
       // 注册成功返回201或200
       if (response.code === 201 || response.code === 200) {
@@ -86,6 +94,7 @@ export const useUserStore = defineStore('user', () => {
         localStorage.setItem('userInfo', JSON.stringify(response.data.user))
         
         console.log('注册成功:', response.data.user)
+        return response
       } else {
         throw new Error(response.message || '注册失败')
       }

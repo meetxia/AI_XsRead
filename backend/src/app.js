@@ -79,7 +79,7 @@ app.use('/uploads', (req, res, next) => {
 // API 文档
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: '文字之境 API 文档'
+  customSiteTitle: 'MOMO小说 API 文档'
 }));
 
 // API 文档 JSON
@@ -121,7 +121,7 @@ const startServer = async () => {
     const PORT = config.server.port;
     app.listen(PORT, () => {
       console.log('\n========================================');
-      console.log('🚀 文字之境后端服务启动成功！');
+      console.log('🚀 MOMO小说后端服务启动成功！');
       console.log('========================================');
       console.log(`📍 服务地址: http://localhost:${PORT}`);
       console.log(`🌍 环境模式: ${config.server.env}`);

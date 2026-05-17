@@ -20,6 +20,7 @@ const AUTH_REQUIRED_ROUTES = [
   '/profile/highlights',
   '/profile/notes',
   '/profile/following-authors',
+  '/profile/membership',
   '/onboarding/interests',
   '/upload'
 ]
@@ -111,7 +112,7 @@ export const setupRouterGuards = (router) => {
    */
   router.afterEach((to, from) => {
     // 页面标题
-    document.title = to.meta.title ? `${to.meta.title} - 文字之境` : '文字之境 - 故事入境，杂念自消'
+    document.title = to.meta.title ? `${to.meta.title} - MOMO小说` : 'MOMO小说 - 故事入境，杂念自消'
     
     // 滚动到顶部
     if (to.path !== from.path) {

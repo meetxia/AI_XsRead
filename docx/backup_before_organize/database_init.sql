@@ -1,5 +1,5 @@
 -- ============================================
--- 文字之境 - 数据库初始化脚本
+-- Momo小说 - 数据库初始化脚本
 -- 版本: v1.0
 -- 创建日期: 2025-10-27
 -- 数据库: MySQL 5.7+
@@ -288,7 +288,7 @@ INSERT INTO `tags` (`name`) VALUES
 
 -- 插入系统配置
 INSERT INTO `system_config` (`key`, `value`, `description`, `type`) VALUES
-('site_name', '文字之境', '网站名称', 'string'),
+('site_name', 'Momo小说', '网站名称', 'string'),
 ('site_description', '故事入境,杂念自消', '网站描述', 'string'),
 ('site_keywords', '小说,阅读,女性向', '网站关键词', 'string'),
 ('default_theme', 'rose', '默认主题', 'string'),

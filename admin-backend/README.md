@@ -1,4 +1,4 @@
-# 文字之境后台管理API服务
+# MOMO小说后台管理API服务
 
 > 基于Node.js + Express + MySQL的后台管理API服务
 

@@ -230,9 +230,18 @@ router.get('/novels/:id', idValidation, novelController.getNovelDetail);
  */
 router.get('/novels/:novelId/chapters', paginationValidation, novelController.getChapterList);
 
+// VIP 下载整本小说 TXT
+router.get(
+  '/novels/:id/download',
+  authenticate,
+  idValidation,
+  asyncHandler(novelController.downloadNovel)
+);
+
 // 新增：整本小说按字符分页阅读（无章节）
 router.get(
   '/novels/:id/pages',
+  optionalAuth,
   textPaginationValidation,
   asyncHandler(novelController.getNovelPages)
 );

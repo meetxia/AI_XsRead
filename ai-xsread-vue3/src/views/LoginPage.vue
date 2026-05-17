@@ -12,21 +12,21 @@ const userStore = useUserStore()
 
 const account = ref('')
 const password = ref('')
-const remember = ref(false)
+const remember = ref(true)
 const showPassword = ref(false)
 const loading = ref(false)
 const errorMsg = ref('')
 
 async function onSubmit() {
   if (!account.value || !password.value) {
-    errorMsg.value = '请填写账号和密码'
+    errorMsg.value = '请填写邮箱和密码'
     return
   }
   errorMsg.value = ''
   loading.value = true
   try {
     await userStore.login({
-      account: account.value,
+      account: account.value.trim(),
       password: password.value,
       rememberMe: remember.value,
     })
@@ -54,20 +54,20 @@ async function onSubmit() {
     <main class="max-w-md mx-auto px-6 pt-12 pb-12 min-h-[calc(100vh-3.5rem)] flex flex-col">
       <!-- Logo -->
       <div class="text-center mb-12">
-        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-clay-500 text-cream-50 font-serif text-2xl font-semibold mb-4 shadow-cream-lg">境</div>
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-clay-500 text-cream-50 font-serif text-2xl font-semibold mb-4 shadow-cream-lg">M</div>
         <h1 class="font-serif text-3xl font-semibold tracking-tight">欢迎回来</h1>
         <p class="text-sm text-ink-700 dark:text-ink-300 mt-2">故事入境，杂念自消</p>
       </div>
 
-      <form class="space-y-5" @submit.prevent="onSubmit">
-        <!-- 账号 -->
+      <form class="space-y-4" @submit.prevent="onSubmit">
+        <!-- 邮箱 / 用户名 -->
         <div>
-          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">账号</label>
+          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">邮箱</label>
           <input
             v-model="account"
             type="text"
             autocomplete="username"
-            placeholder="手机号 / 邮箱 / 用户名"
+            placeholder="邮箱或用户名"
             class="w-full h-12 px-4 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition"
           />
         </div>
@@ -106,29 +106,11 @@ async function onSubmit() {
         <button
           type="submit"
           :disabled="loading"
-          class="w-full h-12 rounded-xl bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif font-semibold hover:bg-clay-600 active:scale-[0.98] transition shadow-cream disabled:opacity-60"
+          class="w-full h-12 mt-2 rounded-xl bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif font-semibold hover:bg-clay-600 active:scale-[0.98] transition shadow-cream disabled:opacity-60"
         >
           {{ loading ? '登录中…' : '登录' }}
         </button>
       </form>
-
-      <div class="my-8 flex items-center gap-3">
-        <div class="flex-1 h-px bg-cream-200 dark:bg-night-700"></div>
-        <span class="text-[11px] text-ink-500 dark:text-ink-300 tracking-widest uppercase">Or</span>
-        <div class="flex-1 h-px bg-cream-200 dark:bg-night-700"></div>
-      </div>
-
-      <div class="grid grid-cols-3 gap-3">
-        <button type="button" class="h-12 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 grid place-items-center transition">
-          <svg class="w-5 h-5 text-[#07C160]" fill="currentColor" viewBox="0 0 24 24"><path d="M8.4 6.5c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm-3.5 0c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm14.7 8.5c0-2.7-2.7-4.9-6-4.9-3.3 0-6 2.2-6 4.9 0 2.7 2.7 4.9 6 4.9.7 0 1.3-.1 1.9-.3l1.7 1-.5-1.6c1.7-.9 2.9-2.3 2.9-4z"/></svg>
-        </button>
-        <button type="button" class="h-12 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 grid place-items-center transition">
-          <svg class="w-5 h-5 text-[#FF6900]" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
-        </button>
-        <button type="button" class="h-12 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 grid place-items-center transition">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c-2.7 0-5 2.3-5 5 0 2.7 2.3 5 5 5s5-2.3 5-5c0-2.7-2.3-5-5-5zM4 20v-1c0-3.4 2.7-6 6-6h4c3.4 0 6 2.7 6 6v1H4z"/></svg>
-        </button>
-      </div>
 
       <p class="mt-auto pt-10 text-center text-sm text-ink-700 dark:text-ink-300">
         还没有账号？

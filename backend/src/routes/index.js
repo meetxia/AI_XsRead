@@ -14,6 +14,7 @@ const paragraphCommentRoutes = require('./paragraphComments');
 const highlightRoutes = require('./highlights');
 const interestTagRoutes = require('./interestTags');
 const achievementRoutes = require('./achievements');
+const systemRoutes = require('./system');
 
 // API版本前缀
 const API_PREFIX = '/api';
@@ -45,12 +46,15 @@ router.get(`${API_PREFIX}/health`, (req, res) => {
 // API 根（无需登录）
 router.get('/', (req, res) => {
   res.json({
-    name: '文字之境 API',
+    name: 'MOMO小说 API',
     version: '1.0.0',
     description: 'AI_XsRead Backend API Service',
     documentation: '/api/docs'
   });
 });
+
+// 公开的系统端点（必须放在 /api/user 等子路由之前，避免被 authenticate 误拦）
+router.use(`${API_PREFIX}/system`, systemRoutes);
 
 // ============================================================
 // 子路由注册

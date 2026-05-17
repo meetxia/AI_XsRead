@@ -1,0 +1,40 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /uploads/private/
+Disallow: /login
+Disallow: /register
+Disallow: /security
+Disallow: /profile
+Disallow: /onboarding/
+
+# 允许主流搜索引擎完整抓取
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: Sogou web spider
+Allow: /
+
+User-agent: 360Spider
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+# 阻止常见的资源拉取型爬虫，避免带宽浪费
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+Sitemap: https://xs.momofx.cn/sitemap.xml

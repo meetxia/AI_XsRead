@@ -15,5 +15,5 @@ app.use(pinia)
 app.use(router)
 app.mount('#app')
 
-console.log('✨ 文字之境 V1.0 启动')
+console.log('✨ MOMO小说 V1.0 启动')
 console.log('📍 当前环境:', import.meta.env.MODE)

@@ -1,4 +1,4 @@
-// 文字之境 · D 主题（极简内容流）Tailwind 配置
+// MOMO小说 · D 主题（极简内容流）Tailwind 配置
 // 用于：阅读页（核心沉浸场景）
 window.tailwind = window.tailwind || {};
 tailwind.config = {

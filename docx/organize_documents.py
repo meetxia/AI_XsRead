@@ -326,7 +326,7 @@ docx/
 def main():
     """主函数"""
     print("\n" + "=" * 60)
-    print("📚 文档整理脚本 - 文字之境项目")
+    print("📚 文档整理脚本 - MOMO小说项目")
     print("=" * 60)
     print()
     

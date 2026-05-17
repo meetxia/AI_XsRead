@@ -27,9 +27,9 @@ const profileLink = computed(() => userStore.isLogin ? '/profile' : '/login')
       <!-- Logo -->
       <RouterLink to="/" class="flex items-center gap-2 group">
         <span class="w-8 h-8 rounded-full bg-clay-500 dark:bg-clay-400 grid place-items-center text-cream-50 font-serif font-semibold transition-transform group-active:scale-95">
-          境
+          M
         </span>
-        <span class="font-serif text-lg font-semibold tracking-tight">文字之境</span>
+        <span class="font-serif text-lg font-semibold tracking-tight">MOMO小说</span>
       </RouterLink>
 
       <!-- 桌面端导航 -->

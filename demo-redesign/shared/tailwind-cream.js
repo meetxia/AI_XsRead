@@ -1,4 +1,4 @@
-// 文字之境 · A 主题（奶油杂志风）Tailwind 配置
+// MOMO小说 · A 主题（奶油杂志风）Tailwind 配置
 // 用于：首页、书架、详情、搜索、发现、个人中心、登录、注册、浏览记录
 window.tailwind = window.tailwind || {};
 tailwind.config = {

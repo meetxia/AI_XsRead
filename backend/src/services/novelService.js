@@ -3,6 +3,13 @@
  * 处理小说相关的业务逻辑
  */
 const { pool } = require('../config/database');
+const { isMember } = require('./membershipService');
+
+/**
+ * VIP 试读截断字数（按 String.length 简单截断 1500 个字符）
+ * 来源：spec/membership-system/requirements §5 R-7
+ */
+const TRIAL_LENGTH = 1500;
 
 class NovelService {
   /**
@@ -154,7 +161,10 @@ class NovelService {
     }
     
     const novel = novels[0];
-    
+
+    // 标准化 is_vip 字段为 0/1（TINYINT 默认是 number，但保险）
+    novel.is_vip = Number(novel.is_vip || 0);
+
     // 如果用户已登录，查询用户与小说的关系
     if (userId) {
       // 查询是否点赞
@@ -474,9 +484,20 @@ class NovelService {
        LIMIT ? OFFSET ?`,
       [...params, parseInt(pageSize), offset]
     );
-    
+
+    // 章节继承小说的 is_vip（整本维度）
+    const [novelRows] = await pool.query(
+      'SELECT is_vip FROM novels WHERE id = ? LIMIT 1',
+      [novelId]
+    );
+    const novelIsVip = Number(novelRows[0]?.is_vip || 0);
+    const enriched = chapters.map(ch => ({
+      ...ch,
+      is_vip: novelIsVip
+    }));
+
     return {
-      list: chapters,
+      list: enriched,
       pagination: {
         page: parseInt(page),
         pageSize: parseInt(pageSize),
@@ -497,32 +518,78 @@ class NovelService {
       'SELECT * FROM chapters WHERE id = ?',
       [chapterId]
     );
-    
+
     if (chapters.length === 0) {
       throw new Error('章节不存在');
     }
-    
+
     const chapter = chapters[0];
-    
-    // 检查用户权限（如果不是免费章节）
-    if (!chapter.is_free && userId) {
-      // 可以在这里添加VIP检查逻辑
+
+    // 取小说 is_vip 标记
+    const [novels] = await pool.query(
+      'SELECT is_vip FROM novels WHERE id = ? LIMIT 1',
+      [chapter.novel_id]
+    );
+    const novelIsVip = Number(novels[0]?.is_vip || 0) === 1;
+    chapter.is_vip = novelIsVip ? 1 : 0;
+
+    // 免费书：照常返回完整内容
+    if (!novelIsVip) {
+      return {
+        ...chapter,
+        vip_required: false,
+        truncated: false
+      };
     }
-    
-    return chapter;
+
+    // VIP 书：判断是否会员
+    const member = await isMember(userId);
+    if (member) {
+      return {
+        ...chapter,
+        vip_required: true,
+        truncated: false
+      };
+    }
+
+    // 非会员：截断试读
+    const fullContent = String(chapter.content || '');
+    if (fullContent.length > TRIAL_LENGTH) {
+      return {
+        ...chapter,
+        content: fullContent.slice(0, TRIAL_LENGTH),
+        truncated: true,
+        vip_required: true,
+        trial_length: TRIAL_LENGTH
+      };
+    }
+    return {
+      ...chapter,
+      truncated: false,
+      vip_required: true,
+      trial_length: TRIAL_LENGTH
+    };
   }
 
   /**
    * 按字符分页返回整本小说的内容
    * @param {number} novelId 小说ID
-   * @param {Object} options 选项 { page, pageSize }
-   * @returns {Promise<Object>} { page, pageSize, totalPages, totalChars, content }
+   * @param {Object} options 选项 { page, pageSize, userId? }
+   * @returns {Promise<Object>} { page, pageSize, totalPages, totalChars, content, is_vip, vip_required, truncated, trial_length? }
    */
   async getNovelPageByChars(novelId, options = {}) {
     const {
       page = 1,
-      pageSize = 3000
+      pageSize = 3000,
+      userId = null
     } = options;
+
+    // 先取小说 is_vip
+    const [novelRows] = await pool.query(
+      'SELECT is_vip FROM novels WHERE id = ? LIMIT 1',
+      [novelId]
+    );
+    const novelIsVip = Number(novelRows[0]?.is_vip || 0) === 1;
 
     // 读取该小说所有章节内容，按章节顺序拼接
     const [rows] = await pool.query(
@@ -536,11 +603,29 @@ class NovelService {
         pageSize: parseInt(pageSize),
         totalPages: 1,
         totalChars: 0,
-        content: ''
+        content: '',
+        is_vip: novelIsVip ? 1 : 0,
+        vip_required: novelIsVip,
+        truncated: false
       };
     }
 
-    const fullText = rows.map(r => r.content || '').join('\n\n');
+    let fullText = rows.map(r => r.content || '').join('\n\n');
+
+    // VIP gating：非会员 + VIP 书 → 整本只允许试读前 TRIAL_LENGTH 字
+    let truncated = false;
+    let trialLength = null;
+    let vipRequired = false;
+    if (novelIsVip) {
+      vipRequired = true;
+      const member = await isMember(userId);
+      if (!member && fullText.length > TRIAL_LENGTH) {
+        fullText = fullText.slice(0, TRIAL_LENGTH);
+        truncated = true;
+        trialLength = TRIAL_LENGTH;
+      }
+    }
+
     const totalChars = fullText.length;
     const baseSize = Math.max(500, Math.min(20000, parseInt(pageSize)));
 
@@ -604,12 +689,84 @@ class NovelService {
     const sliceEnd = pageEnds[currentPage - 1];
     const content = fullText.slice(sliceStart, sliceEnd);
 
-    return {
+    const result = {
       page: currentPage,
       pageSize: baseSize,
       totalPages,
       totalChars,
-      content
+      content,
+      is_vip: novelIsVip ? 1 : 0,
+      vip_required: vipRequired,
+      truncated
+    };
+    if (trialLength !== null) {
+      result.trial_length = trialLength;
+    }
+    return result;
+  }
+
+  /**
+   * 生成整本小说 TXT 下载文本
+   * @param {number} novelId 小说 ID
+   * @returns {Promise<{title:string, filename:string, text:string}>}
+   */
+  async buildNovelDownloadText(novelId) {
+    const [novels] = await pool.query(
+      'SELECT id, title, author, description FROM novels WHERE id = ? LIMIT 1',
+      [novelId]
+    );
+
+    if (!novels || novels.length === 0) {
+      throw new Error('小说不存在');
+    }
+
+    const novel = novels[0];
+    const [chapters] = await pool.query(
+      `SELECT chapter_number, title, content
+       FROM chapters
+       WHERE novel_id = ?
+       ORDER BY chapter_number ASC, id ASC`,
+      [novelId]
+    );
+
+    const title = String(novel.title || '未命名小说').trim() || '未命名小说';
+    const author = String(novel.author || '佚名').trim() || '佚名';
+    const description = String(novel.description || '').trim();
+    const parts = [
+      `《${title}》`,
+      `作者：${author}`
+    ];
+
+    if (description) {
+      parts.push(`简介：${description}`);
+    }
+
+    parts.push('');
+
+    if (!chapters || chapters.length === 0) {
+      parts.push('本书暂无章节内容。');
+    } else {
+      chapters.forEach((chapter, index) => {
+        const chapterNumber = chapter.chapter_number || index + 1;
+        const chapterTitle = String(chapter.title || '').trim();
+        const heading = chapterTitle
+          ? `第${chapterNumber}章 ${chapterTitle}`
+          : `第${chapterNumber}章`;
+        const content = String(chapter.content || '').trim();
+
+        parts.push(heading);
+        parts.push('');
+        parts.push(content || '本章暂无内容。');
+        parts.push('');
+      });
+    }
+
+    const filenameBase = title.replace(/[\\/:*?"<>|]/g, '').trim() || 'novel';
+
+    return {
+      title,
+      filename: `${filenameBase}.txt`,
+      text: `${parts.join('\n').replace(/\n{4,}/g, '\n\n\n')}\n`
     };
   }
 }

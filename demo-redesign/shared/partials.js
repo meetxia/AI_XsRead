@@ -1,4 +1,4 @@
-// 文字之境 · 共享 UI 片段（顶栏、底栏、占位封面、SVG 图标）
+// MOMO小说 · 共享 UI 片段（顶栏、底栏、占位封面、SVG 图标）
 // 简单的 vanilla 模板渲染，避免引入框架
 
 window.XS = {
@@ -50,7 +50,7 @@ window.XS = {
       <div class="max-w-screen-md mx-auto px-5 h-14 flex items-center justify-between">
         <a href="home.html" class="flex items-center gap-2 group">
           <span class="w-8 h-8 rounded-full bg-clay-500 dark:bg-clay-400 grid place-items-center text-cream-50 font-serif font-semibold transition-transform group-active:scale-95">境</span>
-          <span class="font-serif text-lg font-semibold tracking-tight">文字之境</span>
+          <span class="font-serif text-lg font-semibold tracking-tight">MOMO小说</span>
         </a>
         <div class="flex items-center gap-1">
           ${showSearch ? `

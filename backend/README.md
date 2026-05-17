@@ -1,4 +1,4 @@
-# 文字之境 - 后端API服务
+# MOMO小说 - 后端API服务
 
 > AI_XsRead Backend API Service
 
@@ -6,7 +6,7 @@
 
 ## 📋 项目概述
 
-文字之境后端API服务，基于 Express.js 构建的 RESTful API。
+MOMO小说后端API服务，基于 Express.js 构建的 RESTful API。
 
 ### 技术栈
 

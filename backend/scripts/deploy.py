@@ -1,5 +1,5 @@
 """
-文字之境（AI-XsRead）一键部署脚本。
+MOMO小说（AI-XsRead）一键部署脚本。
 
 适用站点：xs.momofx.cn（腾讯云 OpenCloudOS + 宝塔面板 + Node.js 18+ + PM2）
 
@@ -897,7 +897,7 @@ def build_config(args: argparse.Namespace) -> dict:
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="文字之境（AI-XsRead）一键部署脚本，目标站点：xs.momofx.cn",
+        description="MOMO小说（AI-XsRead）一键部署脚本，目标站点：xs.momofx.cn",
     )
     parser.add_argument("--once", action="store_true", help="兼容参数：执行一次并退出")
     parser.add_argument("--watch", action="store_true", help="监控 dist 变化并自动部署前端")

@@ -9,6 +9,8 @@ const chapterRoutes = require('./chapters');
 const userRoutes = require('./users');
 const commentRoutes = require('./comments');
 const uploadRoutes = require('./upload');
+const codeRoutes = require('./codes');
+const systemRoutes = require('./system');
 
 // 挂载路由
 router.use('/admin', authRoutes);
@@ -18,6 +20,8 @@ router.use('/admin/chapters', chapterRoutes);
 router.use('/admin/users', userRoutes);
 router.use('/admin/comments', commentRoutes);
 router.use('/admin/upload', uploadRoutes);
+router.use('/admin/codes', codeRoutes);
+router.use('/admin/system', systemRoutes);
 
 // 健康检查
 router.get('/health', (req, res) => {

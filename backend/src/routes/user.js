@@ -2,13 +2,30 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const authorController = require('../controllers/authorController');
+const membershipController = require('../controllers/membershipController');
 const { authenticate } = require('../middlewares/auth');
 const { paginationValidation, idValidation, novelIdValidation } = require('../utils/validators');
 const { asyncHandler } = require('../middlewares/errorHandler');
 const writeRateLimiter = require('../middlewares/writeRateLimiter');
+const { createWriteRateLimiter } = writeRateLimiter;
 
 // 所有路由都需要认证
 router.use(authenticate);
+
+// 会员相关
+// 激活码激活专用限流：1 小时内最多 5 次（成功失败都算）
+const activateLimiter = createWriteRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxWrites: 5,
+  // 不按"内容"去重（重复用户尝试同码也应该计数 5 次）
+  maxDuplicateWrites: Number.POSITIVE_INFINITY
+});
+router.get('/membership', asyncHandler(membershipController.getMyMembership));
+router.post(
+  '/membership/activate',
+  activateLimiter,
+  asyncHandler(membershipController.activateCode)
+);
 
 // 书架相关
 router.get('/bookshelf', paginationValidation, userController.getBookshelf);

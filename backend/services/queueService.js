@@ -1,6 +1,6 @@
 /**
  * ============================================
- * 文字之境 - 任务队列服务
+ * MOMO小说 - 任务队列服务
  * 开发者: 开发者C
  * 创建日期: 2025-10-27
  * 版本: v1.0
@@ -480,7 +480,7 @@ queueService.registerProcessor('email', 'send-email', async (job) => {
 await queueService.addJob('email', 'send-email', {
   to: 'user@example.com',
   subject: '欢迎注册',
-  content: '感谢您注册文字之境！',
+  content: '感谢您注册 MOMO小说！',
 }, {
   priority: 1,
   delay: 0,

@@ -95,6 +95,10 @@ request.interceptors.response.use(
       console.log(`⏱️ API [${response.config.method.toUpperCase()}] ${response.config.url}: ${duration}ms`)
     }
     
+    if (response.config.skipUnifiedResponse) {
+      return response
+    }
+
     const res = response.data
     
     // 统一错误处理（200-299 都是成功状态）

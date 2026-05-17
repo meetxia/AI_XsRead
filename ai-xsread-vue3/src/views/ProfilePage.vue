@@ -5,6 +5,9 @@ import BottomNav from '@/components/v2/layout/BottomNav.vue'
 import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import { useUserStore } from '@/stores/user'
+import { useMembershipStore } from '@/stores/membership'
+import MembershipBadge from '@/components/membership/MembershipBadge.vue'
+import Countdown from '@/components/membership/Countdown.vue'
 import { useUserStats } from '@/composables/useUserStats'
 import WeekBarChart from '@/components/profile/WeekBarChart.vue'
 import FollowingAuthorList from '@/components/profile/FollowingAuthorList.vue'
@@ -12,6 +15,7 @@ import { getFollowingAuthors } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
+const membershipStore = useMembershipStore()
 const {
   shelfCount,
   readingStreak,
@@ -66,6 +70,7 @@ function maybeLoadAuthedData() {
   if (!userStore.isLogin) return
   loadStats()
   loadFollowingAuthors()
+  membershipStore.fetch()
 }
 
 onMounted(maybeLoadAuthedData)
@@ -82,8 +87,8 @@ watch(() => userStore.isLogin, (val) => {
     <header class="sticky top-0 z-40 bg-cream-50/85 dark:bg-night-900/85 backdrop-blur-xl pt-safe">
       <div class="max-w-screen-xl mx-auto px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
         <RouterLink to="/" class="flex items-center gap-2 px-2">
-          <span class="w-8 h-8 rounded-full bg-clay-500 grid place-items-center text-cream-50 font-serif font-semibold">境</span>
-          <span class="font-serif text-lg font-semibold tracking-tight">文字之境</span>
+          <span class="w-8 h-8 rounded-full bg-clay-500 grid place-items-center text-cream-50 font-serif font-semibold">M</span>
+          <span class="font-serif text-lg font-semibold tracking-tight">MOMO小说</span>
         </RouterLink>
         <div class="flex items-center gap-1">
           <button class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800" aria-label="通知">
@@ -155,10 +160,31 @@ watch(() => userStore.isLogin, (val) => {
                     <span v-if="user.joinDays"> · 加入 {{ user.joinDays }} 天</span>
                   </p>
                 </div>
-                <button class="px-3 py-1.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/25 text-xs shrink-0">编辑</button>
+                <div class="flex flex-col items-end gap-2 shrink-0">
+                  <button class="px-3 py-1.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/25 text-xs">编辑</button>
+                  <MembershipBadge
+                    size="md"
+                    :level="membershipStore.level"
+                    :is-active="membershipStore.isActive"
+                  />
+                </div>
               </div>
 
               <p class="relative mt-3 text-sm text-cream-200/90 italic font-serif">"读过的书，遇过的人，都会变成你。"</p>
+
+              <RouterLink
+                to="/profile/membership"
+                class="relative mt-3 inline-flex items-center gap-2 text-xs text-cream-50 bg-cream-50/15 backdrop-blur border border-cream-50/20 hover:bg-cream-50/25 transition rounded-full pl-2.5 pr-3 py-1"
+                data-test="profile-membership-link"
+              >
+                <Countdown
+                  :level="membershipStore.level"
+                  :level-label="membershipStore.levelLabel"
+                  :days-remaining="membershipStore.daysRemaining"
+                  :is-permanent="membershipStore.isPermanent"
+                />
+                <span class="text-[11px] opacity-90">前往 →</span>
+              </RouterLink>
 
               <div class="relative mt-4 grid grid-cols-3 gap-2 text-center">
                 <div>
@@ -236,6 +262,17 @@ watch(() => userStore.isLogin, (val) => {
           <section>
             <h2 class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-2">通用</h2>
             <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
+              <RouterLink to="/profile/membership" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40" data-test="profile-membership-entry">
+                <Icon name="starFill" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="flex-1 text-sm">会员中心</span>
+                <MembershipBadge
+                  v-if="membershipStore.level > 0"
+                  :level="membershipStore.level"
+                  :is-active="membershipStore.isActive"
+                  :show-label="true"
+                />
+                <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
+              </RouterLink>
               <a href="#" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
                 <Icon name="eye" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
                 <span class="flex-1 text-sm">阅读偏好</span>
@@ -260,7 +297,7 @@ watch(() => userStore.isLogin, (val) => {
                 <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
               </a>
               <a href="#" class="flex items-center gap-3 p-3.5">
-                <span class="flex-1 text-sm">关于文字之境</span>
+                <span class="flex-1 text-sm">关于 MOMO小说</span>
                 <span class="text-xs text-ink-500">v 1.0</span>
               </a>
               <button @click="doLogout" class="w-full text-left flex items-center gap-3 p-3.5 text-cinnabar-500 hover:bg-cinnabar-500/5">

@@ -2,7 +2,7 @@
   <aside class="app-sidebar" :class="{ collapsed: !appStore.sidebarOpened }">
     <div class="logo">
       <img src="@/assets/vue.svg" alt="Logo" />
-      <span v-show="appStore.sidebarOpened" class="logo-title">文字之境</span>
+      <span v-show="appStore.sidebarOpened" class="logo-title">MOMO小说</span>
     </div>
     
     <el-scrollbar class="sidebar-scrollbar">

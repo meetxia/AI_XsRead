@@ -1,6 +1,6 @@
 # Windows本地开发快速启动指南
 
-> 文字之境 - 从零开始的完整开发流程  
+> Momo小说 - 从零开始的完整开发流程  
 > 适用于: Windows系统本地开发  
 > 创建日期: 2025-10-27
 
@@ -281,7 +281,7 @@ export default defineConfig({
 
 ```bash
 # 开发环境配置
-VITE_APP_TITLE=文字之境-开发环境
+VITE_APP_TITLE=Momo小说-开发环境
 VITE_APP_BASE_API=http://localhost:8000/api
 VITE_APP_PORT=3008
 ```
@@ -290,7 +290,7 @@ VITE_APP_PORT=3008
 
 ```bash
 # 生产环境配置
-VITE_APP_TITLE=文字之境
+VITE_APP_TITLE=Momo小说
 VITE_APP_BASE_API=https://api.yourdomain.com/api
 ```
 
@@ -476,7 +476,7 @@ app.mount('#app')
     <div class="max-w-4xl mx-auto">
       <header class="text-center mb-12">
         <h1 class="text-5xl font-bold text-rose-primary mb-4">
-          文字之境
+          Momo小说
         </h1>
         <p class="text-xl text-gray-600">
           故事入境，杂念自消
@@ -595,7 +595,7 @@ npm start
 ✅ 数据库连接成功
 
 ========================================
-🚀 文字之境后端服务启动成功！
+🚀 Momo小说后端服务启动成功！
 ========================================
 📍 服务地址: http://localhost:8000
 🌍 环境模式: development
@@ -695,7 +695,7 @@ cd ai-xsread-vue3; pnpm run dev
 ```powershell
 # 1. 服务能正常启动
 □ npm run dev 无错误
-□ 看到 "🚀 文字之境后端服务启动成功！" 提示
+□ 看到 "🚀 Momo小说后端服务启动成功！" 提示
 
 # 2. 数据库连接正常
 □ 看到 "✅ 数据库连接成功" 提示

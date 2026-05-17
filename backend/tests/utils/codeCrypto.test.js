@@ -2,8 +2,9 @@
  * codeCrypto 单元测试
  */
 
-// 测试时需要保证 JWT_SECRET 存在；使用现有 .env 中的值或测试用值
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-for-codeCrypto-must-be-stable-32chars';
+// 测试时需要保证密钥存在；优先用 ACTIVATION_CODE_SECRET
+process.env.ACTIVATION_CODE_SECRET =
+  process.env.ACTIVATION_CODE_SECRET || 'test-activation-secret-stable-32chars-min';
 
 const { encrypt, decrypt, lookupHash } = require('../../src/utils/codeCrypto');
 
@@ -40,17 +41,17 @@ describe('codeCrypto', () => {
       expect(() => decrypt(cipher)).toThrow();
     });
 
-    it('用错误的 KEY 派生（不同 JWT_SECRET）解密会抛错', () => {
+    it('用错误的 KEY 派生（不同 ACTIVATION_CODE_SECRET）解密会抛错', () => {
       const plain = 'CODE-FROM-KEY-A1';
-      const original = process.env.JWT_SECRET;
+      const original = process.env.ACTIVATION_CODE_SECRET;
 
-      process.env.JWT_SECRET = original + '-A';
+      process.env.ACTIVATION_CODE_SECRET = original + '-A';
       const cipher = encrypt(plain);
 
-      process.env.JWT_SECRET = original + '-B';
+      process.env.ACTIVATION_CODE_SECRET = original + '-B';
       expect(() => decrypt(cipher)).toThrow();
 
-      process.env.JWT_SECRET = original;
+      process.env.ACTIVATION_CODE_SECRET = original;
     });
   });
 

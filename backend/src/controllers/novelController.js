@@ -1,6 +1,7 @@
 const Response = require('../utils/response');
 const novelService = require('../services/novelService');
 const recommendationService = require('../services/recommendationService');
+const membershipService = require('../services/membershipService');
 const memoryCache = require('../utils/memoryCache');
 const { hasColumn } = require('../utils/schemaCompat');
 
@@ -124,6 +125,37 @@ const getChapterContent = async (req, res, next) => {
     return Response.success(res, chapter);
   } catch (error) {
     if (error.message === '章节不存在') {
+      return Response.error(res, error.message, 404);
+    }
+    next(error);
+  }
+};
+
+/**
+ * 下载整本小说 TXT（VIP 权益）
+ */
+const downloadNovel = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const isVip = await membershipService.isMember(userId);
+    if (!isVip) {
+      return Response.error(res, 'VIP会员才能下载整本书', 403);
+    }
+
+    const { filename, text } = await novelService.buildNovelDownloadText(id);
+    const encodedFilename = encodeURIComponent(filename);
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
+    );
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.status(200).send(text);
+  } catch (error) {
+    if (error.message === '小说不存在') {
       return Response.error(res, error.message, 404);
     }
     next(error);
@@ -451,6 +483,7 @@ module.exports = {
   collectNovel,
   uncollectNovel,
   getNovelStatus,
+  downloadNovel,
   /**
    * 新增：按字符分页获取整本小说内容
    */
@@ -458,7 +491,8 @@ module.exports = {
     try {
       const { id } = req.params;
       const { page = 1, pageSize = 3000 } = req.query;
-      const result = await novelService.getNovelPageByChars(id, { page, pageSize });
+      const userId = req.user?.id || null;
+      const result = await novelService.getNovelPageByChars(id, { page, pageSize, userId });
       return Response.success(res, result);
     } catch (error) {
       next(error);

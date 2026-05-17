@@ -52,7 +52,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // ===== 根路由 =====
 app.get('/', (req, res) => {
   res.json({
-    name: '文字之境后台管理API',
+    name: 'MOMO小说后台管理API',
     version: '1.0.0',
     status: 'running',
     timestamp: new Date().toISOString()
@@ -74,7 +74,7 @@ const PORT = config.port;
 const server = app.listen(PORT, () => {
   console.log('');
   console.log('========================================');
-  console.log('  🚀 文字之境后台管理API服务');
+  console.log('  🚀 MOMO小说后台管理API服务');
   console.log('========================================');
   console.log(`  环境: ${config.env}`);
   console.log(`  端口: ${PORT}`);

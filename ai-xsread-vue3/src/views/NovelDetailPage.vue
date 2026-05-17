@@ -8,10 +8,11 @@ import SameAuthorRail from '@/components/novel/SameAuthorRail.vue'
 import SameTagRail from '@/components/novel/SameTagRail.vue'
 import HotNotesSection from '@/components/novel/HotNotesSection.vue'
 import FollowAuthorButton from '@/components/novel/FollowAuthorButton.vue'
-import { getNovelDetail, getChapterList, getComments, getNovelStatus, likeNovel, unlikeNovel, getNovelRating } from '@/api/novel'
+import { getNovelDetail, getChapterList, getComments, getNovelStatus, likeNovel, unlikeNovel, getNovelRating, downloadNovelTxt } from '@/api/novel'
 import { addToBookshelf, removeFromBookshelf, getReadingProgress } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { buildLoginUrl } from '@/composables/useReturnUrl'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
 
 const router = useRouter()
 const route = useRoute()
@@ -40,6 +41,7 @@ const novel = ref({
   introExtra: '',
   cover: '',
   variant: 1,
+  isVip: 0,
 })
 
 const chapters = ref([])
@@ -52,6 +54,7 @@ const statusState = ref({ inBookshelf: false, liked: false })
 const statusLoading = ref(false)
 const bookshelfLoading = ref(false)
 const likeLoading = ref(false)
+const downloadLoading = ref(false)
 const progress = ref(null)
 const ratingInfo = ref({ ratingCount: 0, average: null, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } })
 
@@ -112,6 +115,7 @@ async function loadDetail() {
         intro: d.description || '',
         introExtra: d.introExtra || '',
         cover: d.cover,
+        isVip: Number(d.is_vip ?? d.isVip ?? 0) ? 1 : 0,
       }
     }
   } catch (e) {
@@ -293,6 +297,23 @@ async function toggleLike() {
   }
 }
 
+async function downloadTxt() {
+  if (!requireLogin() || downloadLoading.value) return
+  downloadLoading.value = true
+  try {
+    await downloadNovelTxt(novelId.value)
+    showToast('TXT 下载已开始')
+  } catch (error) {
+    if (error?.response?.status === 403) {
+      showToast('VIP会员才能下载整本书')
+    } else {
+      showToast(error?.message || '下载失败，请稍后再试')
+    }
+  } finally {
+    downloadLoading.value = false
+  }
+}
+
 const goReading = () => {
   const targetCh = continueChapter.value || chapters.value[0]
   if (targetCh) {
@@ -307,6 +328,46 @@ watch(novelId, loadAll)
 
 watch(progress, () => {
   chapters.value = chapters.value.map(c => ({ ...c, current: String(c.id) === String(progress.value?.chapter_id) }))
+})
+
+// ─── 动态 SEO（小说详情页结构化数据 + 分享卡） ───
+useSeoMeta(() => {
+  const n = novel.value
+  if (!n.id || !n.title) return {}
+  const cover = n.cover && /^https?:/i.test(n.cover)
+    ? n.cover
+    : (n.cover ? `${SEO_DEFAULTS.siteUrl}${n.cover}` : SEO_DEFAULTS.image)
+  const intro = (n.intro || '').replace(/\s+/g, ' ').trim()
+  return {
+    title: `${n.title}${n.author ? ` - ${n.author}` : ''}`,
+    description: intro
+      ? intro.slice(0, 140)
+      : `${n.title}${n.author ? ` 作者：${n.author}` : ''}，在 MOMO小说免费在线阅读。`,
+    keywords: [n.title, n.author, n.category, ...(n.tags || []), 'MOMO小说', '免费小说']
+      .filter(Boolean).join(','),
+    image: cover,
+    url: `${SEO_DEFAULTS.siteUrl}/novel/${n.id}`,
+    type: 'book',
+    jsonLd: {
+      '@type': 'Book',
+      name: n.title,
+      author: n.author ? { '@type': 'Person', name: n.author } : undefined,
+      image: cover,
+      genre: n.category || undefined,
+      keywords: (n.tags || []).join(','),
+      description: intro || undefined,
+      bookFormat: 'https://schema.org/EBook',
+      inLanguage: 'zh-CN',
+      url: `${SEO_DEFAULTS.siteUrl}/novel/${n.id}`,
+      aggregateRating: n.rating ? {
+        '@type': 'AggregateRating',
+        ratingValue: Number(n.rating),
+        ratingCount: ratingInfo.value.ratingCount || n.commentCount || 1,
+        bestRating: 5,
+        worstRating: 1,
+      } : undefined,
+    },
+  }
 })
 </script>
 
@@ -359,7 +420,18 @@ watch(progress, () => {
             </div>
             <div class="flex-1 min-w-0 text-cream-50 mt-2 sm:mt-4">
               <p class="text-[11px] uppercase tracking-[0.2em] opacity-70 mb-1">{{ novel.category }}<span v-if="novel.subCategory"> · {{ novel.subCategory }}</span></p>
-              <h1 class="font-serif text-xl sm:text-2xl lg:text-3xl font-semibold leading-tight">{{ novel.title || '小说详情' }}</h1>
+              <h1 class="font-serif text-xl sm:text-2xl lg:text-3xl font-semibold leading-tight flex items-center gap-2 flex-wrap">
+                <span>{{ novel.title || '小说详情' }}</span>
+                <span
+                  v-if="novel.isVip === 1"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-gradient-to-r from-amber-300 to-yellow-500 text-night-900"
+                  data-test="novel-vip-badge"
+                  aria-label="VIP 会员书籍"
+                >
+                  <span aria-hidden="true">★</span>
+                  <span>VIP</span>
+                </span>
+              </h1>
               <p class="mt-1 text-sm opacity-85 line-clamp-1">{{ novel.subtitle }}</p>
               <RouterLink :to="authorLink" class="mt-2 inline-flex items-center gap-2 text-sm">
                 <span class="w-6 h-6 rounded-full bg-cream-50/20 grid place-items-center text-[10px] font-serif">{{ novel.authorAvatar || '作' }}</span>
@@ -468,9 +540,19 @@ watch(progress, () => {
                 <span class="w-1 h-4 rounded-full bg-clay-500"></span>
                 目录 · 共 {{ totalChapters }} 章
               </h2>
-              <button class="text-xs text-ink-700 dark:text-ink-300 flex items-center gap-1 hover:text-clay-700 dark:hover:text-clay-400 transition" @click="reverse = !reverse">
-                {{ reverse ? '正序' : '倒序' }} <Icon name="arrowDown" class="w-3 h-3" />
-              </button>
+              <div class="flex items-center gap-3">
+                <button
+                  class="text-xs text-ink-700 dark:text-ink-300 flex items-center gap-1 hover:text-clay-700 dark:hover:text-clay-400 transition disabled:opacity-60"
+                  :disabled="downloadLoading"
+                  @click="downloadTxt"
+                >
+                  <Icon name="download" class="w-3.5 h-3.5" />
+                  {{ downloadLoading ? '准备中' : '下载TXT' }}
+                </button>
+                <button class="text-xs text-ink-700 dark:text-ink-300 flex items-center gap-1 hover:text-clay-700 dark:hover:text-clay-400 transition" @click="reverse = !reverse">
+                  {{ reverse ? '正序' : '倒序' }} <Icon name="arrowDown" class="w-3 h-3" />
+                </button>
+              </div>
             </div>
 
             <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
@@ -560,6 +642,15 @@ watch(progress, () => {
         >
           <Icon :name="statusState.liked ? 'heartFill' : 'heart'" class="w-5 h-5" />
           <span class="text-[10px]">{{ likeLoading ? '...' : (novel.likeCount !== null ? formatNumber(novel.likeCount) : '喜欢') }}</span>
+        </button>
+        <button
+          class="flex flex-col items-center gap-0.5 px-3 py-1.5 text-ink-700 dark:text-ink-300 hover:text-clay-700 dark:hover:text-clay-400 transition disabled:opacity-60"
+          :disabled="downloadLoading"
+          aria-label="下载TXT"
+          @click="downloadTxt"
+        >
+          <Icon name="download" class="w-5 h-5" />
+          <span class="text-[10px]">{{ downloadLoading ? '...' : '下载' }}</span>
         </button>
         <button @click="goReading" class="flex-1 h-12 rounded-full bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif text-base font-semibold grid place-items-center hover:bg-clay-600 active:scale-[0.98] transition shadow-cream">
           {{ ctaText }}

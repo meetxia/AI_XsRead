@@ -311,6 +311,106 @@ class NovelController {
       next(error);
     }
   }
+
+  /**
+   * 批量切换 VIP 状态
+   * POST /api/admin/novels/set-vip
+   * body: { ids: [1,2,3], is_vip: 0|1 }
+   */
+  static async setVip(req, res, next) {
+    try {
+      const { ids, is_vip } = req.body || {};
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return Response.error(res, 'ids 不能为空', 400);
+      }
+      const novelIds = ids
+        .map((x) => parseInt(x, 10))
+        .filter((x) => Number.isInteger(x) && x > 0);
+      if (novelIds.length === 0) {
+        return Response.error(res, 'ids 中没有合法 ID', 400);
+      }
+      const flag = is_vip === 1 || is_vip === '1' || is_vip === true ? 1 : 0;
+
+      const [result] = await db.query(
+        'UPDATE novels SET is_vip = ? WHERE id IN (?)',
+        [flag, novelIds]
+      );
+
+      // 写会员相关审计日志
+      await db.query(
+        `INSERT INTO code_admin_logs (admin_id, action, target, detail, ip)
+         VALUES (?, 'set_novel_vip', ?, ?, ?)`,
+        [
+          req.user.id,
+          `novels:[${novelIds.join(',')}]`,
+          JSON.stringify({ is_vip: flag, count: novelIds.length }),
+          req.ip || null
+        ]
+      );
+
+      return Response.success(res, {
+        affected_rows: result.affectedRows,
+        ids: novelIds,
+        is_vip: flag
+      }, '更新成功');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/admin/novels/set-vip
+   * 批量设置 / 取消整本 VIP
+   * Body: { ids: number[], is_vip: 0|1 }
+   */
+  static async setVip(req, res, next) {
+    try {
+      const { ids, is_vip: isVipRaw } = req.body || {};
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return Response.error(res, 'ids 必须为非空数组', 400);
+      }
+      const cleanIds = ids
+        .map((x) => Number(x))
+        .filter((x) => Number.isInteger(x) && x > 0);
+      if (cleanIds.length === 0) {
+        return Response.error(res, 'ids 中没有合法 ID', 400);
+      }
+      const isVip = Number(isVipRaw) === 1 ? 1 : 0;
+
+      const placeholders = cleanIds.map(() => '?').join(',');
+      const [updateResult] = await db.query(
+        `UPDATE novels SET is_vip = ?, updated_at = NOW() WHERE id IN (${placeholders})`,
+        [isVip, ...cleanIds]
+      );
+
+      // 写日志（用 code_admin_logs 与会员/激活码体系共用）
+      try {
+        const conn = await db.getConnection();
+        try {
+          await conn.query(
+            `INSERT INTO code_admin_logs (admin_id, action, target, detail, ip, created_at)
+             VALUES (?, 'set_novel_vip', ?, ?, ?, NOW())`,
+            [
+              req.user.id,
+              `novels:${cleanIds.join(',')}`,
+              JSON.stringify({ is_vip: isVip, count: cleanIds.length, affected: updateResult.affectedRows }),
+              req.ip || null
+            ]
+          );
+        } finally {
+          conn.release();
+        }
+      } catch (_) { /* ignore log failure */ }
+
+      return Response.success(
+        res,
+        { is_vip: isVip, count: updateResult.affectedRows },
+        isVip ? '已标记为 VIP' : '已取消 VIP 标记'
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = NovelController;

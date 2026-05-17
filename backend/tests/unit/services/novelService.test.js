@@ -206,14 +206,15 @@ describe('NovelService', () => {
       
       pool.query
         .mockResolvedValueOnce([mockCount])
-        .mockResolvedValueOnce([mockChapters]);
+        .mockResolvedValueOnce([mockChapters])
+        .mockResolvedValueOnce([[{ is_vip: 0 }]]);
       
       const result = await novelService.getChapterList(1, {
         page: 1,
         pageSize: 50
       });
       
-      expect(result.list).toEqual(mockChapters);
+      expect(result.list).toEqual(mockChapters.map(chapter => ({ ...chapter, is_vip: 0 })));
       expect(result.pagination.total).toBe(100);
     });
   });
@@ -229,11 +230,18 @@ describe('NovelService', () => {
         is_free: true
       };
       
-      pool.query.mockResolvedValueOnce([[mockChapter]]);
+      pool.query
+        .mockResolvedValueOnce([[mockChapter]])
+        .mockResolvedValueOnce([[{ is_vip: 0 }]]);
       
       const result = await novelService.getChapterContent(1);
       
-      expect(result).toEqual(mockChapter);
+      expect(result).toEqual({
+        ...mockChapter,
+        is_vip: 0,
+        vip_required: false,
+        truncated: false
+      });
     });
     
     it('章节不存在时应该抛出错误', async () => {
@@ -242,6 +250,45 @@ describe('NovelService', () => {
       await expect(novelService.getChapterContent(999))
         .rejects
         .toThrow('章节不存在');
+    });
+  });
+
+  describe('buildNovelDownloadText', () => {
+    it('应该按小说信息和章节顺序生成整本 TXT 文本', async () => {
+      const mockNovel = {
+        id: 1,
+        title: '春日来信',
+        author: '南枝',
+        description: '一段温柔的重逢。'
+      };
+      const mockChapters = [
+        { chapter_number: 1, title: '重逢', content: '她在雨声里回头。' },
+        { chapter_number: 2, title: '晚风', content: '晚风吹过长街。' }
+      ];
+
+      pool.query
+        .mockResolvedValueOnce([[mockNovel]])
+        .mockResolvedValueOnce([mockChapters]);
+
+      const result = await novelService.buildNovelDownloadText(1);
+
+      expect(result.filename).toBe('春日来信.txt');
+      expect(result.title).toBe('春日来信');
+      expect(result.text).toContain('《春日来信》');
+      expect(result.text).toContain('作者：南枝');
+      expect(result.text).toContain('简介：一段温柔的重逢。');
+      expect(result.text).toContain('第1章 重逢');
+      expect(result.text).toContain('她在雨声里回头。');
+      expect(result.text.indexOf('第1章 重逢')).toBeLessThan(result.text.indexOf('第2章 晚风'));
+      expect(pool.query).toHaveBeenCalledTimes(2);
+    });
+
+    it('小说不存在时应该抛出错误', async () => {
+      pool.query.mockResolvedValueOnce([[]]);
+
+      await expect(novelService.buildNovelDownloadText(999))
+        .rejects
+        .toThrow('小说不存在');
     });
   });
 });

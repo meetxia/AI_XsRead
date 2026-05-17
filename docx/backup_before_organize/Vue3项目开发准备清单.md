@@ -1,6 +1,6 @@
 # Vue3 小说阅读项目开发准备清单
 
-> 文字之境 - Vue3版本开发准备文档  
+> Momo小说 - Vue3版本开发准备文档  
 > 项目经理: AI Assistant  
 > 创建日期: 2025-10-27
 
@@ -9,7 +9,7 @@
 ## 📋 项目概述
 
 ### 项目名称
-文字之境 - 女性向小说阅读网站 (Vue3版本)
+Momo小说 - 女性向小说阅读网站 (Vue3版本)
 
 ### 项目目标
 将现有的HTML/CSS/JS高保真页面重构为Vue3单页应用(SPA),实现前后端分离架构,最终部署在阿里云Linux服务器(宝塔面板)
@@ -454,12 +454,12 @@ export default {
 
 ```bash
 # .env.development
-VITE_APP_TITLE=文字之境-开发环境
+VITE_APP_TITLE=Momo小说-开发环境
 VITE_APP_BASE_API=http://localhost:8000/api
 VITE_APP_PORT=3008
 
 # .env.production
-VITE_APP_TITLE=文字之境
+VITE_APP_TITLE=Momo小说
 VITE_APP_BASE_API=https://api.yourdomain.com/api
 ```
 

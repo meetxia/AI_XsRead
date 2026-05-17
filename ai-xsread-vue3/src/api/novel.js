@@ -1,5 +1,26 @@
 import request from './request'
 
+function getFilenameFromDisposition(disposition, fallback) {
+  if (!disposition) return fallback
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i)
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].replace(/^"|"$/g, ''))
+    } catch (error) {
+      return utf8Match[1].replace(/^"|"$/g, '')
+    }
+  }
+  const normalMatch = disposition.match(/filename="?([^";]+)"?/i)
+  if (normalMatch?.[1]) {
+    try {
+      return decodeURIComponent(normalMatch[1])
+    } catch (error) {
+      return normalMatch[1]
+    }
+  }
+  return fallback
+}
+
 // 获取小说列表
 export function getNovelList(params) {
   return request({
@@ -54,6 +75,34 @@ export function getChapterContent(chapterId) {
     url: `/chapters/${chapterId}`,
     method: 'get'
   })
+}
+
+// 下载整本小说 TXT（VIP 权益）
+export async function downloadNovelTxt(novelId) {
+  const response = await request({
+    url: `/novels/${novelId}/download`,
+    method: 'get',
+    responseType: 'blob',
+    timeout: 60000,
+    skipUnifiedResponse: true
+  })
+
+  const blob = response.data
+  const filename = getFilenameFromDisposition(
+    response.headers?.['content-disposition'],
+    `novel-${novelId}.txt`
+  )
+
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+
+  return { filename }
 }
 
 // 按字符分页获取整本内容（无章节模式）

@@ -1,5 +1,10 @@
-/* 文字之境 V1.0 · 全局样式（A + D 双主题） */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* MOMO小说 V1.0 · 全局样式（A + D 双主题） */
+/*
+  注意：原本这里用 @import 方式引入 Google Fonts（Noto Serif SC / Inter / JetBrains Mono）。
+  国内网络通常无法访问 fonts.googleapis.com，会触发 30s 超时，造成首屏白屏 / 登录注册卡顿，
+  以及部分用户在控制台看到 fonts.gstatic.com ERR_TIMED_OUT。
+  字体改为完全走系统回退栈（见 tailwind.config.js 的 fontFamily 配置），不再请求外网字体。
+*/
 
 @tailwind base;
 @tailwind components;

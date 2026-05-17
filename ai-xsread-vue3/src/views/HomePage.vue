@@ -8,6 +8,22 @@ import Icon from '@/components/v2/icons/Icon.vue'
 import RankTabSection from '@/components/novel/RankTabSection.vue'
 import { getRecommendNovels, getNovelList } from '@/api/novel'
 import { useUserStore } from '@/stores/user'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '首页',
+  description: SEO_DEFAULTS.description,
+  url: SEO_DEFAULTS.siteUrl + '/',
+  type: 'website',
+  keywords: 'MOMO小说,免费小说,在线阅读,都市言情,古风穿越,悬疑推理,治愈系,奇幻冒险,女频小说',
+  jsonLd: {
+    '@type': 'CollectionPage',
+    name: 'MOMO小说 - 首页',
+    description: SEO_DEFAULTS.description,
+    url: SEO_DEFAULTS.siteUrl + '/',
+    inLanguage: 'zh-CN',
+  },
+})
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -397,7 +413,7 @@ onMounted(loadData)
 
       <footer class="mt-10 mb-8 text-center">
         <p class="font-serif text-sm text-ink-500 dark:text-ink-300 italic">"故事入境，杂念自消"</p>
-        <p class="text-[11px] mt-2 text-ink-300 dark:text-ink-500 tracking-wider">© 文字之境</p>
+        <p class="text-[11px] mt-2 text-ink-300 dark:text-ink-500 tracking-wider">© MOMO小说</p>
       </footer>
     </main>
 

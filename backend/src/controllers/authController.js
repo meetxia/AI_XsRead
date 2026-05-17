@@ -4,13 +4,14 @@ const { pool } = require('../config/database');
 const config = require('../config');
 const Response = require('../utils/response');
 const { getRandomAvatarUrl } = require('../utils/avatar');
+const { redeemActivationCode, ActivationError } = require('./membershipController');
 
 /**
  * 用户注册
  */
 const register = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, activation_code: activationCodeRaw } = req.body;
 
     // 简化校验：至少提供用户名或邮箱之一 + 密码
     if (!password || (!username && !email)) {
@@ -79,7 +80,36 @@ const register = async (req, res) => {
       config.jwt.refreshSecret,
       { expiresIn: config.jwt.refreshExpiresIn }
     );
-    
+
+    // 可选：注册时附带激活码 → 注册流程已成功，激活失败不阻断
+    let activationStatus = 'not_provided';
+    let activationMessage = null;
+    let activationData = null;
+    if (activationCodeRaw) {
+      try {
+        activationData = await redeemActivationCode({
+          userId: user.id,
+          code: activationCodeRaw,
+          channel: 'register',
+          ip: req.ip,
+          userAgent: req.get('user-agent') || null
+        });
+        activationStatus = 'success';
+        activationMessage = '激活成功';
+      } catch (activationErr) {
+        activationStatus = 'failed';
+        if (activationErr instanceof ActivationError) {
+          activationMessage = activationErr.message;
+        } else {
+          activationMessage = '激活失败，请稍后在个人中心重试';
+          if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.warn('[register] 激活码处理失败:', activationErr.message);
+          }
+        }
+      }
+    }
+
     // 返回注册信息（包含token，自动登录）
     return Response.created(res, {
       accessToken,
@@ -91,7 +121,10 @@ const register = async (req, res) => {
         email: user.email,
         avatar: user.avatar,
         role: user.role || 'user'
-      }
+      },
+      activation_status: activationStatus,
+      activation_message: activationMessage,
+      activation_data: activationData
     }, '注册成功');
   } catch (error) {
     console.error('Register error:', error);

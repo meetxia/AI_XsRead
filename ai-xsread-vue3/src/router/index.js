@@ -14,6 +14,7 @@ const router = createRouter({
     { path: '/profile/highlights', name: 'profile-highlights', component: () => import('@/views/ProfileListPage.vue'), meta: { title: '我的划线', requiresAuth: true, kind: 'highlights' } },
     { path: '/profile/notes', name: 'profile-notes', component: () => import('@/views/ProfileListPage.vue'), meta: { title: '我的想法', requiresAuth: true, kind: 'notes' } },
     { path: '/profile/following-authors', name: 'profile-following-authors', component: () => import('@/views/FollowingAuthorsPage.vue'), meta: { title: '关注作者', requiresAuth: true } },
+    { path: '/profile/membership', name: 'profile-membership', component: () => import('@/views/MembershipPage.vue'), meta: { title: '会员中心', requiresAuth: true } },
     { path: '/security',   name: 'security',     component: () => import('@/views/SecurityPage.vue'),     meta: { title: '账号安全', requiresAuth: true } },
 
     // 阅读
@@ -43,7 +44,8 @@ const router = createRouter({
 })
 
 router.afterEach((to) => {
-  if (to.meta?.title) document.title = `${to.meta.title} - 文字之境`
+  if (to.meta?.title) document.title = `${to.meta.title} - MOMO小说`
+  else document.title = 'MOMO小说 - 故事入境，杂念自消'
 })
 
 export default router

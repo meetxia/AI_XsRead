@@ -415,7 +415,7 @@ const validateFileContent = (filePath) => {
 
 ```javascript
 // ai-xsread-vue3/src/main.js:23
-console.log('✨ 文字之境 Vue3 应用已启动')
+console.log('✨ Momo小说 Vue3 应用已启动')
 console.log('📍 当前环境:', import.meta.env.MODE)
 console.log('🔗 API地址:', import.meta.env.VITE_APP_BASE_API)
 ```
@@ -427,7 +427,7 @@ console.log('🔗 API地址:', import.meta.env.VITE_APP_BASE_API)
 ```javascript
 // 使用环境判断
 if (process.env.NODE_ENV === 'development') {
-  console.log('✨ 文字之境 Vue3 应用已启动')
+  console.log('✨ Momo小说 Vue3 应用已启动')
 }
 
 // 或使用日志库

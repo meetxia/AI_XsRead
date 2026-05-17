@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-// 文字之境 V1.0 重构版
+// MOMO小说 V1.0 重构版
 // A 主题（奶油杂志风）：覆盖首页、详情、书架、发现、搜索、个人中心、登录、注册、历史
 // D 主题（极简内容流）：覆盖阅读页（在 ReadingPage 内通过 [data-bg] 自定义）
 export default {

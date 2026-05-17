@@ -2,10 +2,87 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#FAF6F1" />
-    <title>文字之境</title>
+    <meta name="theme-color" content="#FAF6F1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1A1714" media="(prefers-color-scheme: dark)" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/logo.svg" />
+    <link rel="mask-icon" href="/favicon.svg" color="#A87A56" />
+
+    <!-- 基础 SEO -->
+    <title>MOMO小说 - 故事入境，杂念自消 | 都市言情·古风穿越·治愈系免费小说</title>
+    <meta name="description" content="MOMO小说，专为热爱阅读的你打造的精选小说阅读平台。汇聚都市言情、古风穿越、悬疑推理、治愈系、奇幻冒险五大品类，护眼阅读、进度同步、跨设备书架，让每一次翻页都是一场相遇。" />
+    <meta name="keywords" content="MOMO小说,momo小说,免费小说,在线阅读,都市言情,古风穿越,悬疑推理,治愈系,奇幻冒险,女频小说,女生小说网,小说阅读网" />
+    <meta name="author" content="MOMO小说" />
+    <meta name="application-name" content="MOMO小说" />
+    <meta name="apple-mobile-web-app-title" content="MOMO小说" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no, email=no, address=no" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <!-- 搜索引擎抓取策略 -->
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="googlebot" content="index,follow" />
+    <meta name="bingbot" content="index,follow" />
+    <meta name="baiduspider" content="index,follow" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://xs.momofx.cn/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MOMO小说" />
+    <meta property="og:title" content="MOMO小说 - 故事入境，杂念自消" />
+    <meta property="og:description" content="精选都市言情、古风穿越、悬疑推理、治愈系、奇幻冒险五大品类，护眼阅读、进度同步、跨设备书架。" />
+    <meta property="og:url" content="https://xs.momofx.cn/" />
+    <meta property="og:image" content="https://xs.momofx.cn/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="MOMO小说 - 故事入境，杂念自消" />
+    <meta property="og:locale" content="zh_CN" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MOMO小说 - 故事入境，杂念自消" />
+    <meta name="twitter:description" content="精选都市言情、古风穿越、悬疑推理、治愈系、奇幻冒险五大品类，护眼阅读、进度同步、跨设备书架。" />
+    <meta name="twitter:image" content="https://xs.momofx.cn/og-image.svg" />
+
+    <!-- DNS Prefetch / Preconnect: 加速首屏 -->
+    <link rel="dns-prefetch" href="//xs.momofx.cn" />
+    <link rel="preconnect" href="https://xs.momofx.cn" crossorigin />
+
+    <!-- 结构化数据：网站 + 站内搜索 -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "MOMO小说",
+        "alternateName": ["MOMO Novel", "momo小说"],
+        "url": "https://xs.momofx.cn/",
+        "inLanguage": "zh-CN",
+        "description": "精选都市言情、古风穿越、悬疑推理、治愈系、奇幻冒险五大品类的在线小说阅读平台。",
+        "publisher": {
+          "@type": "Organization",
+          "name": "MOMO小说",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://xs.momofx.cn/logo.svg"
+          }
+        },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://xs.momofx.cn/search?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+
     <!-- 资源路径运行时（配合 vite.config.js 中的 experimental.renderBuiltUrl）。
          build 出的代码会通过 window.__assetsPath('js/foo.js') 解析每一个 chunk URL，
          这里给一个最小可用的同源实现：直接返回根路径下的相对地址。
@@ -28,7 +105,13 @@
     </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- 首屏占位 + 给爬虫的最小语义文本（JS 加载完成后会被替换） -->
+      <noscript>
+        <h1>MOMO小说 - 故事入境，杂念自消</h1>
+        <p>MOMO小说是一个专为热爱阅读的你打造的精选小说阅读平台，汇聚都市言情、古风穿越、悬疑推理、治愈系、奇幻冒险五大品类。请启用 JavaScript 后访问。</p>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

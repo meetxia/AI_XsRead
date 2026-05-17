@@ -1,6 +1,6 @@
 # API接口设计文档
 
-> 文字之境 - Vue3版本 RESTful API设计  
+> Momo小说 - Vue3版本 RESTful API设计  
 > 版本: v1.0  
 > 创建日期: 2025-10-27
 
@@ -955,7 +955,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "code": 200,
   "message": "success",
   "data": {
-    "siteName": "文字之境",
+    "siteName": "Momo小说",
     "siteDescription": "故事入境,杂念自消",
     "siteKeywords": "小说,阅读,女性向",
     "logo": "https://...",

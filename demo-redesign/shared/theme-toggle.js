@@ -1,4 +1,4 @@
-// 文字之境 · 主题切换脚本（浅色/深色）
+// MOMO小说 · 主题切换脚本（浅色/深色）
 (function () {
   const html = document.documentElement;
   const stored = localStorage.getItem('xs-theme');

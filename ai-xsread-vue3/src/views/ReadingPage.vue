@@ -10,6 +10,7 @@ import ParagraphCommentBubble from '@/components/reading/ParagraphCommentBubble.
 import ParagraphCommentSheet from '@/components/reading/ParagraphCommentSheet.vue'
 import SettingPanel from '@/components/reading/SettingPanel.vue'
 import TTSControlBar from '@/components/reading/TTSControlBar.vue'
+import MembershipWall from '@/components/membership/MembershipWall.vue'
 import { useTheme } from '@/composables/useTheme'
 import { useReadingSettings } from '@/composables/useReadingSettings'
 import { useParagraphAnchor } from '@/composables/useParagraphAnchor'
@@ -23,7 +24,7 @@ import { useHighlightsStore } from '@/stores/highlights'
 import { createBookmark, deleteBookmark, listMyBookmarks } from '@/api/bookmarks'
 import { createHighlight } from '@/api/highlights'
 import { createParagraphComment, deleteParagraphComment, listParagraphComments } from '@/api/paragraphComments'
-import { getChapterContent, getChapterList } from '@/api/novel'
+import { getChapterContent, getChapterList, downloadNovelTxt } from '@/api/novel'
 import { getReadingProgress, updateReadingProgress } from '@/api/user'
 import { mergeProgress } from '@/composables/useReadingProgress'
 import { useUserStore } from '@/stores/user'
@@ -58,8 +59,14 @@ const toolbarVisible = ref(true)
 const showSettings = ref(false)
 const showChapters = ref(false)
 const showBookmarks = ref(false)
+
+// VIP 试读相关
+const vipRequired = ref(false)
+const vipTruncated = ref(false)
+const trialLength = ref(1500)
 const toastMessage = ref('')
 let toastTimer = null
+const downloadLoading = ref(false)
 
 const bookmarkLoading = ref(false)
 const bookmarks = ref([])
@@ -184,6 +191,23 @@ function requireLogin() {
   if (userStore.isLogin) return true
   router.push(buildLoginUrl(route.fullPath))
   return false
+}
+
+async function downloadTxt() {
+  if (!requireLogin() || downloadLoading.value) return
+  downloadLoading.value = true
+  try {
+    await downloadNovelTxt(novelId.value)
+    showToast('TXT 下载已开始')
+  } catch (error) {
+    if (error?.response?.status === 403) {
+      showToast('VIP会员才能下载整本书')
+    } else {
+      showToast(error?.message || '下载失败，请稍后再试')
+    }
+  } finally {
+    downloadLoading.value = false
+  }
 }
 
 function scrollVirtualPage(direction) {
@@ -372,6 +396,9 @@ async function loadChapter(chapterId, { restoreAnchor } = {}) {
   }
 
   contentLoading.value = true
+  // 重置 VIP 状态——会在响应里被重新赋值
+  vipRequired.value = false
+  vipTruncated.value = false
   try {
     const res = await getChapterContent(chapterId)
     if (res?.code === 200 && res.data) {
@@ -385,6 +412,10 @@ async function loadChapter(chapterId, { restoreAnchor } = {}) {
       content.value = data.content
         ? String(data.content).split(/\n+/).map((item) => item.trim()).filter(Boolean)
         : ['本章暂无内容。']
+      // 后端 VIP gating 字段
+      vipRequired.value = Boolean(data.vip_required ?? data.vipRequired ?? false)
+      vipTruncated.value = Boolean(data.truncated ?? false)
+      trialLength.value = Number(data.trial_length ?? data.trialLength ?? 1500) || 1500
     }
   } catch (error) {
     content.value = ['章节加载失败，请返回重试。']
@@ -404,6 +435,21 @@ async function loadChapter(chapterId, { restoreAnchor } = {}) {
     loadParagraphCommentCounts().catch((err) => {
       console.warn('[reading] load paragraph comment counts failed', err)
     })
+  }
+}
+
+// MembershipWall 触发条件：vip_required && truncated
+const showMembershipWall = computed(
+  () => vipRequired.value && vipTruncated.value
+)
+
+async function onMembershipActivated() {
+  if (import.meta.env.DEV) {
+    console.log('[reading] activated, reloading chapter content')
+  }
+  // 激活成功后重新拉取当前章节内容（不再 truncated）
+  if (currentChapterId.value) {
+    await loadChapter(currentChapterId.value)
   }
 }
 
@@ -818,7 +864,21 @@ onUnmounted(async () => {
         </p>
       </article>
 
-      <footer v-if="!contentLoading" class="mt-12 pt-8 border-t border-stone-200 dark:border-night-700">
+      <!-- VIP 会员墙：vip_required && truncated 时渲染 -->
+      <section
+        v-if="!contentLoading && showMembershipWall"
+        class="my-8 relative"
+        data-test="reading-membership-wall"
+      >
+        <!-- 顶部渐变遮罩，提示"下面被截断" -->
+        <div class="absolute -top-16 inset-x-0 h-16 bg-gradient-to-b from-transparent to-stone-50 dark:to-night-900 pointer-events-none"></div>
+        <MembershipWall
+          :trial-length="trialLength"
+          @activated="onMembershipActivated"
+        />
+      </section>
+
+      <footer v-if="!contentLoading && !showMembershipWall" class="mt-12 pt-8 border-t border-stone-200 dark:border-night-700">
         <div class="flex items-center justify-between text-xs font-mono text-stone-500 dark:text-stone-300 mb-6">
           <span>— 本章完 —</span>
           <span>约 {{ readingMinutes }} 分钟</span>
@@ -875,9 +935,9 @@ onUnmounted(async () => {
           <Icon name="sun" class="w-5 h-5 hidden dark:inline-block" />
           <span>夜间</span>
         </button>
-        <button @click="showBookmarks = true; loadBookmarks()" class="tool-btn">
-          <Icon name="share" class="w-5 h-5" />
-          <span>更多</span>
+        <button @click="downloadTxt" class="tool-btn" :disabled="downloadLoading">
+          <Icon name="download" class="w-5 h-5" />
+          <span>{{ downloadLoading ? '准备' : '下载' }}</span>
         </button>
       </div>
     </nav>

@@ -1,62 +1,115 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import { useUserStore } from '@/stores/user'
+import { useMembershipStore } from '@/stores/membership'
+import { safeReturnUrl } from '@/composables/useReturnUrl'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
+const membershipStore = useMembershipStore()
 
-const username = ref('')
-const phoneCode = ref('+86')
-const phone = ref('')
-const code = ref('')
+const email = ref('')
 const password = ref('')
-const agreed = ref(false)
-const prefs = ref(new Set())
+const confirmPassword = ref('')
+const showPassword = ref(false)
+const activationCode = ref('')
+const showActivationField = ref(false)
 const loading = ref(false)
 const errorMsg = ref('')
 
-const passwordStrength = computed(() => {
-  const v = password.value
-  if (!v) return 0
-  let s = 0
-  if (v.length >= 8) s++
-  if (/[a-zA-Z]/.test(v) && /[0-9]/.test(v)) s++
-  if (/[^a-zA-Z0-9]/.test(v)) s++
-  if (v.length >= 12) s++
-  return Math.min(4, s)
-})
-const strengthLabel = computed(() => ['', '较弱', '中等', '良好', '极强'][passwordStrength.value])
+// 自动生成一个随机用户名（后续可在个人中心修改）
+// 形如 xs_l8w2k9bh，碰撞概率极低；如真碰撞了，提交时一次重试
+function genUsername() {
+  const t = Date.now().toString(36).slice(-6)
+  const r = Math.random().toString(36).slice(2, 4)
+  return `xs_${t}${r}`
+}
 
-const allPrefs = ['古风言情','都市恋曲','悬疑推理','治愈系','奇幻冒险','校园青春']
-function togglePref(p) {
-  if (prefs.value.has(p)) prefs.value.delete(p)
-  else prefs.value.add(p)
-  prefs.value = new Set(prefs.value)
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const emailValid = computed(() => !email.value || EMAIL_RE.test(email.value.trim()))
+const passwordsMatch = computed(() => !confirmPassword.value || password.value === confirmPassword.value)
+
+function normalizedActivationCode() {
+  return String(activationCode.value || '').replace(/[\s-]/g, '').toUpperCase()
+}
+const activationCodeValid = computed(() => {
+  const v = normalizedActivationCode()
+  return v.length === 0 || v.length === 16
+})
+
+async function doRegister(payload) {
+  return userStore.register(payload)
 }
 
 async function onSubmit() {
-  if (!username.value || !phone.value || !password.value) {
-    errorMsg.value = '请填写完整信息'
-    return
-  }
-  if (!agreed.value) {
-    errorMsg.value = '请先同意用户协议和隐私政策'
-    return
-  }
   errorMsg.value = ''
+
+  const e = email.value.trim()
+  if (!e || !EMAIL_RE.test(e)) {
+    errorMsg.value = '请输入有效的邮箱'
+    return
+  }
+  if (!password.value || password.value.length < 6) {
+    errorMsg.value = '密码至少 6 位'
+    return
+  }
+  if (password.value !== confirmPassword.value) {
+    errorMsg.value = '两次输入的密码不一致'
+    return
+  }
+
   loading.value = true
   try {
-    await userStore.register({
-      username: username.value,
-      email: phone.value + '@example.com', // 后端如果只接受邮箱，这里临时占位
+    const payload = {
+      username: genUsername(),
+      email: e,
       password: password.value,
-    })
-    // 注册成功后跳转到兴趣标签 onboarding 页（Requirement 20.1）
-    // 通过 ?from=register 标记新用户，OnboardingInterestsPage 可据此区分
-    router.push({ path: '/onboarding/interests', query: { from: 'register' } })
+    }
+    const code = normalizedActivationCode()
+    if (code.length === 16) {
+      payload.activationCode = code
+    }
+
+    let response
+    try {
+      response = await doRegister(payload)
+    } catch (err) {
+      // 极少数情况下随机用户名冲突，重试一次
+      if (/用户名/.test(err.message || '')) {
+        payload.username = genUsername()
+        response = await doRegister(payload)
+      } else {
+        throw err
+      }
+    }
+
+    // 解析激活状态提示
+    const status = response?.data?.activation_status
+    const message = response?.data?.activation_message || ''
+    const memberData = response?.data?.membership
+
+    if (memberData) {
+      membershipStore.applyMembershipPayload(memberData)
+      membershipStore.loaded = true
+    }
+    if (status === 'success') {
+      const label = memberData?.vip_level_label || '会员'
+      window.alert(`欢迎成为${label}！`)
+    } else if (status === 'failed') {
+      window.alert(`注册成功，但激活码失败：${message || '未知原因'}。可在个人中心重试。`)
+    }
+
+    // 跳转：优先 returnUrl，否则去兴趣引导（在那里选偏好或跳过）
+    const redirect = safeReturnUrl(route.query.returnUrl || route.query.redirect || '', '')
+    if (redirect && redirect !== '/') {
+      router.replace(redirect)
+    } else {
+      router.push({ path: '/onboarding/interests', query: { from: 'register' } })
+    }
   } catch (err) {
     errorMsg.value = err.message || '注册失败'
   } finally {
@@ -76,90 +129,112 @@ async function onSubmit() {
       </div>
     </header>
 
-    <main class="max-w-md mx-auto px-6 pt-8 pb-12 min-h-[calc(100vh-3.5rem)] flex flex-col">
-      <div class="mb-8">
-        <p class="text-xs font-medium uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 mb-2">Welcome</p>
-        <h1 class="font-serif text-3xl font-semibold tracking-tight">开始你的阅读旅程</h1>
-        <p class="text-sm text-ink-700 dark:text-ink-300 mt-2">一步步创建账号，加入文字之境。</p>
+    <main class="max-w-md mx-auto px-6 pt-10 pb-12 min-h-[calc(100vh-3.5rem)] flex flex-col">
+      <!-- Logo -->
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-clay-500 text-cream-50 font-serif text-2xl font-semibold mb-4 shadow-cream-lg">M</div>
+        <h1 class="font-serif text-3xl font-semibold tracking-tight">创建账号</h1>
+        <p class="text-sm text-ink-700 dark:text-ink-300 mt-2">输入邮箱即可开始阅读</p>
       </div>
 
       <form class="space-y-4" @submit.prevent="onSubmit">
+        <!-- 邮箱 -->
         <div>
-          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">用户名</label>
-          <input v-model="username" type="text" placeholder="为自己取个名字（2-16 字）" class="w-full h-12 px-4 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition" />
+          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">邮箱</label>
+          <input
+            v-model="email"
+            type="email"
+            autocomplete="email"
+            placeholder="example@mail.com"
+            class="w-full h-12 px-4 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition"
+            :class="{ 'border-cinnabar-500': email && !emailValid }"
+          />
+          <p v-if="email && !emailValid" class="mt-1 text-[11px] text-cinnabar-500">邮箱格式不正确</p>
         </div>
 
+        <!-- 密码 -->
         <div>
-          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">手机号</label>
-          <div class="flex gap-2">
-            <select v-model="phoneCode" class="h-12 px-3 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 outline-none text-sm">
-              <option>+86</option>
-              <option>+852</option>
-              <option>+1</option>
-            </select>
-            <input v-model="phone" type="tel" placeholder="11 位手机号" class="flex-1 h-12 px-4 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition" />
+          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">密码</label>
+          <div class="relative">
+            <input
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              autocomplete="new-password"
+              placeholder="至少 6 位"
+              class="w-full h-12 pl-4 pr-12 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition"
+            />
+            <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-ink-500 hover:text-clay-700" aria-label="显示密码">
+              <Icon name="eye" class="w-4 h-4" />
+            </button>
           </div>
         </div>
 
+        <!-- 确认密码 -->
         <div>
-          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">验证码</label>
-          <div class="flex gap-2">
-            <input v-model="code" type="text" placeholder="6 位验证码" class="flex-1 h-12 px-4 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition" />
-            <button type="button" class="h-12 px-5 rounded-xl bg-clay-500/10 text-clay-700 dark:text-clay-400 font-medium text-sm hover:bg-clay-500/15">获取验证码</button>
-          </div>
+          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">确认密码</label>
+          <input
+            v-model="confirmPassword"
+            :type="showPassword ? 'text' : 'password'"
+            autocomplete="new-password"
+            placeholder="再次输入密码"
+            class="w-full h-12 px-4 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition"
+            :class="{ 'border-cinnabar-500': !passwordsMatch }"
+          />
+          <p v-if="!passwordsMatch" class="mt-1 text-[11px] text-cinnabar-500">两次输入的密码不一致</p>
         </div>
 
-        <div>
-          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">设置密码</label>
-          <input v-model="password" type="password" placeholder="至少 8 位，含字母与数字" class="w-full h-12 px-4 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition" />
-          <div class="mt-2 flex gap-1.5">
-            <span :class="['flex-1 h-1 rounded-full', passwordStrength >= 1 ? 'bg-cinnabar-500' : 'bg-cream-200 dark:bg-night-700']"></span>
-            <span :class="['flex-1 h-1 rounded-full', passwordStrength >= 2 ? 'bg-clay-500' : 'bg-cream-200 dark:bg-night-700']"></span>
-            <span :class="['flex-1 h-1 rounded-full', passwordStrength >= 3 ? 'bg-moss-500' : 'bg-cream-200 dark:bg-night-700']"></span>
-            <span :class="['flex-1 h-1 rounded-full', passwordStrength >= 4 ? 'bg-moss-600' : 'bg-cream-200 dark:bg-night-700']"></span>
-          </div>
-          <p class="mt-1 text-[11px] text-ink-500 dark:text-ink-300">密码强度：{{ strengthLabel || '请设置密码' }}</p>
-        </div>
-
-        <!-- 偏好 -->
-        <div class="pt-2">
-          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">阅读偏好（可选）</label>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="p in allPrefs" :key="p" type="button"
-              @click="togglePref(p)"
-              :class="['px-3 py-1.5 rounded-full text-xs border transition',
-                prefs.has(p)
-                  ? 'bg-clay-500/10 border-clay-500 text-clay-700 dark:text-clay-400'
-                  : 'bg-cream-100 dark:bg-night-800 border-transparent'
+        <!-- 激活码（可选可折叠） -->
+        <div class="pt-1">
+          <button
+            type="button"
+            class="flex items-center gap-2 text-xs font-medium text-clay-700 dark:text-clay-400 underline-offset-4 hover:underline"
+            @click="showActivationField = !showActivationField"
+            data-test="register-activation-toggle"
+          >
+            <Icon :name="showActivationField ? 'arrowDown' : 'arrowRight'" class="w-3.5 h-3.5" />
+            <span>{{ showActivationField ? '收起激活码' : '我有激活码（可选）' }}</span>
+          </button>
+          <div v-if="showActivationField" class="mt-2 space-y-1">
+            <input
+              v-model="activationCode"
+              type="text"
+              maxlength="20"
+              placeholder="16 位激活码"
+              class="w-full h-12 px-4 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition uppercase tracking-wider font-mono"
+              data-test="register-activation-input"
+              @input="activationCode = String($event.target.value || '').toUpperCase()"
+            />
+            <p
+              :class="[
+                'text-[11px]',
+                activationCodeValid
+                  ? 'text-ink-500 dark:text-ink-300'
+                  : 'text-cinnabar-500'
               ]"
-            >{{ p }}</button>
+            >
+              <template v-if="!activationCode">未填将跳过激活，可在个人中心补激活</template>
+              <template v-else-if="activationCodeValid">已填写激活码，注册时一并提交</template>
+              <template v-else>激活码长度应为 16 位（不计 -）</template>
+            </p>
           </div>
         </div>
-
-        <!-- 协议 -->
-        <label class="flex items-start gap-2 pt-2 cursor-pointer">
-          <input type="checkbox" v-model="agreed" class="peer sr-only" />
-          <span class="w-5 h-5 mt-0.5 rounded-md border-2 border-ink-300 peer-checked:bg-clay-500 peer-checked:border-clay-500 grid place-items-center text-cream-50 transition shrink-0">
-            <Icon v-show="agreed" name="check" class="w-3.5 h-3.5" />
-          </span>
-          <span class="text-xs text-ink-700 dark:text-ink-300 leading-relaxed">
-            我已阅读并同意
-            <a href="#" class="text-clay-700 dark:text-clay-400 underline">用户协议</a>
-            和
-            <a href="#" class="text-clay-700 dark:text-clay-400 underline">隐私政策</a>
-          </span>
-        </label>
 
         <p v-if="errorMsg" class="text-sm text-cinnabar-500">{{ errorMsg }}</p>
 
         <button
           type="submit"
           :disabled="loading"
-          class="w-full h-12 rounded-xl bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif font-semibold hover:bg-clay-600 active:scale-[0.98] transition shadow-cream disabled:opacity-60"
+          class="w-full h-12 mt-2 rounded-xl bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif font-semibold hover:bg-clay-600 active:scale-[0.98] transition shadow-cream disabled:opacity-60"
         >
           {{ loading ? '创建中…' : '创建账号' }}
         </button>
+
+        <p class="text-center text-[11px] text-ink-500 dark:text-ink-300 leading-relaxed">
+          注册即表示同意
+          <a href="#" class="underline-offset-2 underline decoration-cream-300">用户协议</a>
+          和
+          <a href="#" class="underline-offset-2 underline decoration-cream-300">隐私政策</a>
+        </p>
       </form>
 
       <p class="mt-auto pt-10 text-center text-sm text-ink-700 dark:text-ink-300">

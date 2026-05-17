@@ -7,9 +7,9 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: '文字之境 AI 小说阅读平台 API',
+      title: 'MOMO小说 AI 小说阅读平台 API',
       version: '1.0.0',
-      description: '文字之境小说阅读平台的 RESTful API 文档',
+      description: 'MOMO小说阅读平台的 RESTful API 文档',
       contact: {
         name: 'AI_XsRead Team',
         email: 'support@aixsread.com'

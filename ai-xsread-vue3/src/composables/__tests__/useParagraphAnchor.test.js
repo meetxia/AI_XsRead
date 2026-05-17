@@ -49,8 +49,8 @@ describe('computeParagraphHash', () => {
   })
 
   it('is stable across repeated invocations on the same input', async () => {
-    const a = await computeParagraphHash('文字之境 / AI-XsRead 段落锚点')
-    const b = await computeParagraphHash('文字之境 / AI-XsRead 段落锚点')
+    const a = await computeParagraphHash('MOMO小说 / AI-XsRead 段落锚点')
+    const b = await computeParagraphHash('MOMO小说 / AI-XsRead 段落锚点')
     expect(a).toBe(b)
     expect(a).toMatch(/^[0-9a-f]{16}$/)
   })

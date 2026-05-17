@@ -1,7 +1,7 @@
 {
   "name": "xsread-sync-service",
   "version": "1.0.0",
-  "description": "文字之境 - 数据同步服务",
+  "description": "MOMO小说 - 数据同步服务",
   "main": "syncService.js",
   "scripts": {
     "start": "node syncService.js",
