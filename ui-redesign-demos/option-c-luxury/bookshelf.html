@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>书架 · 文字之境</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = { darkMode:'class', theme:{ extend:{
+      colors: { 'gold':{300:'#E0C58A',400:'#D4B679',500:'#C9A961',600:'#A88B47'}, 'cream':{50:'#F5F1EA',100:'#EDE6D8'}, 'coffee':{700:'#3A2E20',800:'#2A1F15',900:'#15110D'} }
+    }}}
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background:#F5F1EA; color:#2A1F15; }
+    html.dark body { background:#15110D; color:#E8DFC9; }
+    .serif-en { font-family: 'Playfair Display', serif; }
+    .serif-cn { font-family: 'Noto Serif SC', serif; }
+    .container-app { max-width:480px; margin:0 auto; }
+    @media(min-width:768px){ .container-app{max-width:720px;} }
+    .glass { background: rgba(245,241,234,0.6); backdrop-filter: blur(20px); }
+    html.dark .glass { background: rgba(21,17,13,0.6); }
+    .gold-text { color:#C9A961; }
+    .gold-line { background: linear-gradient(to right, transparent, #C9A961 50%, transparent); height:1px; }
+    .fade-up { animation: fadeUp .9s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes fadeUp { from{opacity:0; transform: translateY(20px);} to{opacity:1; transform: translateY(0);} }
+    .book-frame { box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,169,97,0.15); }
+  </style>
+</head>
+<body class="min-h-screen pb-24">
+
+  <header class="sticky top-0 z-40 glass border-b border-gold-500/15">
+    <div class="container-app px-5 h-14 flex items-center justify-between">
+      <div>
+        <div class="serif-cn text-base font-bold">书架</div>
+        <div class="text-[8px] gold-text tracking-[0.3em] -mt-0.5">PRIVATE COLLECTION</div>
+      </div>
+      <div class="flex items-center gap-1">
+        <button class="w-9 h-9 flex items-center justify-center rounded-full"><svg class="w-4 h-4 gold-text" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg></button>
+        <button id="theme-toggle" class="w-9 h-9 flex items-center justify-center rounded-full">
+          <svg class="w-4 h-4 gold-text sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
+          <svg class="w-4 h-4 gold-text moon-icon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container-app px-5 pt-4">
+
+    <!-- 继续阅读 -->
+    <section class="fade-up">
+      <div class="text-center mb-3">
+        <div class="serif-en text-[10px] gold-text tracking-[0.3em] italic">CURRENTLY READING</div>
+        <div class="gold-line w-12 mx-auto mt-2"></div>
+      </div>
+
+      <a href="reading.html" class="block p-5 rounded-2xl bg-gradient-to-br from-gold-500/10 to-gold-600/5 border border-gold-500/30">
+        <div class="flex gap-4">
+          <div class="w-20 book-frame rounded-md flex-shrink-0 relative" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2A1F15, #15110D);">
+            <div class="absolute inset-1.5 border border-gold-500/30 rounded-sm"></div>
+            <div class="absolute inset-0 flex items-center justify-center serif-cn text-gold-400 text-[10px] font-bold p-1 text-center leading-tight">长安月下</div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[10px] gold-text tracking-widest mb-1">CONTINUE</div>
+            <div class="serif-cn font-bold truncate">长安月下，归人未归</div>
+            <div class="text-[10px] gold-text/70 mt-0.5">第 23 章 · 月下相逢</div>
+            <div class="flex items-center gap-2 mt-3 text-xs">
+              <div class="flex-1 h-px bg-gold-500/20 relative">
+                <div class="absolute left-0 top-0 h-px bg-gold-500" style="width:42%"></div>
+              </div>
+              <span class="serif-en gold-text font-semibold">42%</span>
+            </div>
+          </div>
+        </div>
+      </a>
+    </section>
+
+    <!-- 数据 -->
+    <section class="grid grid-cols-3 gap-3 mt-6 fade-up" style="animation-delay:.1s">
+      <div class="p-4 rounded-2xl glass border border-gold-500/15 text-center">
+        <div class="serif-en text-2xl gold-text font-bold">03</div>
+        <div class="text-[9px] tracking-[0.2em] mt-0.5">READING</div>
+      </div>
+      <div class="p-4 rounded-2xl glass border border-gold-500/15 text-center">
+        <div class="serif-en text-2xl gold-text font-bold">12</div>
+        <div class="text-[9px] tracking-[0.2em] mt-0.5">SAVED</div>
+      </div>
+      <div class="p-4 rounded-2xl glass border border-gold-500/15 text-center">
+        <div class="serif-en text-2xl gold-text font-bold">08</div>
+        <div class="text-[9px] tracking-[0.2em] mt-0.5">FINISHED</div>
+      </div>
+    </section>
+
+    <!-- Tab -->
+    <section class="mt-8 flex items-center gap-1 border-b border-gold-500/15 fade-up" style="animation-delay:.15s">
+      <button class="relative px-4 py-2.5 text-sm font-semibold gold-text">
+        全部
+        <span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-px bg-gold-500"></span>
+      </button>
+      <button class="px-4 py-2.5 text-sm text-coffee-700 dark:text-cream-200/60">想看</button>
+      <button class="px-4 py-2.5 text-sm text-coffee-700 dark:text-cream-200/60">完读</button>
+    </section>
+
+    <!-- 网格 -->
+    <section class="mt-5 grid grid-cols-3 gap-4 fade-up" style="animation-delay:.2s">
+      <a href="detail.html" class="group">
+        <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2A1F15, #15110D);">
+          <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+          <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+            <div class="serif-en text-[8px] gold-text italic">VOL.01</div>
+            <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">长安月下</div>
+            <div class="gold-line w-6 my-1.5"></div>
+            <div class="text-[7px] gold-text/80 tracking-widest serif-cn">墨染流年</div>
+          </div>
+        </div>
+        <div class="serif-cn text-xs font-semibold truncate">长安月下，归人未归</div>
+      </a>
+      <a href="detail.html" class="group">
+        <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #1F2A35, #0F1820);">
+          <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+          <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+            <div class="serif-en text-[8px] gold-text italic">VOL.02</div>
+            <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">雨夜迷雾</div>
+            <div class="gold-line w-6 my-1.5"></div>
+            <div class="text-[7px] gold-text/80 tracking-widest serif-cn">悬疑女王</div>
+          </div>
+        </div>
+        <div class="serif-cn text-xs font-semibold truncate">雨夜迷雾中的真相</div>
+      </a>
+      <a href="detail.html" class="group">
+        <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2D2618, #1A1408);">
+          <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+          <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+            <div class="serif-en text-[8px] gold-text italic">VOL.03</div>
+            <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">咖啡馆</div>
+            <div class="gold-line w-6 my-1.5"></div>
+            <div class="text-[7px] gold-text/80 tracking-widest serif-cn">治愈系</div>
+          </div>
+        </div>
+        <div class="serif-cn text-xs font-semibold truncate">咖啡馆里的小确幸</div>
+      </a>
+      <a href="detail.html" class="group">
+        <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2C1F2A, #1A0F18);">
+          <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+          <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+            <div class="serif-en text-[8px] gold-text italic">VOL.04</div>
+            <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">时光相遇</div>
+            <div class="gold-line w-6 my-1.5"></div>
+            <div class="text-[7px] gold-text/80 tracking-widest serif-cn">温柔笔触</div>
+          </div>
+        </div>
+        <div class="serif-cn text-xs font-semibold truncate">时光里的温柔相遇</div>
+      </a>
+      <a href="detail.html" class="group">
+        <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2A2515, #15110D);">
+          <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+          <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+            <div class="serif-en text-[8px] gold-text italic">VOL.05</div>
+            <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">桃花笺</div>
+            <div class="gold-line w-6 my-1.5"></div>
+            <div class="text-[7px] gold-text/80 tracking-widest serif-cn">墨染流年</div>
+          </div>
+        </div>
+        <div class="serif-cn text-xs font-semibold truncate">桃花笺</div>
+      </a>
+      <a href="detail.html" class="group">
+        <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #1F2820, #0F1810);">
+          <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+          <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+            <div class="serif-en text-[8px] gold-text italic">VOL.06</div>
+            <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">浮生若梦</div>
+            <div class="gold-line w-6 my-1.5"></div>
+            <div class="text-[7px] gold-text/80 tracking-widest serif-cn">墨染流年</div>
+          </div>
+        </div>
+        <div class="serif-cn text-xs font-semibold truncate">浮生若梦</div>
+      </a>
+    </section>
+
+    <button class="w-full py-3.5 mt-8 rounded-2xl border border-dashed border-gold-500/30 gold-text text-xs tracking-[0.2em] flex items-center justify-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+      DISCOVER MORE
+    </button>
+
+    <div class="text-center mt-10">
+      <div class="gold-line w-32 mx-auto mb-3"></div>
+      <div class="serif-en text-[10px] gold-text italic tracking-[0.4em]">YOUR LIBRARY</div>
+    </div>
+
+  </main>
+
+  <nav class="fixed bottom-0 left-0 right-0 z-40 glass border-t border-gold-500/20" style="padding-bottom: env(safe-area-inset-bottom);">
+    <div class="container-app grid grid-cols-4 h-16">
+      <a href="index.html" class="flex flex-col items-center justify-center text-stone-500"><svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg><span class="text-[10px] tracking-[0.2em] serif-en italic">DISCOVER</span></a>
+      <a href="bookshelf.html" class="flex flex-col items-center justify-center gold-text"><svg class="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 24 24"><path d="M5.5 2A2.5 2.5 0 003 4.5v15A2.5 2.5 0 005.5 22h13a2.5 2.5 0 002.5-2.5v-15A2.5 2.5 0 0018.5 2h-13zM7 5h2v6l1-1 1 1V5h7v14H7V5z"/></svg><span class="text-[10px] tracking-[0.2em] serif-en italic">SHELF</span></a>
+      <a href="reading.html" class="flex flex-col items-center justify-center text-stone-500"><svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5"/></svg><span class="text-[10px] tracking-[0.2em] serif-en italic">READ</span></a>
+      <a href="profile.html" class="flex flex-col items-center justify-center text-stone-500"><svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0"/></svg><span class="text-[10px] tracking-[0.2em] serif-en italic">ME</span></a>
+    </div>
+  </nav>
+
+  <a href="../index.html" class="fixed top-3 left-3 z-50 w-9 h-9 flex items-center justify-center rounded-full glass border border-gold-500/30 gold-text opacity-0 pointer-events-none">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+  </a>
+
+  <script>
+    const html = document.documentElement;
+    const stored = localStorage.getItem('demo-theme-c');
+    if (stored === 'light') html.classList.remove('dark');
+    else html.classList.add('dark');
+    document.querySelector('.sun-icon').classList.toggle('hidden', html.classList.contains('dark'));
+    document.querySelector('.moon-icon').classList.toggle('hidden', !html.classList.contains('dark'));
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      html.classList.toggle('dark');
+      localStorage.setItem('demo-theme-c', html.classList.contains('dark') ? 'dark' : 'light');
+      document.querySelector('.sun-icon').classList.toggle('hidden');
+      document.querySelector('.moon-icon').classList.toggle('hidden');
+    });
+  </script>
+</body>
+</html>

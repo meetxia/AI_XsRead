@@ -1,704 +1,145 @@
-<template>
-  <div class="login-page">
-    <!-- 顶部导航 -->
-    <AppHeader />
-    
-    <!-- 登录表单 -->
-    <div class="login-container">
-      <div class="login-card">
-        <!-- Logo和标题 -->
-        <div class="login-header">
-          <svg class="logo-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-          </svg>
-          <h1>欢迎回到文字之境</h1>
-          <p>登录即可开启阅读之旅</p>
-        </div>
-
-        <!-- 标签切换 -->
-        <div class="login-tabs">
-          <button
-            @click="loginMethod = 'password'"
-            :class="['tab-btn', { active: loginMethod === 'password' }]"
-          >
-            密码登录
-          </button>
-          <button
-            @click="loginMethod = 'code'"
-            :class="['tab-btn', { active: loginMethod === 'code' }]"
-          >
-            验证码登录
-          </button>
-        </div>
-
-        <!-- 表单 -->
-        <form @submit.prevent="handleLogin" class="login-form">
-          <!-- 用户名/手机号/邮箱 -->
-          <div class="form-group">
-            <label>{{ loginMethod === 'code' ? '手机号' : '用户名/手机号/邮箱' }}</label>
-            <input
-              v-model="formData.account"
-              :type="loginMethod === 'code' ? 'tel' : 'text'"
-              :placeholder="loginMethod === 'code' ? '请输入手机号' : '请输入用户名/手机号/邮箱'"
-              class="form-input"
-              required
-            />
-            <p v-if="errors.account" class="error-message">{{ errors.account }}</p>
-          </div>
-
-          <!-- 密码 -->
-          <div v-if="loginMethod === 'password'" class="form-group">
-            <label>密码</label>
-            <div class="password-input">
-              <input
-                v-model="formData.password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="请输入密码"
-                class="form-input"
-                required
-              />
-              <button
-                type="button"
-                @click="showPassword = !showPassword"
-                class="toggle-password"
-              >
-                <svg v-if="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                </svg>
-                <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
-                </svg>
-              </button>
-            </div>
-            <p v-if="errors.password" class="error-message">{{ errors.password }}</p>
-          </div>
-
-          <!-- 验证码 -->
-          <div v-if="loginMethod === 'code'" class="form-group">
-            <label>验证码</label>
-            <div class="code-input">
-              <input
-                v-model="formData.code"
-                type="text"
-                placeholder="请输入6位验证码"
-                maxlength="6"
-                class="form-input"
-                required
-              />
-              <button
-                type="button"
-                @click="sendCode"
-                :disabled="countdown > 0"
-                class="send-code-btn"
-              >
-                {{ countdown > 0 ? `${countdown}秒后重试` : '发送验证码' }}
-              </button>
-            </div>
-            <p v-if="errors.code" class="error-message">{{ errors.code }}</p>
-          </div>
-
-          <!-- 记住密码和忘记密码 -->
-          <div class="form-options">
-            <label class="remember-me">
-              <input v-model="rememberMe" type="checkbox" />
-              <span>记住我</span>
-            </label>
-            <router-link to="/forgot-password" class="forgot-link">忘记密码？</router-link>
-          </div>
-
-          <!-- 登录按钮 -->
-          <button type="submit" :disabled="loading" class="login-btn">
-            <span v-if="!loading">登录</span>
-            <span v-else class="loading-text">
-              <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              登录中...
-            </span>
-          </button>
-
-          <!-- 注册链接 -->
-          <div class="register-link">
-            还没有账号？<router-link to="/register">立即注册</router-link>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
+import Icon from '@/components/v2/icons/Icon.vue'
+import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import { useUserStore } from '@/stores/user'
-import AppHeader from '@/components/common/AppHeader.vue'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
-// 登录方式
-const loginMethod = ref('password')
-
-// 表单数据
-const formData = reactive({
-  account: '',
-  password: '',
-  code: ''
-})
-
-// 错误信息
-const errors = reactive({
-  account: '',
-  password: '',
-  code: ''
-})
-
-// 状态
-const loading = ref(false)
+const account = ref('')
+const password = ref('')
+const remember = ref(false)
 const showPassword = ref(false)
-const rememberMe = ref(false)
-const countdown = ref(0)
+const loading = ref(false)
+const errorMsg = ref('')
 
-/**
- * 表单验证
- */
-const validateForm = () => {
-  errors.account = ''
-  errors.password = ''
-  errors.code = ''
-
-  // 验证账号
-  if (!formData.account) {
-    errors.account = '请输入账号'
-    return false
+async function onSubmit() {
+  if (!account.value || !password.value) {
+    errorMsg.value = '请填写账号和密码'
+    return
   }
-
-  if (loginMethod.value === 'code') {
-    // 验证手机号
-    if (!/^1[3-9]\d{9}$/.test(formData.account)) {
-      errors.account = '请输入正确的手机号'
-      return false
-    }
-    // 验证验证码
-    if (!formData.code || formData.code.length !== 6) {
-      errors.code = '请输入6位验证码'
-      return false
-    }
-  } else {
-    // 验证密码
-    if (!formData.password) {
-      errors.password = '请输入密码'
-      return false
-    }
-    if (formData.password.length < 6 || formData.password.length > 20) {
-      errors.password = '密码长度为6-20个字符'
-      return false
-    }
-  }
-
-  return true
-}
-
-/**
- * 处理登录
- */
-const handleLogin = async () => {
-  if (!validateForm()) return
-
+  errorMsg.value = ''
   loading.value = true
-
   try {
-    const loginData = {
-      account: formData.account,
-      ...(loginMethod.value === 'password' 
-        ? { password: formData.password }
-        : { code: formData.code }
-      ),
-      rememberMe: rememberMe.value
-    }
-
-    await userStore.login(loginData)
-
-    // 登录成功，跳转到首页或之前的页面
-    const redirect = router.currentRoute.value.query.redirect || '/'
-    router.push(redirect)
-
-  } catch (error) {
-    console.error('登录失败:', error)
-    errors.account = error.message || '登录失败，请检查账号和密码'
+    await userStore.login({
+      account: account.value,
+      password: password.value,
+      rememberMe: remember.value,
+    })
+    const redirect = route.query.redirect || '/'
+    router.replace(redirect)
+  } catch (err) {
+    errorMsg.value = err.message || '登录失败'
   } finally {
     loading.value = false
   }
 }
-
-/**
- * 发送验证码
- */
-const sendCode = async () => {
-  if (!formData.account) {
-    errors.account = '请输入手机号'
-    return
-  }
-
-  if (!/^1[3-9]\d{9}$/.test(formData.account)) {
-    errors.account = '请输入正确的手机号'
-    return
-  }
-
-  try {
-    // TODO: 调用发送验证码API
-    // await sendVerificationCode(formData.account)
-    
-    // 模拟发送成功
-    console.log('发送验证码到:', formData.account)
-
-    // 开始倒计时
-    countdown.value = 60
-    const timer = setInterval(() => {
-      countdown.value--
-      if (countdown.value <= 0) {
-        clearInterval(timer)
-      }
-    }, 1000)
-
-  } catch (error) {
-    console.error('发送验证码失败:', error)
-    errors.code = '发送失败，请稍后重试'
-  }
-}
-
 </script>
 
-<style scoped>
-/* ===== 页面容器 - 禁用滚动，固定高度 ===== */
-.login-page {
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ===== 登录容器 - 居中对齐，对称边距 ===== */
-.login-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-/* ===== 登录卡片 - 优化阴影和圆角 ===== */
-.login-card {
-  width: 100%;
-  max-width: 450px;
-  background-color: var(--color-bg-card);
-  border-radius: 1.5rem;
-  padding: 2.5rem;
-  box-shadow: 0 4px 20px rgba(217, 84, 104, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
-  margin: auto;
-}
-
-/* ===== 头部 ===== */
-.login-header {
-  text-align: center;
-  margin-bottom: 1.75rem;
-}
-
-.logo-icon {
-  width: 3.5rem;
-  height: 3.5rem;
-  color: var(--color-primary);
-  margin: 0 auto 1rem;
-  filter: drop-shadow(0 2px 4px rgba(217, 84, 104, 0.15));
-}
-
-.login-header h1 {
-  font-size: 1.625rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: 0.5rem;
-  letter-spacing: 0.02em;
-}
-
-.login-header p {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  letter-spacing: 0.01em;
-}
-
-/* ===== 标签切换 - 优化视觉效果 ===== */
-.login-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.75rem;
-  background-color: rgba(255, 186, 172, 0.15);
-  border-radius: 0.875rem;
-  padding: 0.375rem;
-  border: none;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 0.75rem;
-  border-radius: 0.625rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tab-btn:hover:not(.active) {
-  background-color: rgba(255, 186, 172, 0.25);
-  color: var(--color-primary);
-}
-
-.tab-btn.active {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(217, 84, 104, 0.25);
-}
-
-/* ===== 表单 ===== */
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  padding-left: 0.25rem;
-}
-
-/* ===== 输入框 - 移除黑色边框，使用柔和样式，修复超出边界 ===== */
-.form-input {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border: 1.5px solid rgba(217, 84, 104, 0.15);
-  border-radius: 0.75rem;
-  font-size: 0.9375rem;
-  color: var(--color-text-primary);
-  background-color: rgba(255, 186, 172, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-sizing: border-box;
-  max-width: 100%;
-}
-
-.form-input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 0.6;
-}
-
-.form-input:hover {
-  border-color: rgba(217, 84, 104, 0.25);
-  background-color: rgba(255, 186, 172, 0.08);
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  background-color: white;
-  box-shadow: 0 0 0 3px rgba(217, 84, 104, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.error-message {
-  font-size: 0.8125rem;
-  color: #ef4444;
-  padding-left: 0.25rem;
-}
-
-/* ===== 密码输入 - 修复容器宽度 ===== */
-.password-input {
-  position: relative;
-  width: 100%;
-}
-
-.password-input .form-input {
-  padding-right: 3rem;
-}
-
-.toggle-password {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-text-muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.25rem;
-  transition: color 0.2s;
-  z-index: 1;
-}
-
-.toggle-password:hover {
-  color: var(--color-primary);
-}
-
-/* ===== 验证码输入 - 优化按钮样式，修复超出边界 ===== */
-.code-input {
-  display: flex;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.code-input .form-input {
-  flex: 1;
-  min-width: 0;
-}
-
-.send-code-btn {
-  flex-shrink: 0;
-  padding: 0.875rem 1.25rem;
-  border-radius: 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-primary);
-  background-color: rgba(255, 186, 172, 0.05);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-sizing: border-box;
-}
-
-.send-code-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  color: white;
-  border-color: transparent;
-  box-shadow: 0 2px 8px rgba(217, 84, 104, 0.25);
-  transform: translateY(-1px);
-}
-
-.send-code-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* ===== 选项 ===== */
-.form-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: -0.25rem;
-}
-
-.remember-me {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.remember-me input[type="checkbox"] {
-  width: 1rem;
-  height: 1rem;
-  border-radius: 0.25rem;
-  border: 1.5px solid rgba(217, 84, 104, 0.3);
-  cursor: pointer;
-  accent-color: var(--color-primary);
-}
-
-.forgot-link {
-  font-size: 0.875rem;
-  color: var(--color-primary);
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.forgot-link:hover {
-  color: var(--color-secondary);
-  text-decoration: underline;
-}
-
-/* ===== 登录按钮 - 优化渐变和阴影 ===== */
-.login-btn {
-  width: 100%;
-  padding: 1rem;
-  border-radius: 0.875rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(217, 84, 104, 0.25);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.login-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(217, 84, 104, 0.35);
-}
-
-.login-btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(217, 84, 104, 0.25);
-}
-
-.login-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.loading-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ===== 注册链接 ===== */
-.register-link {
-  text-align: center;
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-  padding-top: 0.5rem;
-}
-
-.register-link a {
-  color: var(--color-primary);
-  font-weight: 500;
-  margin-left: 0.25rem;
-  transition: color 0.2s;
-}
-
-.register-link a:hover {
-  color: var(--color-secondary);
-  text-decoration: underline;
-}
-
-/* ===== 移动端优化 - 减少上下边距，确保不超出边界 ===== */
-@media (max-width: 640px) {
-  .login-container {
-    padding: 1rem;
-  }
-
-  .login-card {
-    padding: 1.75rem 1.25rem;
-    border-radius: 1.25rem;
-    box-sizing: border-box;
-  }
-
-  .login-header {
-    margin-bottom: 1.25rem;
-  }
-
-  .logo-icon {
-    width: 3rem;
-    height: 3rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .login-header h1 {
-    font-size: 1.375rem;
-  }
-
-  .login-header p {
-    font-size: 0.8125rem;
-  }
-
-  .login-tabs {
-    margin-bottom: 1.25rem;
-  }
-
-  .login-form {
-    gap: 1rem;
-  }
-
-  .form-input {
-    padding: 0.75rem 0.875rem;
-    font-size: 0.875rem;
-  }
-
-  .password-input .form-input {
-    padding-right: 2.75rem;
-  }
-
-  .code-input {
-    gap: 0.5rem;
-  }
-
-  .send-code-btn {
-    padding: 0.75rem 0.875rem;
-    font-size: 0.75rem;
-  }
-
-  .login-btn {
-    padding: 0.875rem;
-    font-size: 0.9375rem;
-  }
-
-  .register-link {
-    font-size: 0.8125rem;
-    padding-top: 0.25rem;
-  }
-}
-
-/* ===== 超小屏幕优化 ===== */
-@media (max-width: 375px) {
-  .login-container {
-    padding: 0.75rem;
-  }
-
-  .login-card {
-    padding: 1.5rem 1rem;
-  }
-
-  .login-header h1 {
-    font-size: 1.25rem;
-  }
-
-  .form-input {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.8125rem;
-  }
-
-  .password-input .form-input {
-    padding-right: 2.5rem;
-  }
-
-  .toggle-password {
-    right: 0.75rem;
-  }
-
-  .code-input {
-    gap: 0.375rem;
-  }
-
-  .send-code-btn {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.6875rem;
-  }
-}
-</style>
-
+<template>
+  <div class="bg-cream-50 dark:bg-night-900 text-ink-900 dark:text-cream-100 min-h-screen paper-texture">
+    <header class="sticky top-0 z-40 pt-safe">
+      <div class="max-w-screen-md mx-auto px-3 h-14 flex items-center justify-between">
+        <button @click="router.back()" class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800" aria-label="返回">
+          <Icon name="back" />
+        </button>
+        <ThemeToggle />
+      </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-6 pt-12 pb-12 min-h-[calc(100vh-3.5rem)] flex flex-col">
+      <!-- Logo -->
+      <div class="text-center mb-12">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-clay-500 text-cream-50 font-serif text-2xl font-semibold mb-4 shadow-cream-lg">境</div>
+        <h1 class="font-serif text-3xl font-semibold tracking-tight">欢迎回来</h1>
+        <p class="text-sm text-ink-700 dark:text-ink-300 mt-2">故事入境，杂念自消</p>
+      </div>
+
+      <form class="space-y-5" @submit.prevent="onSubmit">
+        <!-- 账号 -->
+        <div>
+          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">账号</label>
+          <input
+            v-model="account"
+            type="text"
+            autocomplete="username"
+            placeholder="手机号 / 邮箱 / 用户名"
+            class="w-full h-12 px-4 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition"
+          />
+        </div>
+
+        <!-- 密码 -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 uppercase tracking-wider">密码</label>
+            <a href="#" class="text-xs text-clay-700 dark:text-clay-400 underline-offset-4 hover:underline">忘记密码？</a>
+          </div>
+          <div class="relative">
+            <input
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              autocomplete="current-password"
+              placeholder="请输入密码"
+              class="w-full h-12 pl-4 pr-12 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition"
+            />
+            <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-ink-500 hover:text-clay-700" aria-label="显示密码">
+              <Icon name="eye" class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <!-- 记住我 -->
+        <label class="flex items-center gap-2 text-sm text-ink-700 dark:text-ink-300 cursor-pointer">
+          <input type="checkbox" v-model="remember" class="peer sr-only" />
+          <span class="w-5 h-5 rounded-md border-2 border-ink-300 peer-checked:bg-clay-500 peer-checked:border-clay-500 grid place-items-center text-cream-50 transition">
+            <Icon v-show="remember" name="check" class="w-3.5 h-3.5" />
+          </span>
+          <span>30 天内自动登录</span>
+        </label>
+
+        <p v-if="errorMsg" class="text-sm text-cinnabar-500">{{ errorMsg }}</p>
+
+        <button
+          type="submit"
+          :disabled="loading"
+          class="w-full h-12 rounded-xl bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif font-semibold hover:bg-clay-600 active:scale-[0.98] transition shadow-cream disabled:opacity-60"
+        >
+          {{ loading ? '登录中…' : '登录' }}
+        </button>
+      </form>
+
+      <div class="my-8 flex items-center gap-3">
+        <div class="flex-1 h-px bg-cream-200 dark:bg-night-700"></div>
+        <span class="text-[11px] text-ink-500 dark:text-ink-300 tracking-widest uppercase">Or</span>
+        <div class="flex-1 h-px bg-cream-200 dark:bg-night-700"></div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <button type="button" class="h-12 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 grid place-items-center transition">
+          <svg class="w-5 h-5 text-[#07C160]" fill="currentColor" viewBox="0 0 24 24"><path d="M8.4 6.5c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm-3.5 0c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm14.7 8.5c0-2.7-2.7-4.9-6-4.9-3.3 0-6 2.2-6 4.9 0 2.7 2.7 4.9 6 4.9.7 0 1.3-.1 1.9-.3l1.7 1-.5-1.6c1.7-.9 2.9-2.3 2.9-4z"/></svg>
+        </button>
+        <button type="button" class="h-12 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 grid place-items-center transition">
+          <svg class="w-5 h-5 text-[#FF6900]" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+        </button>
+        <button type="button" class="h-12 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 grid place-items-center transition">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c-2.7 0-5 2.3-5 5 0 2.7 2.3 5 5 5s5-2.3 5-5c0-2.7-2.3-5-5-5zM4 20v-1c0-3.4 2.7-6 6-6h4c3.4 0 6 2.7 6 6v1H4z"/></svg>
+        </button>
+      </div>
+
+      <p class="mt-auto pt-10 text-center text-sm text-ink-700 dark:text-ink-300">
+        还没有账号？
+        <RouterLink to="/register" class="text-clay-700 dark:text-clay-400 font-medium underline-offset-4 hover:underline">立即注册</RouterLink>
+      </p>
+
+      <p class="mt-3 text-center text-[11px] text-ink-500 dark:text-ink-300">
+        登录即表示同意
+        <a href="#" class="underline-offset-2 underline decoration-cream-300">用户协议</a>
+        和
+        <a href="#" class="underline-offset-2 underline decoration-cream-300">隐私政策</a>
+      </p>
+    </main>
+  </div>
+</template>

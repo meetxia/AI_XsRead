@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#FFFFFF">
+  <title>发现 · 文字之境</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;800&family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: {
+      colors: {
+        'pink': { 400: '#FF6BAB', 500: '#FF4D8D', 600: '#E63979' },
+        'mint': { 400: '#7FD8BE', 500: '#5DC7AC' },
+        'lilac': { 400: '#B49DFF', 500: '#9B7EFF' },
+        'peach': { 400: '#FFB199', 500: '#FF8A6D' },
+        'night': { 800: '#1A1A22', 900: '#0F0F12' }
+      },
+      fontFamily: { sans: ['Noto Sans SC', 'system-ui', 'sans-serif'], serif: ['Noto Serif SC', 'serif'] }
+    }}}
+  </script>
+  <style>
+    body { font-family: 'Noto Sans SC', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; background:#FFFFFF; color:#0F0F12; }
+    html.dark body { background:#0F0F12; color:#F5F5F7; }
+    .container-app { max-width: 480px; margin: 0 auto; }
+    @media(min-width:768px){ .container-app{max-width:720px;} }
+    .scrollbar-hide::-webkit-scrollbar { display:none; }
+    .scrollbar-hide { scrollbar-width:none; }
+    .gradient-mask::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .pop { animation: pop .8s cubic-bezier(.34,1.56,.64,1) both; }
+    @keyframes pop { from{opacity:0; transform: scale(.92) translateY(20px);} to{opacity:1; transform: scale(1) translateY(0);} }
+    .float { animation: float 6s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+    .glow-pink { box-shadow: 0 16px 48px -16px rgba(255, 77, 141, 0.5); }
+    html.dark .glow-pink { box-shadow: 0 16px 48px -16px rgba(255, 77, 141, 0.7); }
+  </style>
+</head>
+<body class="min-h-screen pb-24">
+
+  <!-- 顶部 -->
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-white/85 dark:bg-night-900/85">
+    <div class="container-app px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-500 to-peach-400 flex items-center justify-center text-white text-xs font-black">境</div>
+        <span class="font-bold tracking-wide text-base">文字之境</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button class="w-9 h-9 flex items-center justify-center rounded-full">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+        </button>
+        <button id="theme-toggle" class="w-9 h-9 flex items-center justify-center rounded-full">
+          <svg class="w-5 h-5 sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
+          <svg class="w-5 h-5 moon-icon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 搜索栏 -->
+    <div class="container-app px-4 pb-3">
+      <a href="#" class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-stone-100 dark:bg-night-800 text-sm text-stone-500 dark:text-stone-400">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2m0 0a7 7 0 10-9.9 0 7 7 0 009.9 0z"/></svg>
+        搜索小说、作者、标签
+      </a>
+    </div>
+  </header>
+
+  <main class="container-app px-4">
+
+    <!-- 焦点 Banner -->
+    <section class="pt-2 pop">
+      <a href="detail.html" class="block relative rounded-3xl overflow-hidden glow-pink" style="aspect-ratio:4/5;">
+        <div class="absolute inset-0" style="background: linear-gradient(135deg, #FF4D8D 0%, #FF8FBF 50%, #FFB199 100%);"></div>
+        <!-- 装饰圆斑 -->
+        <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full" style="background: radial-gradient(rgba(255,255,255,.4), transparent 70%);"></div>
+        <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full" style="background: radial-gradient(rgba(255,255,255,.2), transparent 70%);"></div>
+
+        <div class="relative h-full flex flex-col p-6 text-white">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 bg-white/25 backdrop-blur rounded-full text-[10px] font-bold tracking-widest">FEATURED</span>
+            <span class="text-[10px] tracking-widest opacity-80">编辑推荐</span>
+          </div>
+
+          <!-- 浮动书 -->
+          <div class="flex-1 flex items-center justify-center my-4">
+            <div class="float w-32 rounded-md shadow-2xl relative" style="aspect-ratio:3/4; background: linear-gradient(135deg,#3D3935,#1A1B23);">
+              <div class="absolute inset-2 border border-pink-400/40 rounded-sm"></div>
+              <div class="absolute inset-0 flex items-center justify-center font-serif font-bold text-pink-400 text-sm text-center p-3 leading-tight">长安月下<br/>归人未归</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="font-bold text-2xl leading-tight mb-1">长安月下，归人未归</div>
+            <div class="text-sm opacity-80 mb-3">墨染流年 · 古风言情</div>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="flex items-center gap-1"><span>★</span> 9.4</span>
+              <span class="opacity-60">|</span>
+              <span>56.7万字</span>
+              <span class="opacity-60">|</span>
+              <span>12.5万人在读</span>
+            </div>
+          </div>
+
+          <button class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+      </a>
+
+      <!-- 翻页指示 -->
+      <div class="flex justify-center gap-1.5 mt-3">
+        <div class="w-6 h-1 rounded-full bg-pink-500"></div>
+        <div class="w-1 h-1 rounded-full bg-stone-300 dark:bg-night-800"></div>
+        <div class="w-1 h-1 rounded-full bg-stone-300 dark:bg-night-800"></div>
+      </div>
+    </section>
+
+    <!-- 分类入口 -->
+    <section class="mt-6 pop" style="animation-delay:.1s">
+      <div class="grid grid-cols-4 gap-3">
+        <a href="#" class="text-center group">
+          <div class="w-full aspect-square rounded-2xl bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center text-2xl mb-1.5 shadow-lg shadow-pink-500/30 group-active:scale-95 transition-transform">🔥</div>
+          <div class="text-xs font-medium">本周热门</div>
+        </a>
+        <a href="#" class="text-center group">
+          <div class="w-full aspect-square rounded-2xl bg-gradient-to-br from-mint-400 to-mint-500 flex items-center justify-center text-2xl mb-1.5 shadow-lg shadow-mint-500/30 group-active:scale-95 transition-transform">✨</div>
+          <div class="text-xs font-medium">新书上架</div>
+        </a>
+        <a href="#" class="text-center group">
+          <div class="w-full aspect-square rounded-2xl bg-gradient-to-br from-lilac-400 to-lilac-500 flex items-center justify-center text-2xl mb-1.5 shadow-lg shadow-lilac-500/30 group-active:scale-95 transition-transform">📖</div>
+          <div class="text-xs font-medium">完结好书</div>
+        </a>
+        <a href="#" class="text-center group">
+          <div class="w-full aspect-square rounded-2xl bg-gradient-to-br from-peach-400 to-peach-500 flex items-center justify-center text-2xl mb-1.5 shadow-lg shadow-peach-500/30 group-active:scale-95 transition-transform">⭐</div>
+          <div class="text-xs font-medium">编辑推荐</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- 流派标签 -->
+    <section class="mt-6 pop" style="animation-delay:.15s">
+      <div class="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
+        <button class="flex-shrink-0 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-peach-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/30">全部</button>
+        <button class="flex-shrink-0 px-4 py-2 rounded-full bg-stone-100 dark:bg-night-800 text-sm">古风言情</button>
+        <button class="flex-shrink-0 px-4 py-2 rounded-full bg-stone-100 dark:bg-night-800 text-sm">都市</button>
+        <button class="flex-shrink-0 px-4 py-2 rounded-full bg-stone-100 dark:bg-night-800 text-sm">悬疑</button>
+        <button class="flex-shrink-0 px-4 py-2 rounded-full bg-stone-100 dark:bg-night-800 text-sm">治愈</button>
+        <button class="flex-shrink-0 px-4 py-2 rounded-full bg-stone-100 dark:bg-night-800 text-sm">奇幻</button>
+      </div>
+    </section>
+
+    <!-- 热读榜 -->
+    <section class="mt-8 pop" style="animation-delay:.2s">
+      <div class="flex items-end justify-between mb-3">
+        <div>
+          <h2 class="text-xl font-extrabold flex items-center gap-2">
+            <span>🔥</span> 本周飙升榜
+          </h2>
+          <p class="text-xs text-stone-500 dark:text-stone-400 mt-0.5">每周一更新</p>
+        </div>
+        <a href="#" class="text-xs text-pink-500 font-semibold">查看完整榜单 →</a>
+      </div>
+
+      <div class="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-2">
+        <!-- TOP1 -->
+        <a href="detail.html" class="flex-shrink-0 w-32">
+          <div class="relative rounded-xl overflow-hidden mb-2" style="aspect-ratio:3/4; background: linear-gradient(135deg,#FF4D8D,#FF8FBF);">
+            <div class="absolute top-2 left-2 px-2 py-0.5 bg-yellow-400 text-stone-900 text-[10px] font-black rounded">TOP 1</div>
+            <div class="absolute inset-0 flex items-center justify-center text-white font-serif font-bold text-sm text-center p-3 leading-tight">长安月下<br/>归人未归</div>
+          </div>
+          <div class="text-sm font-semibold truncate">长安月下，归人未归</div>
+          <div class="text-xs text-pink-500 font-bold mt-0.5">↑ 升 12 位</div>
+        </a>
+        <a href="detail.html" class="flex-shrink-0 w-32">
+          <div class="relative rounded-xl overflow-hidden mb-2" style="aspect-ratio:3/4; background: linear-gradient(135deg,#5DC7AC,#7FD8BE);">
+            <div class="absolute top-2 left-2 px-2 py-0.5 bg-stone-200 text-stone-900 text-[10px] font-black rounded">TOP 2</div>
+            <div class="absolute inset-0 flex items-center justify-center text-white font-serif font-bold text-sm text-center p-3 leading-tight">雨夜迷雾</div>
+          </div>
+          <div class="text-sm font-semibold truncate">雨夜迷雾中的真相</div>
+          <div class="text-xs text-pink-500 font-bold mt-0.5">↑ 升 8 位</div>
+        </a>
+        <a href="detail.html" class="flex-shrink-0 w-32">
+          <div class="relative rounded-xl overflow-hidden mb-2" style="aspect-ratio:3/4; background: linear-gradient(135deg,#9B7EFF,#B49DFF);">
+            <div class="absolute top-2 left-2 px-2 py-0.5 bg-orange-400 text-stone-900 text-[10px] font-black rounded">TOP 3</div>
+            <div class="absolute inset-0 flex items-center justify-center text-white font-serif font-bold text-sm text-center p-3 leading-tight">时光相遇</div>
+          </div>
+          <div class="text-sm font-semibold truncate">时光里的温柔相遇</div>
+          <div class="text-xs text-stone-500 mt-0.5">持平</div>
+        </a>
+        <a href="detail.html" class="flex-shrink-0 w-32">
+          <div class="relative rounded-xl overflow-hidden mb-2" style="aspect-ratio:3/4; background: linear-gradient(135deg,#FF8A6D,#FFB199);">
+            <div class="absolute top-2 left-2 px-2 py-0.5 bg-stone-100 text-stone-900 text-[10px] font-black rounded">TOP 4</div>
+            <div class="absolute inset-0 flex items-center justify-center text-white font-serif font-bold text-sm text-center p-3 leading-tight">咖啡馆<br/>小确幸</div>
+          </div>
+          <div class="text-sm font-semibold truncate">咖啡馆里的小确幸</div>
+          <div class="text-xs text-stone-500 mt-0.5">↓ 降 2 位</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- 编辑专题（杂志感） -->
+    <section class="mt-8 pop" style="animation-delay:.25s">
+      <div class="rounded-3xl overflow-hidden bg-gradient-to-br from-night-900 to-night-800 dark:from-stone-100 dark:to-stone-200 p-6 relative">
+        <div class="absolute top-0 right-0 w-32 h-32 rounded-full opacity-30" style="background: radial-gradient(#FF4D8D, transparent 70%);"></div>
+        <div class="text-pink-500 dark:text-pink-600 text-[10px] font-black tracking-[0.3em] mb-3">SPECIAL · VOL.07</div>
+        <h2 class="text-white dark:text-stone-900 text-2xl font-bold leading-tight mb-2">五月主题：<br/>春日里的<span class="text-pink-400">温柔与告别</span></h2>
+        <p class="text-stone-300 dark:text-stone-700 text-sm mb-4 leading-relaxed">8 部精选治愈系小说，让初夏的清晨变得柔软。</p>
+
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          <div class="aspect-[3/4] rounded-lg" style="background: linear-gradient(135deg,#A8E6CF,#7FD8BE);"></div>
+          <div class="aspect-[3/4] rounded-lg" style="background: linear-gradient(135deg,#FFD3B6,#FFAAA5);"></div>
+          <div class="aspect-[3/4] rounded-lg" style="background: linear-gradient(135deg,#C9B1FF,#A78BFA);"></div>
+        </div>
+        <button class="w-full py-2.5 bg-white text-night-900 rounded-full text-sm font-semibold">进入专题</button>
+      </div>
+    </section>
+
+    <!-- 推荐书单（双列瀑布） -->
+    <section class="mt-8 pop" style="animation-delay:.3s">
+      <div class="flex items-end justify-between mb-3">
+        <h2 class="text-xl font-extrabold">猜你喜欢</h2>
+        <a href="#" class="text-xs text-pink-500 font-semibold">换一批 ↻</a>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <a href="detail.html" class="group">
+          <div class="rounded-2xl overflow-hidden mb-2 relative gradient-mask" style="aspect-ratio:3/4; background: linear-gradient(135deg,#FF4D8D,#FF8FBF);">
+            <div class="absolute bottom-3 left-3 right-3 z-10">
+              <div class="text-white font-serif font-bold text-sm leading-tight">长安月下，归人未归</div>
+              <div class="text-white/70 text-[10px] mt-1">墨染流年</div>
+            </div>
+            <div class="absolute top-2 right-2 px-2 py-0.5 bg-pink-500 text-white text-[10px] rounded-full">独家</div>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
+            <span>古风言情</span><span>·</span><span>★ 9.4</span>
+          </div>
+        </a>
+        <a href="detail.html" class="group">
+          <div class="rounded-2xl overflow-hidden mb-2 relative gradient-mask" style="aspect-ratio:3/4; background: linear-gradient(135deg,#5DC7AC,#7FD8BE);">
+            <div class="absolute bottom-3 left-3 right-3 z-10">
+              <div class="text-white font-serif font-bold text-sm leading-tight">雨夜迷雾中的真相</div>
+              <div class="text-white/70 text-[10px] mt-1">悬疑女王</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
+            <span>悬疑推理</span><span>·</span><span>★ 9.1</span>
+          </div>
+        </a>
+        <a href="detail.html" class="group">
+          <div class="rounded-2xl overflow-hidden mb-2 relative gradient-mask" style="aspect-ratio:3/4; background: linear-gradient(135deg,#9B7EFF,#B49DFF);">
+            <div class="absolute bottom-3 left-3 right-3 z-10">
+              <div class="text-white font-serif font-bold text-sm leading-tight">时光里的温柔相遇</div>
+              <div class="text-white/70 text-[10px] mt-1">温柔笔触</div>
+            </div>
+            <div class="absolute top-2 right-2 px-2 py-0.5 bg-yellow-400 text-stone-900 text-[10px] rounded-full font-bold">NEW</div>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
+            <span>都市言情</span><span>·</span><span>★ 8.9</span>
+          </div>
+        </a>
+        <a href="detail.html" class="group">
+          <div class="rounded-2xl overflow-hidden mb-2 relative gradient-mask" style="aspect-ratio:3/4; background: linear-gradient(135deg,#FF8A6D,#FFB199);">
+            <div class="absolute bottom-3 left-3 right-3 z-10">
+              <div class="text-white font-serif font-bold text-sm leading-tight">咖啡馆里的小确幸</div>
+              <div class="text-white/70 text-[10px] mt-1">治愈系作者</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
+            <span>治愈系</span><span>·</span><span>★ 8.7</span>
+          </div>
+        </a>
+        <a href="detail.html" class="group">
+          <div class="rounded-2xl overflow-hidden mb-2 relative gradient-mask" style="aspect-ratio:3/4; background: linear-gradient(135deg,#FFB6C1,#FFC5D0);">
+            <div class="absolute bottom-3 left-3 right-3 z-10">
+              <div class="text-white font-serif font-bold text-sm leading-tight">桃花笺</div>
+              <div class="text-white/70 text-[10px] mt-1">墨染流年</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
+            <span>古风言情</span><span>·</span><span>★ 8.6</span>
+          </div>
+        </a>
+        <a href="detail.html" class="group">
+          <div class="rounded-2xl overflow-hidden mb-2 relative gradient-mask" style="aspect-ratio:3/4; background: linear-gradient(135deg,#3D3935,#1A1B23);">
+            <div class="absolute bottom-3 left-3 right-3 z-10">
+              <div class="text-white font-serif font-bold text-sm leading-tight">浮生若梦</div>
+              <div class="text-white/70 text-[10px] mt-1">墨染流年</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
+            <span>古风言情</span><span>·</span><span>★ 8.5</span>
+          </div>
+        </a>
+      </div>
+
+      <button class="w-full py-3 mt-4 rounded-full bg-stone-100 dark:bg-night-800 text-sm text-stone-500 dark:text-stone-400">加载更多</button>
+    </section>
+
+  </main>
+
+  <!-- 底部导航 -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl bg-white/95 dark:bg-night-900/95 border-t border-stone-100 dark:border-night-800" style="padding-bottom: env(safe-area-inset-bottom);">
+    <div class="container-app grid grid-cols-4 h-16">
+      <a href="index.html" class="flex flex-col items-center justify-center text-pink-500">
+        <svg class="w-6 h-6 mb-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.5l9 7v11a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1v-11l9-7z"/></svg>
+        <span class="text-[10px] font-bold">发现</span>
+      </a>
+      <a href="bookshelf.html" class="flex flex-col items-center justify-center text-stone-400">
+        <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <span class="text-[10px] font-bold">书架</span>
+      </a>
+      <a href="reading.html" class="flex flex-col items-center justify-center -mt-6 relative">
+        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-peach-500 flex items-center justify-center shadow-lg shadow-pink-500/40 ring-4 ring-white dark:ring-night-900">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5"/></svg>
+        </div>
+        <span class="text-[10px] font-bold mt-1 text-pink-500">阅读</span>
+      </a>
+      <a href="profile.html" class="flex flex-col items-center justify-center text-stone-400">
+        <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0"/></svg>
+        <span class="text-[10px] font-bold">我的</span>
+      </a>
+    </div>
+  </nav>
+
+  <a href="../index.html" class="fixed top-3 left-3 z-50 w-9 h-9 flex items-center justify-center rounded-full bg-white/80 dark:bg-night-800/80 backdrop-blur shadow-lg text-stone-600 dark:text-stone-300">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+  </a>
+
+  <script>
+    const html = document.documentElement;
+    if (localStorage.getItem('demo-theme-b') === 'dark') html.classList.add('dark');
+    document.querySelector('.sun-icon').classList.toggle('hidden', html.classList.contains('dark'));
+    document.querySelector('.moon-icon').classList.toggle('hidden', !html.classList.contains('dark'));
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      html.classList.toggle('dark');
+      localStorage.setItem('demo-theme-b', html.classList.contains('dark') ? 'dark' : 'light');
+      document.querySelector('.sun-icon').classList.toggle('hidden');
+      document.querySelector('.moon-icon').classList.toggle('hidden');
+    });
+  </script>
+</body>
+</html>

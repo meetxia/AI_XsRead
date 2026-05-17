@@ -174,7 +174,7 @@ class NovelService {
         c.name as category_name
       FROM novels n
       LEFT JOIN categories c ON n.category_id = c.id
-      WHERE n.status = 1
+      WHERE 1=1
     `;
     
     // 如果用户已登录，基于用户偏好推荐
@@ -281,7 +281,7 @@ class NovelService {
       days = 7 // 最近几天的热门
     } = options;
     
-    let whereClause = 'WHERE n.status = 1';
+    let whereClause = 'WHERE 1=1';
     const params = [];
     
     if (categoryId) {
@@ -301,10 +301,9 @@ class NovelService {
        FROM novels n
        LEFT JOIN categories c ON n.category_id = c.id
        ${whereClause}
-       AND n.updated_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
        ORDER BY hot_score DESC, n.updated_at DESC
        LIMIT ?`,
-      [...params, days, parseInt(limit)]
+      [...params, parseInt(limit)]
     );
     
     return novels;

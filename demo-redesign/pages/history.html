@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="theme-cream">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FAF6F1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1A1714" media="(prefers-color-scheme: dark)" />
+  <title>浏览记录 · 文字之境</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/tailwind-cream.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/common.css" />
+  <script src="../shared/theme-toggle.js"></script>
+  <script src="../shared/partials.js"></script>
+</head>
+<body class="bg-cream-50 dark:bg-night-900 text-ink-900 dark:text-cream-100 font-sans antialiased min-h-screen paper-texture">
+
+  <header class="sticky top-0 z-40 bg-cream-50/85 dark:bg-night-900/85 backdrop-blur-xl pt-safe">
+    <div class="max-w-screen-md mx-auto px-3 h-14 flex items-center justify-between">
+      <button onclick="history.back()" class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800" aria-label="返回">
+        <span id="backIcon"></span>
+      </button>
+      <h1 class="font-serif text-base font-semibold">浏览记录</h1>
+      <button class="px-3 text-sm text-ink-700 dark:text-ink-300">清空</button>
+    </div>
+  </header>
+
+  <main class="max-w-screen-md mx-auto px-5 pb-24">
+
+    <!-- 今日 -->
+    <section class="mt-6">
+      <div class="flex items-baseline gap-3 mb-3">
+        <h2 class="text-xs uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium">今天</h2>
+        <span class="text-[11px] text-ink-500 dark:text-ink-300">3 本 · 2.5 小时</span>
+      </div>
+      <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
+        <a href="reading.html" class="flex items-center gap-3 p-3.5">
+          <div class="w-12 h-16 rounded-lg overflow-hidden shadow-cream shrink-0">
+            <svg viewBox="0 0 300 400" class="w-full h-full" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="h1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6B7B5A"/><stop offset="100%" stop-color="#2A3528"/></linearGradient></defs><rect width="300" height="400" fill="url(#h1)"/><text x="150" y="200" font-family="Noto Serif SC" font-size="40" font-weight="600" fill="#FDFAF6" text-anchor="middle">山有</text></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif font-semibold text-sm truncate">山有木兮 · 第十二章</h4>
+            <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">沈砚白 · 14:32 · 阅读 32 分钟</p>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded-full bg-clay-500/10 text-clay-700 dark:text-clay-400">42%</span>
+        </a>
+        <a href="detail.html" class="flex items-center gap-3 p-3.5">
+          <div class="w-12 h-16 rounded-lg overflow-hidden shadow-cream shrink-0">
+            <svg viewBox="0 0 300 400" class="w-full h-full" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="h2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#A87A56"/><stop offset="100%" stop-color="#5C3B25"/></linearGradient></defs><rect width="300" height="400" fill="url(#h2)"/><text x="150" y="200" font-family="Noto Serif SC" font-size="40" font-weight="600" fill="#FDFAF6" text-anchor="middle">归棠</text></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif font-semibold text-sm truncate">归棠记事</h4>
+            <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">沈砚白 · 12:08 · 浏览了一下</p>
+          </div>
+        </a>
+        <a href="detail.html" class="flex items-center gap-3 p-3.5">
+          <div class="w-12 h-16 rounded-lg overflow-hidden shadow-cream shrink-0">
+            <svg viewBox="0 0 300 400" class="w-full h-full" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="h3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3D5A80"/><stop offset="100%" stop-color="#0F1F30"/></linearGradient></defs><rect width="300" height="400" fill="url(#h3)"/><text x="150" y="200" font-family="Noto Serif SC" font-size="40" font-weight="600" fill="#FDFAF6" text-anchor="middle">迷雾</text></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif font-semibold text-sm truncate">迷雾镇·第七封信</h4>
+            <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">江聿 · 09:42 · 阅读 1 小时 28 分钟</p>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded-full bg-clay-500/10 text-clay-700 dark:text-clay-400">68%</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- 昨天 -->
+    <section class="mt-8">
+      <div class="flex items-baseline gap-3 mb-3">
+        <h2 class="text-xs uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium">昨天</h2>
+        <span class="text-[11px] text-ink-500 dark:text-ink-300">2 本 · 1.2 小时</span>
+      </div>
+      <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
+        <a href="reading.html" class="flex items-center gap-3 p-3.5">
+          <div class="w-12 h-16 rounded-lg overflow-hidden shadow-cream shrink-0">
+            <svg viewBox="0 0 300 400" class="w-full h-full" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="h4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9A3429"/><stop offset="100%" stop-color="#5C1F18"/></linearGradient></defs><rect width="300" height="400" fill="url(#h4)"/><text x="150" y="200" font-family="Noto Serif SC" font-size="40" font-weight="600" fill="#FDFAF6" text-anchor="middle">流光</text></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif font-semibold text-sm truncate">流光记 · 第八章</h4>
+            <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">温知秋 · 22:15 · 阅读 45 分钟</p>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded-full bg-clay-500/10 text-clay-700 dark:text-clay-400">35%</span>
+        </a>
+        <a href="reading.html" class="flex items-center gap-3 p-3.5">
+          <div class="w-12 h-16 rounded-lg overflow-hidden shadow-cream shrink-0">
+            <svg viewBox="0 0 300 400" class="w-full h-full" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="h5" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E5D6C4"/><stop offset="100%" stop-color="#A87A56"/></linearGradient></defs><rect width="300" height="400" fill="url(#h5)"/><text x="150" y="200" font-family="Noto Serif SC" font-size="36" font-weight="600" fill="#5C3B25" text-anchor="middle">夜窗</text></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif font-semibold text-sm truncate">夜窗集 · 第三辑</h4>
+            <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">阮宁 · 19:48 · 阅读 28 分钟</p>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded-full bg-moss-500/15 text-moss-600 dark:text-moss-500">完读</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- 本周 -->
+    <section class="mt-8">
+      <div class="flex items-baseline gap-3 mb-3">
+        <h2 class="text-xs uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium">本周更早</h2>
+        <span class="text-[11px] text-ink-500 dark:text-ink-300">5 本 · 4.3 小时</span>
+      </div>
+      <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
+        <a href="detail.html" class="flex items-center gap-3 p-3.5">
+          <div class="w-12 h-16 rounded-lg bg-gradient-to-br from-clay-500 to-clay-700 shrink-0"></div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif font-semibold text-sm truncate">长安的秋天</h4>
+            <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">沈砚白 · 周三 16:20</p>
+          </div>
+        </a>
+        <a href="detail.html" class="flex items-center gap-3 p-3.5">
+          <div class="w-12 h-16 rounded-lg bg-gradient-to-br from-moss-500 to-moss-600 shrink-0"></div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif font-semibold text-sm truncate">第七个春天</h4>
+            <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">温知秋 · 周二 21:08</p>
+          </div>
+        </a>
+        <a href="detail.html" class="flex items-center gap-3 p-3.5">
+          <div class="w-12 h-16 rounded-lg bg-gradient-to-br from-night-800 to-clay-700 shrink-0"></div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif font-semibold text-sm truncate">霜降</h4>
+            <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">林深 · 周一 22:50</p>
+          </div>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.getElementById('backIcon').innerHTML = XS.icon('back');
+  </script>
+</body>
+</html>

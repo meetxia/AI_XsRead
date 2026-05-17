@@ -7,7 +7,11 @@ const novelService = require('../services/novelService');
 const getNovelList = async (req, res, next) => {
   try {
     const result = await novelService.getNovelList(req.query);
-    return Response.paginate(res, result.list, result.pagination);
+    // 统一返回 { list, pagination } 格式
+    return Response.success(res, {
+      list: result.list,
+      pagination: result.pagination
+    });
   } catch (error) {
     next(error);
   }
@@ -52,11 +56,14 @@ const getRecommendNovels = async (req, res, next) => {
   try {
     const userId = req.user?.id;
     const novels = await novelService.getRecommendNovels({ 
-      limit: req.query.limit,
+      limit: req.query.limit || 10,
       userId 
     });
-    
-    return Response.success(res, novels);
+    // 统一返回 { list, pagination } 格式，与 getNovelList 保持一致
+    return Response.success(res, {
+      list: novels,
+      pagination: { page: 1, pageSize: novels.length, total: novels.length, totalPages: 1 }
+    });
   } catch (error) {
     next(error);
   }
@@ -81,8 +88,10 @@ const getChapterList = async (req, res, next) => {
   try {
     const { novelId } = req.params;
     const result = await novelService.getChapterList(novelId, req.query);
-    
-    return Response.paginate(res, result.list, result.pagination);
+    return Response.success(res, {
+      list: result.list,
+      pagination: result.pagination
+    });
   } catch (error) {
     next(error);
   }
@@ -97,6 +106,15 @@ const getChapterContent = async (req, res, next) => {
     const userId = req.user?.id;
     
     const chapter = await novelService.getChapterContent(id, userId);
+
+    // 补充小说标题
+    const { pool } = require('../config/database');
+    const [novels] = await pool.query(
+      'SELECT title FROM novels WHERE id = ?',
+      [chapter.novel_id]
+    );
+    chapter.novel_title = novels[0]?.title || '';
+
     return Response.success(res, chapter);
   } catch (error) {
     if (error.message === '章节不存在') {
@@ -112,7 +130,10 @@ const getChapterContent = async (req, res, next) => {
 const searchNovels = async (req, res, next) => {
   try {
     const result = await novelService.searchNovels(req.query);
-    return Response.paginate(res, result.list, result.pagination);
+    return Response.success(res, {
+      list: result.list,
+      pagination: result.pagination
+    });
   } catch (error) {
     if (error.message === '请输入搜索关键词') {
       return Response.error(res, error.message, 400);
@@ -184,24 +205,44 @@ const getSearchSuggestions = async (req, res, next) => {
 const getHotSearches = async (req, res, next) => {
   try {
     const { pool } = require('../config/database');
-    
-    // 基于浏览量获取热门小说作为热搜
-    const [hotNovels] = await pool.query(
-      `SELECT title as keyword, views as count
-       FROM novels 
-       ORDER BY views DESC, rating DESC
-       LIMIT 10`
-    );
-    
-    // 添加趋势标记
-    const hotSearches = hotNovels.map((item, index) => ({
-      keyword: item.keyword,
-      count: item.count,
-      hot: index < 3, // 前3个标记为热门
-      trend: index < 5 ? 'up' : 'stable', // 前5个上升，其他稳定
-      isNew: false
-    }));
-    
+
+    // 优先从 hot_searches 表获取
+    let hotSearches = [];
+    try {
+      const [rows] = await pool.query(
+        `SELECT keyword, search_count as count, is_manual
+         FROM hot_searches
+         ORDER BY is_manual DESC, search_count DESC, sort_order ASC
+         LIMIT 10`
+      );
+      hotSearches = rows.map((item, index) => ({
+        keyword: item.keyword,
+        count: item.count,
+        hot: index < 3,
+        trend: index < 5 ? 'up' : 'stable',
+        isNew: false
+      }));
+    } catch (e) {
+      // hot_searches 表不存在时降级到小说标题
+    }
+
+    // 如果 hot_searches 为空，降级到小说浏览量
+    if (hotSearches.length === 0) {
+      const [hotNovels] = await pool.query(
+        `SELECT title as keyword, views as count
+         FROM novels
+         ORDER BY views DESC, rating DESC
+         LIMIT 10`
+      );
+      hotSearches = hotNovels.map((item, index) => ({
+        keyword: item.keyword,
+        count: item.count,
+        hot: index < 3,
+        trend: index < 5 ? 'up' : 'stable',
+        isNew: false
+      }));
+    }
+
     return Response.success(res, hotSearches);
   } catch (error) {
     next(error);

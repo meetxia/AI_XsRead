@@ -1,353 +1,180 @@
-<template>
-  <div class="search-page">
-    <div class="max-w-7xl mx-auto">
-      <!-- 页面标题 -->
-      <div class="mb-8">
-        <h1 class="page-title">🔍 搜索</h1>
-        <p class="page-subtitle">发现你想要的好书</p>
-      </div>
-
-      <!-- 搜索栏 -->
-      <div class="mb-8">
-        <SearchBar
-          v-model="keyword"
-          :suggestions="suggestions"
-          :loading="suggestLoading"
-          @search="handleSearch"
-          @suggest="handleSuggest"
-        />
-      </div>
-
-      <!-- 未搜索状态 -->
-      <div v-if="!hasSearched">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- 搜索历史 -->
-          <div class="lg:col-span-2">
-            <SearchHistory
-              :history="searchHistory"
-              @select="handleHistorySelect"
-              @delete="handleDeleteHistory"
-              @clear="handleClearHistory"
-            />
-          </div>
-
-          <!-- 热门搜索 -->
-          <div class="lg:col-span-1">
-            <HotSearch
-              :hotList="hotSearchList"
-              @select="handleHotSelect"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- 搜索结果 -->
-      <div v-else>
-        <SearchResult
-          :results="searchResults"
-          :total="totalResults"
-          :loading="searchLoading"
-          :view="viewMode"
-          :sortBy="sortBy"
-          :filters="filters"
-          :currentPage="currentPage"
-          :pageSize="pageSize"
-          @click="handleNovelClick"
-          @read="handleRead"
-          @add-shelf="handleAddToShelf"
-          @view-change="handleViewChange"
-          @sort-change="handleSortChange"
-          @filter-change="handleFilterChange"
-          @reset-filters="handleResetFilters"
-          @page-change="handlePageChange"
-        />
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useBookshelfStore } from '@/stores/bookshelf'
-import SearchBar from '@/components/search/SearchBar.vue'
-import SearchHistory from '@/components/search/SearchHistory.vue'
-import HotSearch from '@/components/search/HotSearch.vue'
-import SearchResult from '@/components/search/SearchResult.vue'
+import { useRouter, RouterLink } from 'vue-router'
+import Icon from '@/components/v2/icons/Icon.vue'
+import BookCover from '@/components/v2/book/BookCover.vue'
 import {
-  getSearchSuggest,
-  searchNovels,
-  getHotSearch,
-  getSearchHistory,
-  saveSearchHistory,
-  deleteSearchHistory,
-  clearSearchHistory
+  getSearchHistory, saveSearchHistory, clearSearchHistory,
+  getHotSearch, searchNovels
 } from '@/api/search'
 
 const router = useRouter()
-const route = useRoute()
-const bookshelfStore = useBookshelfStore()
 
 const keyword = ref('')
-const suggestions = ref([])
-const suggestLoading = ref(false)
-const searchHistory = ref([])
-const hotSearchList = ref([])
-const hasSearched = ref(false)
-const searchResults = ref([])
-const totalResults = ref(0)
-const searchLoading = ref(false)
-const viewMode = ref('grid')
-const sortBy = ref('relevance')
-const filters = ref({
-  category: '',
-  status: '',
-  wordCount: ''
-})
-const currentPage = ref(1)
-const pageSize = ref(20)
+const history = ref([])
+const hotList = ref([
+  { id: 1, label: '山有木兮：那一年长安飘雪', tag: 'HOT' },
+  { id: 2, label: '沈砚白', tag: '作者' },
+  { id: 3, label: '长安的秋天', tag: '完结' },
+  { id: 4, label: '迷雾镇·第七封信', tag: '新' },
+  { id: 5, label: '治愈系小说' },
+  { id: 6, label: '温知秋', tag: '作者' },
+])
+const hotCategories = ['古风言情','都市恋曲','悬疑推理','治愈系','奇幻冒险','校园青春','职场','穿越重生']
+const guesses = ref([
+  { id:'g1', title:'霜信',      author:'林深', cat:'都市言情', rating:9.0, variant:0 },
+  { id:'g2', title:'深巷里的灯', author:'江聿', cat:'悬疑',     rating:9.1, variant:2 },
+])
 
-// 获取搜索建议
-async function handleSuggest(kw) {
-  if (!kw || kw.length < 2) {
-    suggestions.value = []
-    return
-  }
+function loadHistory() {
+  history.value = getSearchHistory()
+}
+function clearAll() {
+  clearSearchHistory()
+  history.value = []
+}
+function removeOne(k) {
+  history.value = history.value.filter(h => h !== k)
+  localStorage.setItem('searchHistory', JSON.stringify(history.value))
+}
 
-  suggestLoading.value = true
+async function doSearch(k) {
+  const q = (k || keyword.value || '').trim()
+  if (!q) return
+  keyword.value = q
+  saveSearchHistory(q)
+  loadHistory()
   try {
-    const res = await getSearchSuggest(kw)
-    if (res.code === 200) {
-      suggestions.value = res.data
+    const res = await searchNovels({ keyword: q, page: 1, limit: 10 })
+    if (res?.code === 200) {
+      const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+      guesses.value = list.map((n, i) => ({
+        id: n.id,
+        title: n.title,
+        author: n.author || '佚名',
+        cat: n.category_name || '',
+        rating: Number(n.rating || 0).toFixed(1),
+        variant: i,
+        cover: n.cover,
+      }))
     }
-  } catch (err) {
-    console.error('获取搜索建议失败:', err)
-    // 使用模拟数据
-    suggestions.value = getMockSuggestions(kw)
-  } finally {
-    suggestLoading.value = false
-  }
+  } catch (e) { /* ignore */ }
 }
 
-// 执行搜索
-async function handleSearch(kw) {
-  if (!kw || !kw.trim()) return
-
-  keyword.value = kw
-  currentPage.value = 1
-  hasSearched.value = true
-  
-  // 保存搜索历史
-  searchHistory.value = saveSearchHistory(kw)
-
-  // 执行搜索
-  await performSearch()
-}
-
-// 执行搜索请求
-async function performSearch() {
-  searchLoading.value = true
-  try {
-    const params = {
-      keyword: keyword.value,
-      page: currentPage.value,
-      pageSize: pageSize.value,
-      sortBy: sortBy.value,
-      ...filters.value
-    }
-
-    const res = await searchNovels(params)
-    if (res.code === 200) {
-      // 适配后端返回格式：data 直接是数组，pagination 在外层
-      searchResults.value = Array.isArray(res.data) ? res.data : (res.data.list || [])
-      totalResults.value = res.pagination ? res.pagination.total : (res.data.total || 0)
-    }
-  } catch (err) {
-    console.error('搜索失败:', err)
-    // 使用模拟数据
-    const mockData = getMockSearchResults()
-    searchResults.value = mockData.list
-    totalResults.value = mockData.total
-  } finally {
-    searchLoading.value = false
-  }
-}
-
-// 选择历史记录
-function handleHistorySelect(item) {
-  keyword.value = item
-  handleSearch(item)
-}
-
-// 删除历史记录
-function handleDeleteHistory(item) {
-  searchHistory.value = deleteSearchHistory(item)
-}
-
-// 清空历史记录
-function handleClearHistory() {
-  searchHistory.value = clearSearchHistory()
-}
-
-// 选择热门搜索
-function handleHotSelect(item) {
-  keyword.value = item
-  handleSearch(item)
-}
-
-// 点击小说
-function handleNovelClick(novel) {
-  router.push(`/novel/${novel.id}`)
-}
-
-// 阅读
-function handleRead(novel) {
-  router.push(`/read/${novel.id}/1`)
-}
-
-// 加入书架
-async function handleAddToShelf(novel) {
-  const success = await bookshelfStore.addBook(novel, 'reading')
-  if (success) {
-    alert('已加入书架')
-  } else {
-    alert('加入书架失败')
-  }
-}
-
-// 切换视图
-function handleViewChange(mode) {
-  viewMode.value = mode
-}
-
-// 排序变化
-async function handleSortChange(sort) {
-  sortBy.value = sort
-  currentPage.value = 1
-  await performSearch()
-}
-
-// 筛选变化
-async function handleFilterChange(key, value) {
-  filters.value[key] = value
-  currentPage.value = 1
-  await performSearch()
-}
-
-// 重置筛选
-async function handleResetFilters() {
-  filters.value = {
-    category: '',
-    status: '',
-    wordCount: ''
-  }
-  currentPage.value = 1
-  await performSearch()
-}
-
-// 分页变化
-async function handlePageChange(page) {
-  currentPage.value = page
-  await performSearch()
-  // 滚动到顶部
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
-// 获取热门搜索
-async function fetchHotSearch() {
+async function loadHot() {
   try {
     const res = await getHotSearch()
-    if (res.code === 200) {
-      hotSearchList.value = res.data
+    if (res?.code === 200 && Array.isArray(res.data) && res.data.length) {
+      hotList.value = res.data.map((it, i) => ({
+        id: i + 1,
+        label: it.keyword || it.title || it.label || String(it),
+        tag: i < 3 ? 'HOT' : (it.tag || ''),
+      }))
     }
-  } catch (err) {
-    console.error('获取热门搜索失败:', err)
-    hotSearchList.value = getMockHotSearch()
-  }
+  } catch (e) { /* 保留默认热搜 */ }
 }
 
-// 模拟数据
-function getMockSuggestions(kw) {
-  return [
-    `${kw} 小说`,
-    `${kw} 全本`,
-    `${kw} 最新`,
-    `${kw} 完结`,
-    `${kw} 热门`
-  ]
-}
-
-function getMockSearchResults() {
-  const list = Array.from({ length: 20 }, (_, i) => ({
-    id: i + 1,
-    title: `搜索结果 ${i + 1} - ${keyword.value}`,
-    author: `作者 ${i + 1}`,
-    cover: `https://picsum.photos/300/400?random=${i + 100}`,
-    description: `这是关于"${keyword.value}"的搜索结果，这本小说讲述了一个精彩的故事，情节跌宕起伏，引人入胜。`,
-    rating: (7 + Math.random() * 2).toFixed(1),
-    wordCount: Math.floor(Math.random() * 2000000) + 500000,
-    status: i % 3 === 0 ? 'finished' : 'ongoing',
-    category: ['玄幻', '仙侠', '都市', '科幻', '历史'][Math.floor(Math.random() * 5)]
-  }))
-
-  return {
-    list,
-    total: 150
-  }
-}
-
-function getMockHotSearch() {
-  return [
-    { keyword: '剑来', count: 128000, hot: true, trend: 'up' },
-    { keyword: '诡秘之主', count: 95000, hot: true, trend: 'up' },
-    { keyword: '雪中悍刀行', count: 87000, hot: false, trend: 'stable' },
-    { keyword: '龙族', count: 76000, hot: false, trend: 'down' },
-    { keyword: '斗破苍穹', count: 68000, hot: false, trend: 'up' },
-    { keyword: '凡人修仙传', count: 54000, isNew: true, trend: 'up' },
-    { keyword: '择天记', count: 43000, hot: false, trend: 'stable' },
-    { keyword: '庆余年', count: 38000, hot: false, trend: 'down' },
-    { keyword: '斗罗大陆', count: 32000, hot: false, trend: 'stable' },
-    { keyword: '完美世界', count: 28000, hot: false, trend: 'up' }
-  ]
-}
-
-// 初始化
-onMounted(async () => {
-  // 从URL获取搜索关键词
-  const queryKeyword = route.query.keyword
-  if (queryKeyword) {
-    keyword.value = queryKeyword
-    await handleSearch(queryKeyword)
-  }
-
-  // 加载搜索历史和热门搜索
-  searchHistory.value = getSearchHistory()
-  await fetchHotSearch()
+onMounted(() => {
+  loadHistory()
+  loadHot()
 })
 </script>
 
-<style scoped>
-.search-page {
-  min-height: 100vh;
-  background: var(--color-bg-card);
-  padding: 1rem;
-}
+<template>
+  <div class="bg-cream-50 dark:bg-night-900 text-ink-900 dark:text-cream-100 min-h-screen paper-texture">
+    <!-- 极简搜索头 -->
+    <header class="sticky top-0 z-40 bg-cream-50/85 dark:bg-night-900/85 backdrop-blur-xl pt-safe">
+      <div class="max-w-screen-xl mx-auto px-3 sm:px-6 lg:px-8 h-14 flex items-center gap-2">
+        <button @click="router.back()" class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800" aria-label="返回">
+          <Icon name="back" class="w-5 h-5" />
+        </button>
+        <div class="flex-1 relative">
+          <Icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-500 pointer-events-none" />
+          <input
+            v-model="keyword"
+            type="search"
+            autofocus
+            placeholder="搜书名、作者、标签…"
+            class="w-full h-10 pl-10 pr-4 rounded-full bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition-colors"
+            @keydown.enter="doSearch()"
+          />
+        </div>
+        <button @click="doSearch()" class="px-3 h-9 rounded-full text-sm text-clay-700 dark:text-clay-400 font-medium hover:bg-cream-100 dark:hover:bg-night-800 transition">搜索</button>
+      </div>
+    </header>
 
-@media (min-width: 768px) {
-  .search-page {
-    padding: 2rem;
-  }
-}
+    <main class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+      <!-- 历史 -->
+      <section v-if="history.length" class="mt-5">
+        <div class="flex items-end justify-between mb-2.5">
+          <h2 class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium">最近搜索</h2>
+          <button @click="clearAll" class="text-xs text-ink-500 dark:text-ink-300 hover:text-clay-700 dark:hover:text-clay-400 transition">清空</button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button v-for="h in history" :key="h" @click="doSearch(h)" class="px-3 py-1.5 rounded-full bg-cream-100 dark:bg-night-800 text-sm hover:bg-cream-200 dark:hover:bg-night-700 transition">{{ h }}</button>
+        </div>
+      </section>
 
-.page-title {
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: 0.5rem;
-}
+      <!-- PC 双栏：左 热搜榜单+分类；右 猜你想看 -->
+      <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <!-- 左栏 -->
+        <div class="space-y-6 min-w-0">
+          <!-- 热搜榜 -->
+          <section>
+            <div class="flex items-end justify-between mb-3">
+              <div>
+                <p class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1">Trending Now</p>
+                <h2 class="font-serif text-lg sm:text-xl font-semibold tracking-tight">热搜榜单</h2>
+              </div>
+            </div>
+            <ol class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
+              <li v-for="(it, i) in hotList" :key="it.id">
+                <button @click="doSearch(it.label)" class="w-full flex items-center gap-3 p-3 hover:bg-cream-200/40 dark:hover:bg-night-700/40 transition text-left">
+                  <span :class="['font-serif text-base font-semibold w-5 text-center shrink-0',
+                    i < 2 ? 'text-clay-700 dark:text-clay-400' : 'text-ink-500 dark:text-ink-300']">{{ i + 1 }}</span>
+                  <p class="flex-1 text-sm font-medium truncate">{{ it.label }}</p>
+                  <span v-if="it.tag === 'HOT'" class="text-[11px] px-2 py-0.5 rounded-full bg-cinnabar-500/10 text-cinnabar-500 font-medium shrink-0">HOT</span>
+                  <span v-else-if="it.tag" class="text-[11px] text-ink-500 dark:text-ink-300 shrink-0">{{ it.tag }}</span>
+                </button>
+              </li>
+            </ol>
+          </section>
 
-.page-subtitle {
-  color: var(--color-text-secondary);
-}
-</style>
+          <!-- 分类 chip -->
+          <section>
+            <p class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-2.5">热门分类</p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="c in hotCategories" :key="c"
+                @click="doSearch(c)"
+                class="px-3 py-1.5 rounded-full bg-cream-100 dark:bg-night-800 text-sm hover:bg-clay-500 hover:text-cream-50 transition"
+              >{{ c }}</button>
+            </div>
+          </section>
+        </div>
 
+        <!-- 右栏：猜你想看 -->
+        <section class="min-w-0">
+          <div class="flex items-end justify-between mb-3">
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1">For You</p>
+              <h2 class="font-serif text-lg sm:text-xl font-semibold tracking-tight">猜你想看</h2>
+            </div>
+          </div>
+          <div class="space-y-2.5">
+            <RouterLink v-for="g in guesses" :key="g.id" :to="`/novel/${g.id}`" class="flex items-center gap-3 p-3 rounded-2xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200/60 dark:hover:bg-night-700/60 transition">
+              <div class="w-12 h-16 rounded-lg overflow-hidden shadow-cream shrink-0">
+                <BookCover :title="g.title.slice(0,2)" :variant="g.variant" :cover="g.cover" :footer="false" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-serif font-semibold text-sm truncate">{{ g.title }}</h4>
+                <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">{{ g.author }} · {{ g.cat }} · 评分 {{ g.rating }}</p>
+              </div>
+              <span class="text-xs text-clay-700 dark:text-clay-400 shrink-0">推荐</span>
+            </RouterLink>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</template>

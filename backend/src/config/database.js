@@ -15,8 +15,22 @@
 const mysql = require('mysql2/promise');
 const config = require('./index');
 
-// 创建数据库连接池 (配置来自统一配置文件)
-const pool = mysql.createPool(config.database);
+// 创建数据库连接池，强制 utf8mb4 字符集
+const poolConfig = {
+  ...config.database,
+  charset: 'utf8mb4',
+};
+const pool = mysql.createPool(poolConfig);
+
+// 包装 pool.query，确保每次查询前设置字符集
+const originalGetConnection = pool.getConnection.bind(pool);
+pool.getConnection = async function() {
+  const conn = await originalGetConnection();
+  try {
+    await conn.query("SET NAMES 'utf8mb4'");
+  } catch (e) { /* ignore */ }
+  return conn;
+};
 
 // 测试数据库连接
 const testConnection = async () => {

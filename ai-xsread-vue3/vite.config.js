@@ -3,6 +3,8 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { visualizer } from 'rollup-plugin-visualizer'
 import compression from 'vite-plugin-compression'
+import tailwindcss from 'tailwindcss'
+import autoprefixer from 'autoprefixer'
 
 export default defineConfig({
   plugins: [
@@ -101,11 +103,13 @@ export default defineConfig({
   },
   // CSS 优化
   css: {
-    // CSS 代码分割
     devSourcemap: false,
-    // PostCSS 配置
+    // 明确指定 PostCSS 插件，避免被空配置覆盖
     postcss: {
-      plugins: []
+      plugins: [
+        tailwindcss(),
+        autoprefixer(),
+      ]
     }
   },
   // 依赖优化

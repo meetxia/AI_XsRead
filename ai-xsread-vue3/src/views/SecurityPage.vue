@@ -1,125 +1,48 @@
-<template>
-  <div class="security-page">
-    <!-- 顶部导航 -->
-    <AppHeader />
-    
-    <div class="main-content">
-      <!-- 页面标题 -->
-      <div class="page-header fade-in">
-        <button class="back-btn" @click="goBack">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-          </svg>
-        </button>
-        <h1 class="page-title">账号安全</h1>
-      </div>
-
-      <!-- 安全设置内容 -->
-      <div class="security-content fade-in" style="animation-delay: 0.1s">
-        <SecuritySettings />
-      </div>
-    </div>
-    
-    <!-- 底部导航 -->
-    <BottomNav />
-  </div>
-</template>
-
 <script setup>
 import { useRouter } from 'vue-router'
-import AppHeader from '@/components/common/AppHeader.vue'
-import BottomNav from '@/components/common/BottomNav.vue'
-import SecuritySettings from '@/components/profile/SecuritySettings.vue'
+import Icon from '@/components/v2/icons/Icon.vue'
+import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 
 const router = useRouter()
-
-function goBack() {
-  router.back()
-}
 </script>
 
-<style scoped>
-.security-page {
-  min-height: 100vh;
-  padding-top: 4rem;
-  padding-bottom: 5rem;
-  background: var(--color-bg-primary);
-}
+<template>
+  <div class="bg-cream-50 dark:bg-night-900 text-ink-900 dark:text-cream-100 min-h-screen paper-texture">
+    <header class="sticky top-0 z-40 bg-cream-50/85 dark:bg-night-900/85 backdrop-blur-xl pt-safe">
+      <div class="max-w-screen-md mx-auto px-3 h-14 flex items-center justify-between">
+        <button @click="router.back()" class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800" aria-label="返回">
+          <Icon name="back" />
+        </button>
+        <h1 class="font-serif text-base font-semibold">账号安全</h1>
+        <ThemeToggle />
+      </div>
+    </header>
 
-@media (min-width: 768px) {
-  .security-page {
-    padding-bottom: 2rem;
-  }
-}
+    <main class="max-w-md mx-auto px-5 pt-6 pb-12">
+      <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
+        <a href="#" class="flex items-center gap-3 p-4 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+          <span class="flex-1 text-sm">修改密码</span>
+          <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
+        </a>
+        <a href="#" class="flex items-center gap-3 p-4 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+          <span class="flex-1 text-sm">绑定手机</span>
+          <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
+        </a>
+        <a href="#" class="flex items-center gap-3 p-4 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+          <span class="flex-1 text-sm">绑定邮箱</span>
+          <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
+        </a>
+        <a href="#" class="flex items-center gap-3 p-4 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+          <span class="flex-1 text-sm">登录设备管理</span>
+          <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
+        </a>
+        <a href="#" class="flex items-center gap-3 p-4 hover:bg-cream-200/40 dark:hover:bg-night-700/40 text-cinnabar-500">
+          <span class="flex-1 text-sm font-medium">注销账号</span>
+          <Icon name="arrowRight" class="w-4 h-4" />
+        </a>
+      </div>
 
-.main-content {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-/* 页面头部 */
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 2rem 0 1.5rem;
-}
-
-.back-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: var(--color-text-primary);
-}
-
-.back-btn:hover {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: white;
-  transform: scale(1.05);
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-
-.security-content {
-  margin-top: 1.5rem;
-}
-
-/* 淡入动画 */
-.fade-in {
-  animation: fadeIn 0.8s ease-in;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 工具类 */
-.w-6 {
-  width: 1.5rem;
-}
-
-.h-6 {
-  height: 1.5rem;
-}
-</style>
-
+      <p class="mt-6 text-xs text-ink-500 dark:text-ink-300 text-center">所有操作均会记录在登录设备管理中</p>
+    </main>
+  </div>
+</template>

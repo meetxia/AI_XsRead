@@ -1,88 +1,46 @@
-<template>
-  <div id="app">
-    <!-- 使用 keep-alive 缓存组件，提升性能 -->
-    <router-view v-slot="{ Component, route }">
-      <keep-alive :include="cachedViews">
-        <component :is="Component" :key="route.path" />
-      </keep-alive>
-    </router-view>
-  </div>
-</template>
-
 <script setup>
-import { onMounted, computed } from 'vue'
+import { computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
-import { useRouter } from 'vue-router'
 
-// 使用主题 composable - 这会自动监听和应用主题变化
-const { currentTheme, currentMode, applyThemeToDOM } = useTheme()
+// 触发 useTheme 的 watchEffect，确保浅深模式跨页同步
+useTheme()
 
 const router = useRouter()
+const route = useRoute()
 
-// 需要缓存的页面列表
-const cachedViews = computed(() => {
-  return router.getRoutes()
-    .filter(route => route.meta?.keepAlive)
-    .map(route => route.name)
-})
-
-onMounted(() => {
-  // 确保主题已应用
-  applyThemeToDOM(currentTheme.value, currentMode.value)
-  console.log('✓ 主题已应用:', currentTheme.value, currentMode.value)
-  
-  // 性能监控
-  if (process.env.NODE_ENV === 'development') {
-    console.log('✓ 缓存页面:', cachedViews.value)
-  }
-})
+const cachedViews = computed(() =>
+  router.getRoutes()
+    .filter(r => r.meta?.keepAlive)
+    .map(r => r.name)
+)
 </script>
 
+<template>
+  <router-view v-slot="{ Component, route: r }">
+    <transition name="fade" mode="out-in">
+      <keep-alive :include="cachedViews">
+        <component :is="Component" :key="r.path" />
+      </keep-alive>
+    </transition>
+  </router-view>
+</template>
+
 <style>
-/* 全局样式 */
-#app, html, body {
+html, body, #app {
   width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
-  /* 主题背景过渡 */
-  transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#app {
-  width: 100%;
+  margin: 0;
+  padding: 0;
   min-height: 100vh;
-  overflow-x: hidden; /* 防止水平滚动 */
-  max-width: 100vw; /* 限制最大宽度 */
-  /* 使用主题背景渐变 */
-  background: var(--color-bg-gradient, transparent);
-  background-attachment: fixed; /* 固定背景 */
 }
 
-/* 页面过渡动画 */
+/* 路由切换淡入淡出 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity .25s ease;
 }
-
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-/* 确保所有主要容器都使用主题背景 */
-.page-container,
-.main-content,
-.content-wrapper {
-  background: transparent; /* 继承父级背景 */
-  transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* 卡片和容器使用主题卡片背景 */
-.card,
-.card-container,
-.detail-card {
-  background: var(--color-bg-card);
-  transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>

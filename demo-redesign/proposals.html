@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>初版方向对比 · 文字之境</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter','PingFang SC',system-ui; }
+    .font-serif { font-family: 'Noto Serif SC', serif; }
+    .device {
+      box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 14px #2a2a2a, 0 30px 60px -15px rgba(0,0,0,.4);
+      border-radius: 48px;
+    }
+  </style>
+</head>
+<body class="bg-zinc-50 text-zinc-900 min-h-screen antialiased">
+
+  <header class="border-b bg-white sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-lg bg-zinc-900 grid place-items-center text-white font-serif font-bold">境</span>
+        <p class="font-bold">初版方向对比（仅参考）</p>
+      </div>
+      <a href="index.html" class="text-sm text-amber-600 font-semibold">← 返回 V1.0 主页</a>
+    </div>
+  </header>
+
+  <section class="max-w-7xl mx-auto px-6 py-10">
+    <p class="text-xs font-mono text-zinc-500 mb-2">/ ARCHIVED</p>
+    <h1 class="font-serif text-3xl font-bold mb-3">这是 4 种风格初版对比</h1>
+    <p class="text-zinc-600 max-w-[60ch] mb-2">
+      已选定 <strong class="text-amber-700">A（奶油杂志风）+ D（极简）混搭</strong>。
+    </p>
+    <p class="text-zinc-600 max-w-[60ch]">
+      此页仅作历史归档。完整设计稿请进入 <a href="index.html" class="text-amber-600 underline font-semibold">V1.0 主页</a>。
+    </p>
+
+    <div class="grid md:grid-cols-2 gap-8 mt-10">
+      <div class="rounded-2xl bg-white p-4 border-2 border-amber-300 relative">
+        <span class="absolute -top-3 left-4 px-2.5 py-1 rounded-full bg-amber-500 text-white text-xs font-bold">已选</span>
+        <p class="text-xs font-mono text-zinc-500 mb-1">A · CREAM</p>
+        <h3 class="font-serif text-xl font-bold mb-3">奶油杂志风</h3>
+        <div class="device w-[300px] h-[560px] mx-auto bg-black overflow-hidden">
+          <iframe src="theme-a-cream/home.html" class="w-full h-full" title="A"></iframe>
+        </div>
+      </div>
+      <div class="rounded-2xl bg-white p-4 border border-zinc-200">
+        <p class="text-xs font-mono text-zinc-500 mb-1">B · GLOW</p>
+        <h3 class="font-serif text-xl font-bold mb-3">少女浪漫风</h3>
+        <div class="device w-[300px] h-[560px] mx-auto bg-black overflow-hidden">
+          <iframe src="theme-b-glow/home.html" class="w-full h-full" title="B"></iframe>
+        </div>
+      </div>
+      <div class="rounded-2xl bg-white p-4 border border-zinc-200">
+        <p class="text-xs font-mono text-zinc-500 mb-1">C · INK</p>
+        <h3 class="font-serif text-xl font-bold mb-3">东方水墨风</h3>
+        <div class="device w-[300px] h-[560px] mx-auto bg-black overflow-hidden">
+          <iframe src="theme-c-ink/home.html" class="w-full h-full" title="C"></iframe>
+        </div>
+      </div>
+      <div class="rounded-2xl bg-white p-4 border-2 border-orange-300 relative">
+        <span class="absolute -top-3 left-4 px-2.5 py-1 rounded-full bg-orange-500 text-white text-xs font-bold">阅读页采用</span>
+        <p class="text-xs font-mono text-zinc-500 mb-1">D · MINIMAL</p>
+        <h3 class="font-serif text-xl font-bold mb-3">极简内容流</h3>
+        <div class="device w-[300px] h-[560px] mx-auto bg-black overflow-hidden">
+          <iframe src="theme-d-minimal/home.html" class="w-full h-full" title="D"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

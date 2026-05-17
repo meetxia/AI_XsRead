@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="theme-cream">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FAF6F1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1A1714" media="(prefers-color-scheme: dark)" />
+  <title>我的书架 · 文字之境</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/tailwind-cream.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/common.css" />
+  <script src="../shared/theme-toggle.js"></script>
+  <script src="../shared/partials.js"></script>
+</head>
+<body class="bg-cream-50 dark:bg-night-900 text-ink-900 dark:text-cream-100 font-sans antialiased min-h-screen paper-texture">
+
+  <div id="header"></div>
+
+  <main class="max-w-screen-md mx-auto px-5 pb-24">
+
+    <!-- 标题 -->
+    <section class="pt-6">
+      <p class="text-xs uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1.5">My Library</p>
+      <h1 class="font-serif text-3xl font-semibold tracking-tight">我的书架</h1>
+      <p class="mt-2 text-sm text-ink-700 dark:text-ink-300">书架是港湾，每本书都等待重逢。</p>
+    </section>
+
+    <!-- 阅读统计 -->
+    <section class="mt-6">
+      <div class="grid grid-cols-4 gap-2.5 rounded-2xl bg-cream-100 dark:bg-night-800 p-4">
+        <div class="text-center">
+          <p class="font-serif text-xl font-semibold">8</p>
+          <p class="text-[10px] text-ink-500 dark:text-ink-300 mt-0.5 tracking-wider">在读</p>
+        </div>
+        <div class="text-center border-l border-cream-200 dark:border-night-700">
+          <p class="font-serif text-xl font-semibold">24</p>
+          <p class="text-[10px] text-ink-500 dark:text-ink-300 mt-0.5 tracking-wider">已读</p>
+        </div>
+        <div class="text-center border-l border-cream-200 dark:border-night-700">
+          <p class="font-serif text-xl font-semibold">287<span class="text-xs ml-0.5 text-ink-500">h</span></p>
+          <p class="text-[10px] text-ink-500 dark:text-ink-300 mt-0.5 tracking-wider">阅读</p>
+        </div>
+        <div class="text-center border-l border-cream-200 dark:border-night-700">
+          <p class="font-serif text-xl font-semibold">32</p>
+          <p class="text-[10px] text-ink-500 dark:text-ink-300 mt-0.5 tracking-wider">总数</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabs + 视图切换 -->
+    <section class="mt-6 flex items-center justify-between">
+      <div class="flex gap-1 bg-cream-100 dark:bg-night-800 p-1 rounded-full">
+        <button data-tab="all"      class="tab-btn px-4 py-1.5 rounded-full text-sm font-medium bg-clay-700 text-cream-50 dark:bg-clay-500">全部 <span class="ml-1 opacity-75">32</span></button>
+        <button data-tab="reading"  class="tab-btn px-4 py-1.5 rounded-full text-sm font-medium hover:bg-cream-200 dark:hover:bg-night-700">在读 <span class="ml-1 opacity-50">8</span></button>
+        <button data-tab="finished" class="tab-btn px-4 py-1.5 rounded-full text-sm font-medium hover:bg-cream-200 dark:hover:bg-night-700">已读 <span class="ml-1 opacity-50">24</span></button>
+      </div>
+      <div class="flex gap-1">
+        <button id="viewGrid" class="w-9 h-9 grid place-items-center rounded-full bg-cream-100 dark:bg-night-800 text-clay-700 dark:text-clay-400"></button>
+        <button id="viewList" class="w-9 h-9 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800 text-ink-500"></button>
+      </div>
+    </section>
+
+    <!-- 网格视图 -->
+    <section id="gridView" class="mt-5">
+      <div class="grid grid-cols-3 gap-3" id="gridContent"></div>
+    </section>
+
+    <!-- 列表视图 -->
+    <section id="listView" class="mt-5 hidden">
+      <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden" id="listContent"></div>
+    </section>
+
+    <!-- 推荐补全 -->
+    <section class="mt-12">
+      <div class="flex items-end justify-between mb-4">
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-moss-600 dark:text-moss-500 font-medium mb-1.5">For You</p>
+          <h2 class="font-serif text-xl font-semibold tracking-tight">猜你也会喜欢</h2>
+        </div>
+      </div>
+      <div class="flex gap-3 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+        <a href="detail.html" class="shrink-0 w-32">
+          <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-cream"><svg viewBox="0 0 300 400" class="w-full h-full" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="rec-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#A87A56"/><stop offset="100%" stop-color="#5C3B25"/></linearGradient></defs><rect width="300" height="400" fill="url(#rec-a)"/><text x="150" y="200" font-family="Noto Serif SC" font-size="40" font-weight="600" fill="#FDFAF6" text-anchor="middle">霜信</text></svg></div>
+          <p class="mt-2 text-xs font-medium line-clamp-1">霜信</p>
+          <p class="text-[10px] text-ink-500 dark:text-ink-300">林深</p>
+        </a>
+        <a href="detail.html" class="shrink-0 w-32">
+          <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-cream"><svg viewBox="0 0 300 400" class="w-full h-full" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="rec-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3D5A80"/><stop offset="100%" stop-color="#0F1F30"/></linearGradient></defs><rect width="300" height="400" fill="url(#rec-b)"/><text x="150" y="200" font-family="Noto Serif SC" font-size="36" font-weight="600" fill="#FDFAF6" text-anchor="middle">深巷</text></svg></div>
+          <p class="mt-2 text-xs font-medium line-clamp-1">深巷里的灯</p>
+          <p class="text-[10px] text-ink-500 dark:text-ink-300">江聿</p>
+        </a>
+        <a href="detail.html" class="shrink-0 w-32">
+          <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-cream"><svg viewBox="0 0 300 400" class="w-full h-full" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="rec-c" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6B7B5A"/><stop offset="100%" stop-color="#2A2520"/></linearGradient></defs><rect width="300" height="400" fill="url(#rec-c)"/><text x="150" y="200" font-family="Noto Serif SC" font-size="40" font-weight="600" fill="#FDFAF6" text-anchor="middle">余生</text></svg></div>
+          <p class="mt-2 text-xs font-medium line-clamp-1">余生不慌</p>
+          <p class="text-[10px] text-ink-500 dark:text-ink-300">温知秋</p>
+        </a>
+        <a href="detail.html" class="shrink-0 w-32">
+          <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-cream"><svg viewBox="0 0 300 400" class="w-full h-full" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="rec-d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9A3429"/><stop offset="100%" stop-color="#5C1F18"/></linearGradient></defs><rect width="300" height="400" fill="url(#rec-d)"/><text x="150" y="200" font-family="Noto Serif SC" font-size="36" font-weight="600" fill="#FDFAF6" text-anchor="middle">花朝</text></svg></div>
+          <p class="mt-2 text-xs font-medium line-clamp-1">花朝月夕</p>
+          <p class="text-[10px] text-ink-500 dark:text-ink-300">沈砚白</p>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <div id="bottomNav"></div>
+
+  <script>
+    document.getElementById('header').innerHTML = XS.appHeader();
+    document.getElementById('bottomNav').innerHTML = XS.bottomNav('shelf');
+    document.getElementById('viewGrid').innerHTML = XS.icon('grid');
+    document.getElementById('viewList').innerHTML = XS.icon('list');
+
+    const books = [
+      { id:1, title:'山有木兮',         author:'沈砚白', cat:'古风',   progress:42, last:'2 小时前',  status:'reading',  variant:1 },
+      { id:2, title:'归棠记事',         author:'沈砚白', cat:'古风',   progress:78, last:'昨日',     status:'reading',  variant:0 },
+      { id:3, title:'夜窗集',           author:'阮宁',   cat:'治愈',   progress:100,last:'3 天前',    status:'finished', variant:1 },
+      { id:4, title:'流光记',           author:'温知秋', cat:'都市',   progress:35, last:'本周',     status:'reading',  variant:4 },
+      { id:5, title:'迷雾镇·第七封信',   author:'江聿',   cat:'悬疑',   progress:100,last:'上月',     status:'finished', variant:5 },
+      { id:6, title:'长安的秋天',       author:'沈砚白', cat:'古风',   progress:62, last:'3 天前',    status:'reading',  variant:0 },
+      { id:7, title:'霜降',             author:'林深',   cat:'都市',   progress:100,last:'2 月前',    status:'finished', variant:2 },
+      { id:8, title:'第七个春天',       author:'温知秋', cat:'治愈',   progress:18, last:'1 周前',    status:'reading',  variant:4 },
+      { id:9, title:'春寒料峭',         author:'温知秋', cat:'校园',   progress:100,last:'去年',     status:'finished', variant:1 },
+    ];
+
+    function renderGrid(items) {
+      document.getElementById('gridContent').innerHTML = items.map(b => `
+        <a href="detail.html?id=${b.id}" class="book-card group">
+          <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-cream relative">
+            ${XS.cover({variant:b.variant, title:b.title.split('·')[0].slice(0,2), sub:''})}
+            ${b.progress < 100 ? `
+            <div class="absolute bottom-0 inset-x-0 h-1 bg-cream-50/30">
+              <div class="h-full bg-cream-50" style="width:${b.progress}%"></div>
+            </div>` : `
+            <div class="absolute top-2 right-2 w-6 h-6 rounded-full bg-moss-500 grid place-items-center text-cream-50">
+              ${XS.icon('check', 'w-3.5 h-3.5')}
+            </div>`}
+          </div>
+          <p class="mt-2 text-xs font-medium line-clamp-1">${b.title}</p>
+          <p class="text-[10px] text-ink-500 dark:text-ink-300 line-clamp-1">${b.progress < 100 ? '进度 '+b.progress+'%' : '已读完'}</p>
+        </a>`).join('');
+    }
+
+    function renderList(items) {
+      document.getElementById('listContent').innerHTML = items.map(b => `
+        <a href="detail.html?id=${b.id}" class="flex items-center gap-3 p-3 hover:bg-cream-200/40 dark:hover:bg-night-700/40 transition">
+          <div class="w-12 h-16 rounded-lg overflow-hidden shadow-cream shrink-0">
+            ${XS.cover({variant:b.variant, title:b.title.slice(0,2), sub:''})}
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif font-semibold text-sm truncate">${b.title}</h4>
+            <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">${b.author} · ${b.cat} · ${b.last}</p>
+            ${b.progress < 100 ? `
+            <div class="mt-1.5 h-1 rounded-full bg-cream-200 dark:bg-night-700 overflow-hidden">
+              <div class="h-full bg-clay-500 rounded-full" style="width:${b.progress}%"></div>
+            </div>` : `<p class="mt-1.5 text-[10px] text-moss-600 dark:text-moss-500 font-medium">已读完 ✓</p>`}
+          </div>
+          ${b.status === 'reading' ? `<span class="text-[11px] px-2 py-0.5 rounded-full bg-clay-500/10 text-clay-700 dark:text-clay-400">${b.progress}%</span>` : ''}
+        </a>`).join('');
+    }
+
+    let currentTab = 'all';
+    function filterAndRender() {
+      const filtered = currentTab === 'all' ? books : books.filter(b => b.status === currentTab);
+      renderGrid(filtered);
+      renderList(filtered);
+    }
+    filterAndRender();
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('bg-clay-700', 'text-cream-50', 'dark:bg-clay-500');
+        });
+        btn.classList.add('bg-clay-700', 'text-cream-50', 'dark:bg-clay-500');
+        currentTab = btn.dataset.tab;
+        filterAndRender();
+      });
+    });
+
+    document.getElementById('viewGrid').addEventListener('click', () => {
+      document.getElementById('gridView').classList.remove('hidden');
+      document.getElementById('listView').classList.add('hidden');
+      document.getElementById('viewGrid').classList.add('bg-cream-100', 'dark:bg-night-800', 'text-clay-700', 'dark:text-clay-400');
+      document.getElementById('viewList').classList.remove('bg-cream-100', 'dark:bg-night-800', 'text-clay-700', 'dark:text-clay-400');
+    });
+    document.getElementById('viewList').addEventListener('click', () => {
+      document.getElementById('gridView').classList.add('hidden');
+      document.getElementById('listView').classList.remove('hidden');
+      document.getElementById('viewList').classList.add('bg-cream-100', 'dark:bg-night-800', 'text-clay-700', 'dark:text-clay-400');
+      document.getElementById('viewGrid').classList.remove('bg-cream-100', 'dark:bg-night-800', 'text-clay-700', 'dark:text-clay-400');
+    });
+  </script>
+</body>
+</html>

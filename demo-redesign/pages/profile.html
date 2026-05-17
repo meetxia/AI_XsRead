@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="theme-cream">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FAF6F1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1A1714" media="(prefers-color-scheme: dark)" />
+  <title>我的 · 文字之境</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/tailwind-cream.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/common.css" />
+  <script src="../shared/theme-toggle.js"></script>
+  <script src="../shared/partials.js"></script>
+</head>
+<body class="bg-cream-50 dark:bg-night-900 text-ink-900 dark:text-cream-100 font-sans antialiased min-h-screen paper-texture">
+
+  <!-- 顶部 -->
+  <header class="sticky top-0 z-40 bg-cream-50/85 dark:bg-night-900/85 backdrop-blur-xl pt-safe">
+    <div class="max-w-screen-md mx-auto px-3 h-14 flex items-center justify-between">
+      <a href="home.html" class="flex items-center gap-2 px-2">
+        <span class="w-8 h-8 rounded-full bg-clay-500 grid place-items-center text-cream-50 font-serif font-semibold">境</span>
+        <span class="font-serif text-lg font-semibold tracking-tight">文字之境</span>
+      </a>
+      <div class="flex items-center gap-1">
+        <button class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800" aria-label="通知"><span id="bellIcon"></span></button>
+        <button data-theme-toggle class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800">
+          <span class="dark:hidden" id="moonIcon"></span>
+          <span class="hidden dark:inline-block" id="sunIcon"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-screen-md mx-auto px-5 pb-24">
+
+    <!-- 用户卡 -->
+    <section class="mt-6">
+      <div class="rounded-3xl overflow-hidden bg-gradient-to-br from-clay-500 to-clay-700 dark:from-clay-600 dark:to-clay-700 text-cream-50 shadow-cream-lg p-6 relative">
+        <!-- 装饰 -->
+        <div class="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-cream-50/10 blur-2xl"></div>
+
+        <div class="relative flex items-center gap-4">
+          <div class="w-16 h-16 rounded-full bg-cream-50/20 ring-2 ring-cream-50/40 grid place-items-center font-serif text-2xl font-semibold backdrop-blur">阮</div>
+          <div class="flex-1 min-w-0">
+            <h1 class="font-serif text-2xl font-semibold tracking-tight">阮宁</h1>
+            <p class="text-sm text-cream-200/85 mt-0.5">@ningning · 加入 287 天</p>
+          </div>
+          <a href="#" class="px-3 py-1.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/25 text-xs">编辑</a>
+        </div>
+
+        <p class="relative mt-4 text-sm text-cream-200/90 italic font-serif">"读过的书，遇过的人，都会变成你。"</p>
+
+        <div class="relative mt-5 grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p class="font-serif text-xl font-semibold">32</p>
+            <p class="text-[10px] tracking-wider uppercase text-cream-200/70 mt-0.5">书架</p>
+          </div>
+          <div class="border-x border-cream-50/15">
+            <p class="font-serif text-xl font-semibold">14<span class="text-xs ml-0.5">天</span></p>
+            <p class="text-[10px] tracking-wider uppercase text-cream-200/70 mt-0.5">连读</p>
+          </div>
+          <div>
+            <p class="font-serif text-xl font-semibold">287<span class="text-xs ml-0.5">h</span></p>
+            <p class="text-[10px] tracking-wider uppercase text-cream-200/70 mt-0.5">阅读时长</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 快捷功能 -->
+    <section class="mt-5">
+      <div class="grid grid-cols-4 gap-2">
+        <a href="bookshelf.html" class="flex flex-col items-center gap-1.5 py-4 rounded-2xl bg-cream-100 dark:bg-night-800">
+          <span class="text-clay-700 dark:text-clay-400" id="q1"></span>
+          <span class="text-[11px]">书架</span>
+        </a>
+        <a href="history.html" class="flex flex-col items-center gap-1.5 py-4 rounded-2xl bg-cream-100 dark:bg-night-800">
+          <span class="text-clay-700 dark:text-clay-400" id="q2"></span>
+          <span class="text-[11px]">历史</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-1.5 py-4 rounded-2xl bg-cream-100 dark:bg-night-800">
+          <span class="text-clay-700 dark:text-clay-400" id="q3"></span>
+          <span class="text-[11px]">收藏</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-1.5 py-4 rounded-2xl bg-cream-100 dark:bg-night-800">
+          <span class="text-clay-700 dark:text-clay-400" id="q4"></span>
+          <span class="text-[11px]">下载</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- 阅读统计卡片 -->
+    <section class="mt-8">
+      <div class="flex items-end justify-between mb-4">
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1">Reading Stats</p>
+          <h2 class="font-serif text-xl font-semibold tracking-tight">这周读了什么</h2>
+        </div>
+      </div>
+      <div class="rounded-2xl bg-cream-100 dark:bg-night-800 p-5">
+        <!-- 周柱状图 -->
+        <div class="flex items-end justify-between gap-2 h-32 mb-3">
+          <div class="flex-1 flex flex-col items-center gap-1.5">
+            <div class="w-full bg-clay-500/30 rounded-t" style="height: 30%"></div>
+            <span class="text-[10px] text-ink-500">一</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1.5">
+            <div class="w-full bg-clay-500/40 rounded-t" style="height: 55%"></div>
+            <span class="text-[10px] text-ink-500">二</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1.5">
+            <div class="w-full bg-clay-500/60 rounded-t" style="height: 75%"></div>
+            <span class="text-[10px] text-ink-500">三</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1.5">
+            <div class="w-full bg-clay-500/40 rounded-t" style="height: 45%"></div>
+            <span class="text-[10px] text-ink-500">四</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1.5">
+            <div class="w-full bg-clay-500 rounded-t" style="height: 100%"></div>
+            <span class="text-[10px] text-clay-700 font-medium">五</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1.5">
+            <div class="w-full bg-clay-500/30 rounded-t" style="height: 25%"></div>
+            <span class="text-[10px] text-ink-500">六</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1.5">
+            <div class="w-full bg-clay-500/50 rounded-t" style="height: 65%"></div>
+            <span class="text-[10px] text-ink-500">日</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-ink-500 dark:text-ink-300 pt-3 border-t border-cream-200 dark:border-night-700">
+          <span>共 12.5 小时 · 读完 1 本</span>
+          <span class="text-moss-600 dark:text-moss-500 font-medium">↑ 比上周多 28%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 设置列表 -->
+    <section class="mt-8">
+      <h2 class="text-xs uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-3">通用</h2>
+      <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
+        <a href="#" class="flex items-center gap-3 p-4 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+          <span class="text-clay-700 dark:text-clay-400" id="s1"></span>
+          <span class="flex-1 text-sm">阅读偏好</span>
+          <span class="text-ink-500" id="s1Arr"></span>
+        </a>
+        <a href="#" class="flex items-center gap-3 p-4 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+          <span class="text-clay-700 dark:text-clay-400" id="s2"></span>
+          <span class="flex-1 text-sm">通知</span>
+          <span class="text-ink-500" id="s2Arr"></span>
+        </a>
+        <a href="#" class="flex items-center gap-3 p-4 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+          <span class="text-clay-700 dark:text-clay-400" id="s3"></span>
+          <span class="flex-1 text-sm">账号安全</span>
+          <span class="text-ink-500" id="s3Arr"></span>
+        </a>
+      </div>
+
+      <h2 class="text-xs uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-3 mt-6">关于</h2>
+      <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
+        <a href="#" class="flex items-center gap-3 p-4">
+          <span class="flex-1 text-sm">帮助与反馈</span>
+          <span class="text-ink-500" id="s4Arr"></span>
+        </a>
+        <a href="#" class="flex items-center gap-3 p-4">
+          <span class="flex-1 text-sm">关于文字之境</span>
+          <span class="text-xs text-ink-500">v 1.0</span>
+        </a>
+        <button class="w-full text-left flex items-center gap-3 p-4 text-cinnabar-500">
+          <span class="flex-1 text-sm font-medium">退出登录</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <div id="bottomNav"></div>
+
+  <script>
+    document.getElementById('bottomNav').innerHTML = XS.bottomNav('profile');
+    document.getElementById('bellIcon').innerHTML = XS.icon('bell');
+    document.getElementById('moonIcon').innerHTML = XS.icon('moon');
+    document.getElementById('sunIcon').innerHTML = XS.icon('sun');
+    document.getElementById('q1').innerHTML = XS.icon('shelf');
+    document.getElementById('q2').innerHTML = XS.icon('clock');
+    document.getElementById('q3').innerHTML = XS.icon('heart');
+    document.getElementById('q4').innerHTML = XS.icon('arrowDown');
+    document.getElementById('s1').innerHTML = XS.icon('eye', 'w-5 h-5');
+    document.getElementById('s2').innerHTML = XS.icon('bell', 'w-5 h-5');
+    document.getElementById('s3').innerHTML = XS.icon('settings', 'w-5 h-5');
+    ['s1Arr','s2Arr','s3Arr','s4Arr'].forEach(id => {
+      document.getElementById(id).innerHTML = XS.icon('arrowRight', 'w-4 h-4');
+    });
+  </script>
+</body>
+</html>

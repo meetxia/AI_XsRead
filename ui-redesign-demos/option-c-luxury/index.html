@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#15110D">
+  <title>发现 · 文字之境</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: {
+      colors: {
+        'gold': { 300: '#E0C58A', 400: '#D4B679', 500: '#C9A961', 600: '#A88B47' },
+        'cream': { 50: '#F5F1EA', 100: '#EDE6D8', 200: '#E0D5C0' },
+        'coffee': { 700: '#3A2E20', 800: '#2A1F15', 900: '#15110D' },
+      },
+      fontFamily: { serif: ['Playfair Display', 'Noto Serif SC', 'serif'], sc: ['Noto Serif SC', 'serif'], sans: ['Inter','sans-serif'] }
+    }}}
+  </script>
+  <style>
+    body { font-family: 'Inter', 'Noto Serif SC', sans-serif; -webkit-tap-highlight-color: transparent; transition: background .4s; }
+    .serif-en { font-family: 'Playfair Display', serif; }
+    .serif-cn { font-family: 'Noto Serif SC', serif; }
+    /* 浅色 */
+    body { background: #F5F1EA; color: #2A1F15; }
+    /* 深色 */
+    html.dark body { background: #15110D; color: #E8DFC9; }
+    .container-app { max-width: 480px; margin: 0 auto; }
+    @media(min-width:768px){ .container-app{max-width:720px;} }
+
+    .glass { background: rgba(245,241,234,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    html.dark .glass { background: rgba(21,17,13,0.6); }
+
+    .gold-line { background: linear-gradient(to right, transparent, #C9A961 50%, transparent); height: 1px; }
+    .gold-text { color: #C9A961; }
+    .scrollbar-hide::-webkit-scrollbar{display:none;} .scrollbar-hide{scrollbar-width:none;}
+
+    .fade-up { animation: fadeUp .9s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes fadeUp { from{opacity:0; transform: translateY(20px);} to{opacity:1; transform: translateY(0);} }
+    .float { animation: float 7s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0) rotate(-2deg);} 50%{transform:translateY(-8px) rotate(2deg);} }
+
+    .shimmer {
+      background: linear-gradient(135deg, #C9A961 0%, #E0C58A 25%, #C9A961 50%, #E0C58A 75%, #C9A961 100%);
+      background-size: 200% 200%; animation: shimmer 5s ease infinite;
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    @keyframes shimmer { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
+
+    .book-frame { box-shadow: 0 24px 48px -12px rgba(0,0,0,0.4); }
+    html.dark .book-frame { box-shadow: 0 24px 60px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,169,97,0.15); }
+
+    .bg-pattern {
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(201,169,97,0.06) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(201,169,97,0.04) 0%, transparent 40%);
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-24 bg-pattern">
+
+  <!-- 顶部 -->
+  <header class="sticky top-0 z-40 glass border-b border-gold-500/15">
+    <div class="container-app px-5 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-full border border-gold-500/40 flex items-center justify-center">
+          <span class="serif-cn text-gold-500 text-[10px] font-bold">境</span>
+        </div>
+        <div class="flex flex-col leading-none">
+          <span class="serif-cn font-bold text-sm">文字之境</span>
+          <span class="text-[8px] text-gold-500/80 tracking-[0.2em] mt-0.5">INK & SOUL</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-1">
+        <button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gold-500/10">
+          <svg class="w-4 h-4 text-gold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2m0 0a7 7 0 10-9.9 0 7 7 0 009.9 0z"/></svg>
+        </button>
+        <button id="theme-toggle" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gold-500/10">
+          <svg class="w-4 h-4 text-gold-500 sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
+          <svg class="w-4 h-4 text-gold-500 moon-icon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container-app px-5">
+
+    <!-- 招牌 -->
+    <section class="pt-8 pb-6 text-center fade-up">
+      <div class="text-[10px] tracking-[0.4em] gold-text mb-3">VOL. 07 · 2026.05</div>
+      <div class="gold-line w-24 mx-auto mb-4"></div>
+      <h1 class="serif-cn text-3xl font-bold leading-tight">墨韵</h1>
+      <div class="serif-en text-base shimmer italic mt-1">Ink & Soul</div>
+      <p class="text-xs text-coffee-700 dark:text-cream-200/60 mt-4 leading-relaxed max-w-xs mx-auto">每一卷都是<br/>编辑亲手挑选的故事</p>
+    </section>
+
+    <!-- 焦点封面 -->
+    <section class="fade-up" style="animation-delay:.1s">
+      <a href="detail.html" class="block relative">
+        <!-- 背景框 -->
+        <div class="absolute inset-0 -m-3 rounded-[2rem] border border-gold-500/20"></div>
+
+        <div class="relative bg-cream-100/40 dark:bg-coffee-800/40 rounded-3xl p-6">
+          <!-- 装饰角线 -->
+          <div class="absolute top-3 left-3 w-6 h-6 border-t border-l border-gold-500/40 rounded-tl-2xl"></div>
+          <div class="absolute top-3 right-3 w-6 h-6 border-t border-r border-gold-500/40 rounded-tr-2xl"></div>
+          <div class="absolute bottom-3 left-3 w-6 h-6 border-b border-l border-gold-500/40 rounded-bl-2xl"></div>
+          <div class="absolute bottom-3 right-3 w-6 h-6 border-b border-r border-gold-500/40 rounded-br-2xl"></div>
+
+          <div class="text-center">
+            <div class="text-[10px] tracking-[0.3em] gold-text mb-3">FEATURED · 编辑手记</div>
+
+            <!-- 浮书 -->
+            <div class="float w-36 mx-auto mb-5 book-frame rounded-md relative" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2A1F15 0%, #15110D 100%);">
+              <!-- 金色封面装饰 -->
+              <div class="absolute inset-3 border border-gold-500/30 rounded-sm"></div>
+              <div class="absolute inset-0 flex flex-col items-center justify-center p-5">
+                <div class="serif-en text-[10px] tracking-widest gold-text mb-2 italic">VOL.01</div>
+                <div class="serif-cn text-base font-bold text-gold-300 text-center leading-tight">长安月下<br/>归人未归</div>
+                <div class="gold-line w-12 my-3"></div>
+                <div class="serif-en text-[8px] tracking-[0.2em] gold-text italic">CHANG'AN MOON</div>
+                <div class="absolute bottom-3 text-[8px] tracking-widest gold-text/60 serif-cn">墨染流年</div>
+              </div>
+            </div>
+
+            <h2 class="serif-cn text-xl font-bold leading-tight">长安月下，归人未归</h2>
+            <div class="serif-en text-xs gold-text italic mt-1">by 墨染流年</div>
+
+            <p class="text-xs text-coffee-700 dark:text-cream-200/70 leading-relaxed mt-4 max-w-xs mx-auto serif-cn">
+              "宫墙深深，月色清冷。<br/>她站在城楼上，等一个永远不会回来的人。"
+            </p>
+
+            <button class="mt-5 px-7 py-2.5 border border-gold-500 gold-text text-xs tracking-[0.2em] font-semibold rounded-full hover:bg-gold-500 hover:text-coffee-900 transition">
+              READ MORE →
+            </button>
+          </div>
+        </div>
+      </a>
+    </section>
+
+    <!-- 章节式分隔 -->
+    <section class="my-10 text-center fade-up" style="animation-delay:.15s">
+      <div class="flex items-center justify-center gap-3">
+        <div class="gold-line w-12"></div>
+        <div class="serif-en text-xs gold-text italic tracking-[0.3em]">CURATED</div>
+        <div class="gold-line w-12"></div>
+      </div>
+    </section>
+
+    <!-- 流派 -->
+    <section class="fade-up" style="animation-delay:.2s">
+      <div class="grid grid-cols-4 gap-3">
+        <a href="#" class="text-center">
+          <div class="aspect-square rounded-2xl bg-gradient-to-br from-coffee-800 to-coffee-900 dark:from-cream-100 dark:to-cream-200 flex items-center justify-center mb-2 relative overflow-hidden">
+            <div class="absolute inset-2 border border-gold-500/30 rounded-xl"></div>
+            <span class="serif-cn text-base text-gold-500 font-bold">古</span>
+          </div>
+          <div class="text-[10px] gold-text tracking-widest">CLASSIC</div>
+          <div class="text-[10px] mt-0.5">古风</div>
+        </a>
+        <a href="#" class="text-center">
+          <div class="aspect-square rounded-2xl bg-gradient-to-br from-coffee-800 to-coffee-900 dark:from-cream-100 dark:to-cream-200 flex items-center justify-center mb-2 relative overflow-hidden">
+            <div class="absolute inset-2 border border-gold-500/30 rounded-xl"></div>
+            <span class="serif-cn text-base text-gold-500 font-bold">都</span>
+          </div>
+          <div class="text-[10px] gold-text tracking-widest">URBAN</div>
+          <div class="text-[10px] mt-0.5">都市</div>
+        </a>
+        <a href="#" class="text-center">
+          <div class="aspect-square rounded-2xl bg-gradient-to-br from-coffee-800 to-coffee-900 dark:from-cream-100 dark:to-cream-200 flex items-center justify-center mb-2 relative overflow-hidden">
+            <div class="absolute inset-2 border border-gold-500/30 rounded-xl"></div>
+            <span class="serif-cn text-base text-gold-500 font-bold">悬</span>
+          </div>
+          <div class="text-[10px] gold-text tracking-widest">MYSTERY</div>
+          <div class="text-[10px] mt-0.5">悬疑</div>
+        </a>
+        <a href="#" class="text-center">
+          <div class="aspect-square rounded-2xl bg-gradient-to-br from-coffee-800 to-coffee-900 dark:from-cream-100 dark:to-cream-200 flex items-center justify-center mb-2 relative overflow-hidden">
+            <div class="absolute inset-2 border border-gold-500/30 rounded-xl"></div>
+            <span class="serif-cn text-base text-gold-500 font-bold">愈</span>
+          </div>
+          <div class="text-[10px] gold-text tracking-widest">HEALING</div>
+          <div class="text-[10px] mt-0.5">治愈</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- 编辑专题 -->
+    <section class="mt-10 fade-up" style="animation-delay:.25s">
+      <div class="text-center mb-5">
+        <div class="serif-en text-[10px] gold-text tracking-[0.4em] italic">EDITOR'S SELECTION</div>
+        <h2 class="serif-cn text-xl font-bold mt-1">主编手记</h2>
+      </div>
+
+      <div class="space-y-4">
+        <a href="detail.html" class="flex gap-4 p-4 rounded-2xl glass border border-gold-500/15">
+          <div class="serif-en text-3xl gold-text italic font-bold w-10 text-center leading-none flex-shrink-0">01</div>
+          <div class="w-14 rounded-md flex-shrink-0 book-frame relative" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2A1F15, #15110D);">
+            <div class="absolute inset-1 border border-gold-500/30 rounded-sm"></div>
+            <div class="absolute inset-0 flex items-center justify-center serif-cn text-gold-400 text-[8px] font-bold p-1 text-center leading-tight">长安月下</div>
+          </div>
+          <div class="flex-1 min-w-0 py-1">
+            <div class="serif-cn font-semibold text-sm truncate">长安月下，归人未归</div>
+            <div class="text-[10px] gold-text mt-0.5 tracking-widest">墨染流年</div>
+            <p class="text-[11px] text-coffee-700 dark:text-cream-200/60 mt-1.5 line-clamp-2 leading-relaxed">那年春日的桃花，开了又落，等待是最深沉的告白。</p>
+          </div>
+        </a>
+        <a href="detail.html" class="flex gap-4 p-4 rounded-2xl glass border border-gold-500/15">
+          <div class="serif-en text-3xl gold-text italic font-bold w-10 text-center leading-none flex-shrink-0">02</div>
+          <div class="w-14 rounded-md flex-shrink-0 book-frame relative" style="aspect-ratio:3/4; background: linear-gradient(160deg, #1F2A35, #0F1820);">
+            <div class="absolute inset-1 border border-gold-500/30 rounded-sm"></div>
+            <div class="absolute inset-0 flex items-center justify-center serif-cn text-gold-400 text-[8px] font-bold p-1 text-center leading-tight">雨夜迷雾</div>
+          </div>
+          <div class="flex-1 min-w-0 py-1">
+            <div class="serif-cn font-semibold text-sm truncate">雨夜迷雾中的真相</div>
+            <div class="text-[10px] gold-text mt-0.5 tracking-widest">悬疑女王</div>
+            <p class="text-[11px] text-coffee-700 dark:text-cream-200/60 mt-1.5 line-clamp-2 leading-relaxed">一场雨，一封遗嘱，三个女人的二十年秘密。</p>
+          </div>
+        </a>
+        <a href="detail.html" class="flex gap-4 p-4 rounded-2xl glass border border-gold-500/15">
+          <div class="serif-en text-3xl gold-text italic font-bold w-10 text-center leading-none flex-shrink-0">03</div>
+          <div class="w-14 rounded-md flex-shrink-0 book-frame relative" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2D2618, #1A1408);">
+            <div class="absolute inset-1 border border-gold-500/30 rounded-sm"></div>
+            <div class="absolute inset-0 flex items-center justify-center serif-cn text-gold-400 text-[8px] font-bold p-1 text-center leading-tight">咖啡馆</div>
+          </div>
+          <div class="flex-1 min-w-0 py-1">
+            <div class="serif-cn font-semibold text-sm truncate">咖啡馆里的小确幸</div>
+            <div class="text-[10px] gold-text mt-0.5 tracking-widest">治愈系作者</div>
+            <p class="text-[11px] text-coffee-700 dark:text-cream-200/60 mt-1.5 line-clamp-2 leading-relaxed">城市角落的小咖啡馆，藏着每个客人未说完的故事。</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- 引文段落 -->
+    <section class="my-10 px-4 fade-up" style="animation-delay:.3s">
+      <div class="text-center">
+        <div class="text-3xl gold-text serif-en italic mb-2">"</div>
+        <p class="serif-cn text-base leading-relaxed text-coffee-800 dark:text-cream-100">
+          读一本好书，就是<br/>把别人的人生<br/>当作礼物收下。
+        </p>
+        <div class="gold-line w-12 mx-auto my-4"></div>
+        <div class="text-[10px] gold-text tracking-[0.3em]">— 文字之境 · 编辑部</div>
+      </div>
+    </section>
+
+    <!-- 完结好书 -->
+    <section class="fade-up" style="animation-delay:.35s">
+      <div class="flex items-end justify-between mb-4">
+        <div>
+          <div class="serif-en text-[10px] gold-text tracking-[0.3em] italic">COMPLETED</div>
+          <h2 class="serif-cn text-lg font-bold mt-1">完结典藏</h2>
+        </div>
+        <a href="#" class="text-[10px] gold-text tracking-widest">VIEW ALL →</a>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <a href="detail.html" class="group">
+          <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2A1F15, #15110D);">
+            <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+            <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+              <div class="serif-en text-[8px] gold-text italic">VOL.01</div>
+              <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">长安月下</div>
+              <div class="gold-line w-6 my-1.5"></div>
+              <div class="text-[7px] gold-text/80 tracking-widest serif-cn">墨染流年</div>
+            </div>
+          </div>
+          <div class="serif-cn text-xs font-semibold truncate">长安月下，归人未归</div>
+          <div class="text-[10px] gold-text/70 mt-0.5">128 章 · 完结</div>
+        </a>
+        <a href="detail.html" class="group">
+          <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #1F2A35, #0F1820);">
+            <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+            <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+              <div class="serif-en text-[8px] gold-text italic">VOL.02</div>
+              <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">雨夜迷雾</div>
+              <div class="gold-line w-6 my-1.5"></div>
+              <div class="text-[7px] gold-text/80 tracking-widest serif-cn">悬疑女王</div>
+            </div>
+          </div>
+          <div class="serif-cn text-xs font-semibold truncate">雨夜迷雾中的真相</div>
+          <div class="text-[10px] gold-text/70 mt-0.5">96 章 · 完结</div>
+        </a>
+        <a href="detail.html" class="group">
+          <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2D2618, #1A1408);">
+            <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+            <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+              <div class="serif-en text-[8px] gold-text italic">VOL.03</div>
+              <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">咖啡馆</div>
+              <div class="gold-line w-6 my-1.5"></div>
+              <div class="text-[7px] gold-text/80 tracking-widest serif-cn">治愈系作者</div>
+            </div>
+          </div>
+          <div class="serif-cn text-xs font-semibold truncate">咖啡馆里的小确幸</div>
+          <div class="text-[10px] gold-text/70 mt-0.5">64 章 · 完结</div>
+        </a>
+        <a href="detail.html" class="group">
+          <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2C1F2A, #1A0F18);">
+            <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+            <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+              <div class="serif-en text-[8px] gold-text italic">VOL.04</div>
+              <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">时光相遇</div>
+              <div class="gold-line w-6 my-1.5"></div>
+              <div class="text-[7px] gold-text/80 tracking-widest serif-cn">温柔笔触</div>
+            </div>
+          </div>
+          <div class="serif-cn text-xs font-semibold truncate">时光里的温柔相遇</div>
+          <div class="text-[10px] gold-text/70 mt-0.5">82 章 · 完结</div>
+        </a>
+        <a href="detail.html" class="group">
+          <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #2A2515, #15110D);">
+            <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+            <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+              <div class="serif-en text-[8px] gold-text italic">VOL.05</div>
+              <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">桃花笺</div>
+              <div class="gold-line w-6 my-1.5"></div>
+              <div class="text-[7px] gold-text/80 tracking-widest serif-cn">墨染流年</div>
+            </div>
+          </div>
+          <div class="serif-cn text-xs font-semibold truncate">桃花笺</div>
+          <div class="text-[10px] gold-text/70 mt-0.5">112 章 · 完结</div>
+        </a>
+        <a href="detail.html" class="group">
+          <div class="rounded-md mb-2 book-frame relative overflow-hidden" style="aspect-ratio:3/4; background: linear-gradient(160deg, #1F2820, #0F1810);">
+            <div class="absolute inset-2 border border-gold-500/30 rounded-sm"></div>
+            <div class="absolute inset-0 flex flex-col items-center justify-center p-2">
+              <div class="serif-en text-[8px] gold-text italic">VOL.06</div>
+              <div class="serif-cn text-[10px] font-bold text-gold-300 text-center leading-tight mt-1">浮生若梦</div>
+              <div class="gold-line w-6 my-1.5"></div>
+              <div class="text-[7px] gold-text/80 tracking-widest serif-cn">墨染流年</div>
+            </div>
+          </div>
+          <div class="serif-cn text-xs font-semibold truncate">浮生若梦</div>
+          <div class="text-[10px] gold-text/70 mt-0.5">156 章 · 完结</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- 页尾装饰 -->
+    <section class="text-center mt-12 pb-4">
+      <div class="gold-line w-32 mx-auto mb-3"></div>
+      <div class="serif-en text-[10px] gold-text italic tracking-[0.4em]">— END OF VOL.07 —</div>
+    </section>
+
+  </main>
+
+  <!-- 底部导航 -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 glass border-t border-gold-500/20" style="padding-bottom: env(safe-area-inset-bottom);">
+    <div class="container-app grid grid-cols-4 h-16">
+      <a href="index.html" class="flex flex-col items-center justify-center gold-text">
+        <svg class="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.5l9 7v11a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1v-11l9-7z"/></svg>
+        <span class="text-[10px] tracking-[0.2em] serif-en italic">DISCOVER</span>
+      </a>
+      <a href="bookshelf.html" class="flex flex-col items-center justify-center text-stone-500">
+        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <span class="text-[10px] tracking-[0.2em] serif-en italic">SHELF</span>
+      </a>
+      <a href="reading.html" class="flex flex-col items-center justify-center text-stone-500">
+        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5"/></svg>
+        <span class="text-[10px] tracking-[0.2em] serif-en italic">READ</span>
+      </a>
+      <a href="profile.html" class="flex flex-col items-center justify-center text-stone-500">
+        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0"/></svg>
+        <span class="text-[10px] tracking-[0.2em] serif-en italic">ME</span>
+      </a>
+    </div>
+  </nav>
+
+  <a href="../index.html" class="fixed top-3 left-3 z-50 w-9 h-9 flex items-center justify-center rounded-full glass border border-gold-500/30 gold-text">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+  </a>
+
+  <script>
+    const html = document.documentElement;
+    const stored = localStorage.getItem('demo-theme-c');
+    // 默认深色（这是这个方案的主调）
+    if (stored === 'light') html.classList.remove('dark');
+    else html.classList.add('dark');
+    document.querySelector('.sun-icon').classList.toggle('hidden', html.classList.contains('dark'));
+    document.querySelector('.moon-icon').classList.toggle('hidden', !html.classList.contains('dark'));
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      html.classList.toggle('dark');
+      localStorage.setItem('demo-theme-c', html.classList.contains('dark') ? 'dark' : 'light');
+      document.querySelector('.sun-icon').classList.toggle('hidden');
+      document.querySelector('.moon-icon').classList.toggle('hidden');
+    });
+  </script>
+</body>
+</html>

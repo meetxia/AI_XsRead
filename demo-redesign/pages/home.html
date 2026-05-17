@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="theme-cream">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FAF6F1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1A1714" media="(prefers-color-scheme: dark)" />
+  <title>首页 · 文字之境</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/tailwind-cream.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/common.css" />
+  <script src="../shared/theme-toggle.js"></script>
+  <script src="../shared/partials.js"></script>
+</head>
+<body class="bg-cream-50 dark:bg-night-900 text-ink-900 dark:text-cream-100 font-sans antialiased min-h-screen paper-texture">
+
+  <div id="header"></div>
+
+  <main class="max-w-screen-md mx-auto px-5 pb-24">
+
+    <!-- 继续阅读 -->
+    <section class="pt-6 pb-2">
+      <div class="flex items-end justify-between mb-4">
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1.5">Continue Reading</p>
+          <h2 class="font-serif text-2xl font-semibold tracking-tight">继续你的故事</h2>
+        </div>
+      </div>
+
+      <a href="reading.html" class="book-card relative block rounded-3xl overflow-hidden bg-gradient-to-br from-clay-500 to-clay-700 dark:from-clay-600 dark:to-clay-700 text-cream-50 shadow-cream-lg">
+        <div class="absolute inset-0 opacity-90">
+          <svg viewBox="0 0 400 240" class="w-full h-full" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="heroBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8B5E3C"/><stop offset="100%" stop-color="#5C3B25"/></linearGradient>
+              <radialGradient id="heroGlow" cx="0.7" cy="0.3"><stop offset="0%" stop-color="#E5D6C4" stop-opacity="0.6"/><stop offset="100%" stop-color="#5C3B25" stop-opacity="0"/></radialGradient>
+            </defs>
+            <rect width="400" height="240" fill="url(#heroBg)"/>
+            <rect width="400" height="240" fill="url(#heroGlow)"/>
+            <path d="M0,200 Q80,160 160,180 T320,170 L400,190 L400,240 L0,240 Z" fill="#2A2520" opacity="0.35"/>
+            <path d="M0,210 Q100,180 200,200 T400,205 L400,240 L0,240 Z" fill="#1A1714" opacity="0.4"/>
+            <circle cx="290" cy="70" r="32" fill="#FDFAF6" opacity="0.85"/>
+            <circle cx="280" cy="65" r="30" fill="#A87A56" opacity="0.95"/>
+          </svg>
+        </div>
+        <div class="relative p-6 pr-5 min-h-[220px] flex flex-col justify-between">
+          <div>
+            <span class="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/20 font-medium">
+              <span class="w-1.5 h-1.5 rounded-full bg-cream-50 animate-pulse"></span>
+              第 12 章 · 雪夜归人
+            </span>
+            <h3 class="mt-3 font-serif text-2xl font-semibold leading-tight max-w-[14ch]">长安十二时辰里的她</h3>
+            <p class="mt-1.5 text-sm text-cream-200/80">林深时见鹿 · 古风言情</p>
+          </div>
+          <div class="mt-6">
+            <div class="flex items-center gap-3 text-xs text-cream-200/90 mb-2">
+              <span>已读 42%</span>
+              <span class="w-1 h-1 rounded-full bg-cream-50/40"></span>
+              <span>剩约 3 小时</span>
+            </div>
+            <div class="h-1 rounded-full bg-cream-50/20 overflow-hidden">
+              <div class="h-full bg-cream-50 rounded-full" style="width: 42%"></div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </section>
+
+    <!-- 快捷入口 -->
+    <section class="mt-8">
+      <div class="grid grid-cols-4 gap-2">
+        <a href="discover.html?tab=hot" class="group flex flex-col items-center gap-2 py-4 rounded-2xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition-colors">
+          <div class="w-10 h-10 rounded-2xl bg-clay-500/10 dark:bg-clay-400/15 grid place-items-center text-clay-600 dark:text-clay-400 group-active:scale-90 transition-transform" id="i1"></div>
+          <span class="text-xs font-medium">本周热门</span>
+        </a>
+        <a href="discover.html?tab=new" class="group flex flex-col items-center gap-2 py-4 rounded-2xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition-colors">
+          <div class="w-10 h-10 rounded-2xl bg-moss-500/10 dark:bg-moss-500/20 grid place-items-center text-moss-600 dark:text-moss-500 group-active:scale-90 transition-transform" id="i2"></div>
+          <span class="text-xs font-medium">新书上架</span>
+        </a>
+        <a href="discover.html?tab=finished" class="group flex flex-col items-center gap-2 py-4 rounded-2xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition-colors">
+          <div class="w-10 h-10 rounded-2xl bg-clay-500/10 dark:bg-clay-400/15 grid place-items-center text-clay-600 dark:text-clay-400 group-active:scale-90 transition-transform" id="i3"></div>
+          <span class="text-xs font-medium">完结好书</span>
+        </a>
+        <a href="discover.html?tab=editor" class="group flex flex-col items-center gap-2 py-4 rounded-2xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition-colors">
+          <div class="w-10 h-10 rounded-2xl bg-moss-500/10 dark:bg-moss-500/20 grid place-items-center text-moss-600 dark:text-moss-500 group-active:scale-90 transition-transform" id="i4"></div>
+          <span class="text-xs font-medium">编辑推荐</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- 主编荐读 -->
+    <section class="mt-12">
+      <div class="flex items-end justify-between mb-5">
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1.5">Editor's Pick · Vol.07</p>
+          <h2 class="font-serif text-2xl font-semibold tracking-tight">本期主编荐读</h2>
+        </div>
+        <a href="discover.html" class="text-sm text-ink-700 dark:text-ink-300 underline underline-offset-4 decoration-cream-300">全部</a>
+      </div>
+
+      <article class="rounded-3xl overflow-hidden bg-cream-100 dark:bg-night-800 shadow-cream">
+        <a href="detail.html" class="block relative aspect-[16/10] overflow-hidden bg-clay-500">
+          <svg viewBox="0 0 400 250" class="w-full h-full" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs><linearGradient id="pickBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6B7B5A"/><stop offset="100%" stop-color="#2A2520"/></linearGradient></defs>
+            <rect width="400" height="250" fill="url(#pickBg)"/>
+            <path d="M0,180 Q60,140 130,160 T260,150 T400,165 L400,250 L0,250 Z" fill="#1A1714" opacity="0.35"/>
+            <g opacity="0.6">
+              <ellipse cx="60" cy="40" rx="45" ry="14" fill="#8B5E3C" transform="rotate(-30 60 40)"/>
+              <ellipse cx="340" cy="200" rx="55" ry="16" fill="#5C3B25" transform="rotate(20 340 200)"/>
+            </g>
+            <text x="30" y="120" font-family="Noto Serif SC, serif" font-size="36" font-weight="600" fill="#FDFAF6" letter-spacing="2">山有木兮</text>
+            <text x="30" y="148" font-family="Inter, sans" font-size="11" fill="#FDFAF6" opacity="0.7" letter-spacing="3">SHAN YOU MU XI</text>
+          </svg>
+          <span class="absolute top-4 left-4 px-3 py-1 rounded-full text-[11px] font-medium bg-cream-50 text-clay-700">编辑推荐</span>
+        </a>
+        <div class="p-5">
+          <div class="flex items-center gap-2 text-xs text-ink-500 dark:text-ink-300 mb-2">
+            <span>古风言情</span>
+            <span class="w-0.5 h-0.5 rounded-full bg-current"></span>
+            <span>白衣不渡</span>
+            <span class="w-0.5 h-0.5 rounded-full bg-current"></span>
+            <span>32 万字</span>
+          </div>
+          <h3 class="font-serif text-xl font-semibold leading-snug mb-2">山有木兮：那一年长安飘雪</h3>
+          <p class="text-sm text-ink-700 dark:text-ink-300 leading-relaxed line-clamp-3">
+            她是失了记忆的将军遗孤，他是江湖最不该现身的剑客。命运把两个人推向一座无名雪山，所有的爱恨都在那里，重新写一遍。
+          </p>
+          <div class="mt-4 flex items-center justify-between">
+            <div class="flex items-center gap-3 text-xs text-ink-500 dark:text-ink-300" id="rate1"></div>
+            <a href="reading.html" class="text-xs font-medium px-4 py-2 rounded-full bg-clay-700 dark:bg-clay-500 text-cream-50 hover:bg-clay-600 active:scale-95 transition">
+              开始阅读
+            </a>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- 横向 chip -->
+    <section class="mt-10">
+      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-5 px-5">
+        <button class="shrink-0 px-4 h-9 rounded-full bg-clay-700 dark:bg-clay-500 text-cream-50 text-sm font-medium">为你推荐</button>
+        <button class="shrink-0 px-4 h-9 rounded-full bg-cream-100 dark:bg-night-800 text-ink-900 dark:text-cream-100 text-sm font-medium">古风言情</button>
+        <button class="shrink-0 px-4 h-9 rounded-full bg-cream-100 dark:bg-night-800 text-ink-900 dark:text-cream-100 text-sm font-medium">都市恋曲</button>
+        <button class="shrink-0 px-4 h-9 rounded-full bg-cream-100 dark:bg-night-800 text-ink-900 dark:text-cream-100 text-sm font-medium">悬疑推理</button>
+        <button class="shrink-0 px-4 h-9 rounded-full bg-cream-100 dark:bg-night-800 text-ink-900 dark:text-cream-100 text-sm font-medium">治愈系</button>
+        <button class="shrink-0 px-4 h-9 rounded-full bg-cream-100 dark:bg-night-800 text-ink-900 dark:text-cream-100 text-sm font-medium">奇幻冒险</button>
+      </div>
+    </section>
+
+    <!-- 推荐书单 -->
+    <section class="mt-6">
+      <div class="grid grid-cols-2 gap-4" id="bookGrid"></div>
+    </section>
+
+    <!-- 治愈专题 -->
+    <section class="mt-12">
+      <div class="rounded-3xl overflow-hidden bg-cream-100 dark:bg-night-800 border border-cream-200 dark:border-night-700">
+        <div class="p-6">
+          <p class="text-[11px] uppercase tracking-[0.25em] text-moss-600 dark:text-moss-500 font-medium mb-2">Curated · 治愈专题</p>
+          <h3 class="font-serif text-xl font-semibold leading-tight">在文字里，我们都是赶路人</h3>
+          <p class="mt-2 text-sm text-ink-700 dark:text-ink-300 leading-relaxed">
+            12 本被读者在深夜反复打开的书。它们不一定是最热的，但都很温柔。
+          </p>
+          <a href="discover.html" class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-moss-600 dark:text-moss-500">
+            进入专题 <span id="arr1"></span>
+          </a>
+        </div>
+        <div class="flex gap-3 px-6 pb-6 overflow-x-auto no-scrollbar">
+          <a href="detail.html" class="shrink-0 w-20 aspect-[3/4] rounded-xl bg-gradient-to-br from-clay-400 to-clay-700"></a>
+          <a href="detail.html" class="shrink-0 w-20 aspect-[3/4] rounded-xl bg-gradient-to-br from-moss-500 to-moss-600"></a>
+          <a href="detail.html" class="shrink-0 w-20 aspect-[3/4] rounded-xl bg-gradient-to-br from-cream-300 to-clay-500"></a>
+          <a href="detail.html" class="shrink-0 w-20 aspect-[3/4] rounded-xl bg-gradient-to-br from-night-800 to-clay-700"></a>
+          <a href="detail.html" class="shrink-0 w-20 aspect-[3/4] rounded-xl bg-gradient-to-br from-clay-500 to-moss-600"></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 排行榜 -->
+    <section class="mt-12">
+      <div class="flex items-end justify-between mb-5">
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1.5">Top Charts</p>
+          <h2 class="font-serif text-2xl font-semibold tracking-tight">本周读者最爱</h2>
+        </div>
+        <a href="discover.html?tab=hot" class="text-sm text-ink-700 dark:text-ink-300 underline underline-offset-4 decoration-cream-300">完整榜单</a>
+      </div>
+      <ol class="rounded-3xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden" id="rankList"></ol>
+    </section>
+
+    <footer class="mt-16 mb-8 text-center">
+      <p class="font-serif text-sm text-ink-500 dark:text-ink-300 italic">"故事入境，杂念自消"</p>
+      <p class="text-[11px] mt-2 text-ink-300 dark:text-ink-500 tracking-wider">© 文字之境</p>
+    </footer>
+  </main>
+
+  <div id="bottomNav"></div>
+
+  <script>
+    // 注入顶/底部
+    document.getElementById('header').innerHTML = XS.appHeader();
+    document.getElementById('bottomNav').innerHTML = XS.bottomNav('home');
+
+    // 快捷入口图标
+    document.getElementById('i1').innerHTML = XS.icon('fire');
+    document.getElementById('i2').innerHTML = XS.icon('plus');
+    document.getElementById('i3').innerHTML = XS.icon('check');
+    document.getElementById('i4').innerHTML = XS.icon('starFill');
+    document.getElementById('arr1').innerHTML = XS.icon('arrowRight', 'w-4 h-4');
+
+    // 评分
+    document.getElementById('rate1').innerHTML = `${XS.icon('starFill','w-3.5 h-3.5')} <span class="font-medium text-ink-900 dark:text-cream-100">9.2</span><span>· 12.4 万人在读</span>`;
+
+    // 推荐书
+    const books = [
+      { id:1, title:'归棠记事',           author:'沈砚白', cat:'古风',   rating:9.0, sub:'记事',   variant:0 },
+      { id:2, title:'夜窗集',             author:'阮宁',   cat:'治愈散文', rating:8.7, sub:'',       variant:1 },
+      { id:3, title:'流光记',             author:'温知秋', cat:'都市',   rating:8.9, sub:'',       variant:4 },
+      { id:4, title:'迷雾镇·第七封信',     author:'江聿',   cat:'悬疑',   rating:9.4, sub:'第七封信', variant:5 },
+    ];
+    document.getElementById('bookGrid').innerHTML = books.map(b => `
+      <a href="detail.html?id=${b.id}" class="book-card group">
+        <div class="aspect-[3/4] rounded-2xl overflow-hidden shadow-cream relative">
+          ${XS.cover({variant:b.variant, title:b.title.split('·')[0], sub:b.sub})}
+        </div>
+        <div class="mt-2.5 px-0.5">
+          <h4 class="font-serif font-semibold text-sm leading-snug line-clamp-1">${b.title}</h4>
+          <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 line-clamp-1">${b.author} · ${b.cat}</p>
+          <div class="flex items-center gap-1 mt-1 text-[11px] text-clay-500 dark:text-clay-400">
+            ${XS.icon('starFill', 'w-3 h-3')}
+            <span class="font-medium">${b.rating}</span>
+          </div>
+        </div>
+      </a>`).join('');
+
+    // 排行榜
+    const ranks = [
+      { rank:1, title:'雪夜里的黄昏',      author:'夜雨临', cat:'都市言情', readers:'18.2 万', rating:9.5, color:'from-clay-400 to-clay-700' },
+      { rank:2, title:'长安的秋天',        author:'沈砚白', cat:'古风言情', readers:'14.8 万', rating:9.3, color:'from-moss-500 to-moss-600' },
+      { rank:3, title:'第七个春天的告白',   author:'温知秋', cat:'治愈系',   readers:'11.3 万', rating:9.1, color:'from-night-800 to-clay-700' },
+      { rank:4, title:'迷雾镇·第七封信',   author:'江聿',   cat:'悬疑推理', readers:'9.7 万',  rating:8.8, color:'from-cream-300 to-clay-500' },
+      { rank:5, title:'归棠记事',          author:'沈砚白', cat:'古风',     readers:'8.1 万',  rating:8.6, color:'from-clay-500 to-moss-600' },
+    ];
+    document.getElementById('rankList').innerHTML = ranks.map(r => `
+      <li>
+        <a href="detail.html" class="flex items-center gap-4 p-4 hover:bg-cream-200/40 dark:hover:bg-night-700/40 transition-colors">
+          <span class="font-serif text-2xl font-semibold ${r.rank <= 2 ? 'text-clay-700 dark:text-clay-400' : 'text-ink-500 dark:text-ink-300'} w-7 text-center">${r.rank}</span>
+          <div class="w-12 h-16 rounded-lg bg-gradient-to-br ${r.color} shadow-cream shrink-0"></div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif font-semibold text-sm truncate">${r.title}</h4>
+            <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">${r.author} · ${r.cat} · ${r.readers}在读</p>
+          </div>
+          <span class="text-xs text-clay-500 dark:text-clay-400 font-medium">${r.rating}</span>
+        </a>
+      </li>`).join('');
+  </script>
+</body>
+</html>

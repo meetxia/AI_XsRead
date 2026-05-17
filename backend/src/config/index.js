@@ -73,7 +73,7 @@ module.exports = {
     enableKeepAlive: true,  // 保持连接
     keepAliveInitialDelay: 0,
 
-    // 字符集
+    // 字符集（确保中文正常显示）
     charset: 'utf8mb4',
 
     // 时区

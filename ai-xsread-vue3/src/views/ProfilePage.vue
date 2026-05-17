@@ -1,1150 +1,194 @@
-<template>
-  <div class="profile-page">
-    <!-- 顶部导航 -->
-    <AppHeader />
-    
-    <div class="main-content">
-      <!-- 用户信息卡片 -->
-      <section class="user-info-section fade-in">
-        <div class="user-card">
-          <!-- 背景装饰 -->
-          <div class="card-background"></div>
-          
-          <div class="user-content">
-            <!-- 头像 -->
-            <div class="avatar-container">
-              <img 
-                :src="getUserAvatarUrl(userInfo)" 
-                :alt="userInfo?.nickname || '用户'"
-                class="user-avatar"
-                @error="onAvatarError"
-              />
-              <button class="avatar-edit-btn" @click="handleEditAvatar">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-              </button>
-            </div>
-
-            <!-- 用户名和签名 -->
-            <div class="user-info">
-              <h2 class="user-name">{{ userInfo?.nickname || userInfo?.username || '未登录' }}</h2>
-              <p class="user-bio">{{ userInfo?.bio || '这个人很懒，还没有签名~' }}</p>
-              <div class="user-meta">
-                <span class="meta-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-                  </svg>
-                  UID: {{ userInfo?.id || '---' }}
-                </span>
-                <span class="meta-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-                  </svg>
-                  {{ formatDate(userInfo?.createdAt) }}
-                </span>
-              </div>
-            </div>
-
-            <!-- 编辑资料按钮 -->
-            <button class="edit-profile-btn" @click="handleEditProfile">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-              </svg>
-              编辑资料
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- 阅读统计 -->
-      <section class="stats-section fade-in mt-xl" style="animation-delay: 0.1s">
-        <h3 class="section-title">阅读统计</h3>
-        <ReadingStatsChart />
-      </section>
-
-      <!-- 浏览记录 -->
-      <section class="bookshelf-section fade-in" style="animation-delay: 0.15s">
-        <div class="section-header">
-          <h3 class="section-title">浏览记录</h3>
-          <button v-if="viewHistory.length > 0" class="more-btn" @click="goToHistory">
-            查看全部
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-          </button>
-        </div>
-        <div v-if="viewHistory.length > 0" class="bookshelf-preview">
-          <div v-for="book in viewHistory.slice(0, 3)" :key="book.novel_id || book.id" 
-               class="book-item" @click="goToNovel(book.novel_id || book.id)">
-            <div class="book-cover" :style="getBookCoverStyle(book)">
-              <img v-if="book.cover" :src="book.cover" :alt="book.title" class="book-cover-img" />
-              <h4 v-else class="book-title">{{ book.title }}</h4>
-            </div>
-            <p class="book-progress">
-              <span v-if="book.chapter_title">{{ book.chapter_title }}</span>
-              <span v-else>浏览过</span>
-            </p>
-          </div>
-        </div>
-        <div v-else class="empty-history">
-          <p class="empty-text">暂无浏览记录</p>
-        </div>
-      </section>
-
-      <!-- 成就系统 -->
-      <section class="achievement-section fade-in" style="animation-delay: 0.2s">
-        <h3 class="section-title">我的成就</h3>
-        <AchievementSystem />
-      </section>
-
-      <!-- 功能菜单 -->
-      <section class="menu-section fade-in" style="animation-delay: 0.3s">
-        <h3 class="section-title">功能菜单</h3>
-        <div class="menu-grid">
-          <button 
-            v-for="item in menuItems" 
-            :key="item.key"
-            class="menu-item"
-            @click="handleMenuClick(item.key)"
-          >
-            <div class="menu-icon" :style="{ background: item.gradient }">
-              <component :is="item.icon" class="w-6 h-6" />
-            </div>
-            <span class="menu-label">{{ item.label }}</span>
-            <svg class="menu-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-          </button>
-        </div>
-      </section>
-
-      <!-- 账户设置 -->
-      <section class="settings-section fade-in" style="animation-delay: 0.4s">
-        <h3 class="section-title">账户设置</h3>
-        <div class="settings-list">
-          <button 
-            v-for="item in settingItems" 
-            :key="item.key"
-            class="setting-item"
-            @click="handleSettingClick(item.key)"
-          >
-            <div class="setting-info">
-              <svg class="setting-icon" fill="currentColor" viewBox="0 0 20 20">
-                <path :d="item.iconPath"></path>
-              </svg>
-              <span class="setting-label">{{ item.label }}</span>
-            </div>
-            <div class="setting-action">
-              <span v-if="item.value" class="setting-value">{{ item.value }}</span>
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-              </svg>
-            </div>
-          </button>
-        </div>
-      </section>
-
-      <!-- 退出登录按钮 -->
-      <section class="logout-section fade-in" style="animation-delay: 0.5s">
-        <button class="logout-btn" @click="handleLogout">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-          </svg>
-          退出登录
-        </button>
-      </section>
-    </div>
-    
-    <!-- 底部导航 -->
-    <BottomNav />
-
-    <!-- 编辑资料弹窗 -->
-    <EditProfileModal
-      v-model:visible="showEditModal"
-      :user-info="userInfo"
-      @success="handleEditSuccess"
-    />
-  </div>
-</template>
-
 <script setup>
-import { ref, computed, onMounted, h } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
+import BottomNav from '@/components/v2/layout/BottomNav.vue'
+import Icon from '@/components/v2/icons/Icon.vue'
+import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import { useUserStore } from '@/stores/user'
-import { useBookshelfStore } from '@/stores/bookshelf'
-import AppHeader from '@/components/common/AppHeader.vue'
-import BottomNav from '@/components/common/BottomNav.vue'
-import ReadingStatsChart from '@/components/profile/ReadingStatsChart.vue'
-import AchievementSystem from '@/components/profile/AchievementSystem.vue'
-import EditProfileModal from '@/components/profile/EditProfileModal.vue'
-import { getUserAvatarUrl, handleAvatarError } from '@/utils/avatar'
-import { getReadingHistory } from '@/api/user'
-import message from '@/utils/message'
 
 const router = useRouter()
 const userStore = useUserStore()
-const bookshelfStore = useBookshelfStore()
 
-// 用户信息
-const userInfo = computed(() => userStore.userInfo)
+const user = computed(() => ({
+  name: userStore.userInfo?.username || userStore.userInfo?.nickname || '阮宁',
+  handle: '@' + (userStore.userInfo?.username || 'ningning'),
+  joinDays: 287,
+  avatar: userStore.userInfo?.avatar || '',
+  shelf: 32,
+  streak: 14,
+  hours: 287,
+}))
 
-// 编辑弹窗显示状态
-const showEditModal = ref(false)
+const avatarLetter = computed(() => (user.value.name[0] || '阮').toUpperCase())
 
-// 浏览记录
-const viewHistory = ref([])
-const loadingHistory = ref(false)
-
-// 预设的渐变背景数组
-const gradientBackgrounds = [
-  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-  'linear-gradient(135deg, #fa8bff 0%, #2bd2ff 90%)',
-  'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
-  'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+// 周阅读柱状图（占位数据）
+const weekData = [
+  { day: '一', pct: 30 },
+  { day: '二', pct: 55 },
+  { day: '三', pct: 75 },
+  { day: '四', pct: 45 },
+  { day: '五', pct: 100, today: true },
+  { day: '六', pct: 25 },
+  { day: '日', pct: 65 },
 ]
 
-// 获取书籍封面样式
-function getBookCoverStyle(book) {
-  if (book.cover) {
-    return {
-      backgroundImage: `url(${book.cover})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center'
-    }
-  }
-  // 如果没有封面，使用渐变背景
-  const index = (book.novel_id || book.id || 0) % gradientBackgrounds.length
-  return {
-    background: gradientBackgrounds[index]
-  }
+async function doLogout() {
+  await userStore.logout()
+  router.push('/login')
 }
-
-// 加载浏览记录
-async function loadViewHistory() {
-  if (!userStore.isLogin) return
-  
-  loadingHistory.value = true
-  try {
-    const res = await getReadingHistory({ page: 1, pageSize: 20 })
-    if (res.data && res.data.data) {
-      viewHistory.value = res.data.data
-    } else if (Array.isArray(res.data)) {
-      viewHistory.value = res.data
-    }
-  } catch (error) {
-    console.error('加载浏览记录失败:', error)
-    viewHistory.value = []
-  } finally {
-    loadingHistory.value = false
-  }
-}
-
-// SVG 图标组件
-const BookIcon = () => h('svg', { fill: 'currentColor', viewBox: '0 0 20 20' }, [
-  h('path', { d: 'M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z' })
-])
-
-const HistoryIcon = () => h('svg', { fill: 'currentColor', viewBox: '0 0 20 20' }, [
-  h('path', { 'fill-rule': 'evenodd', d: 'M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z', 'clip-rule': 'evenodd' })
-])
-
-const HeartIcon = () => h('svg', { fill: 'currentColor', viewBox: '0 0 20 20' }, [
-  h('path', { 'fill-rule': 'evenodd', d: 'M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z', 'clip-rule': 'evenodd' })
-])
-
-const DownloadIcon = () => h('svg', { fill: 'currentColor', viewBox: '0 0 20 20' }, [
-  h('path', { 'fill-rule': 'evenodd', d: 'M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z', 'clip-rule': 'evenodd' })
-])
-
-const CommentIcon = () => h('svg', { fill: 'currentColor', viewBox: '0 0 20 20' }, [
-  h('path', { 'fill-rule': 'evenodd', d: 'M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z', 'clip-rule': 'evenodd' })
-])
-
-const CouponIcon = () => h('svg', { fill: 'currentColor', viewBox: '0 0 20 20' }, [
-  h('path', { 'fill-rule': 'evenodd', d: 'M5 2a2 2 0 00-2 2v14l3.5-2 3.5 2 3.5-2 3.5 2V4a2 2 0 00-2-2H5zm4.707 3.707a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L8.414 9H10a3 3 0 013 3v1a1 1 0 102 0v-1a5 5 0 00-5-5H8.414l1.293-1.293z', 'clip-rule': 'evenodd' })
-])
-
-// 功能菜单
-const menuItems = ref([
-  { 
-    key: 'bookshelf', 
-    label: '我的书架', 
-    icon: BookIcon,
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-  },
-  { 
-    key: 'history', 
-    label: '浏览记录', 
-    icon: HistoryIcon,
-    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-  },
-  { 
-    key: 'favorites', 
-    label: '我的收藏', 
-    icon: HeartIcon,
-    gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-  },
-  { 
-    key: 'downloads', 
-    label: '离线下载', 
-    icon: DownloadIcon,
-    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-  },
-  { 
-    key: 'comments', 
-    label: '我的评论', 
-    icon: CommentIcon,
-    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
-  },
-  { 
-    key: 'coupons', 
-    label: '优惠券', 
-    icon: CouponIcon,
-    gradient: 'linear-gradient(135deg, #fa8bff 0%, #2bd2ff 90%)'
-  }
-])
-
-// 设置项
-const settingItems = ref([
-  {
-    key: 'account',
-    label: '账户信息',
-    value: '',
-    iconPath: 'M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z'
-  },
-  {
-    key: 'security',
-    label: '账号安全',
-    value: '',
-    iconPath: 'M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z'
-  },
-  {
-    key: 'notification',
-    label: '消息通知',
-    value: '已开启',
-    iconPath: 'M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z'
-  },
-  {
-    key: 'privacy',
-    label: '隐私设置',
-    value: '',
-    iconPath: 'M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-  },
-  {
-    key: 'theme',
-    label: '主题设置',
-    value: '跟随系统',
-    iconPath: 'M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z'
-  },
-  {
-    key: 'about',
-    label: '关于我们',
-    value: '',
-    iconPath: 'M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z'
-  }
-])
-
-// 格式化日期
-function formatDate(timestamp) {
-  if (!timestamp) return '未知'
-  const date = new Date(timestamp)
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day} 加入`
-}
-
-// 头像加载错误处理
-const onAvatarError = (e) => {
-  handleAvatarError(e)
-}
-
-// 编辑头像
-function handleEditAvatar() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  input.onchange = async (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      try {
-        await userStore.uploadAvatar(file)
-        message.success('头像上传成功')
-      } catch (error) {
-        console.error('头像上传失败:', error)
-        message.error(error.message || '头像上传失败')
-      }
-    }
-  }
-  input.click()
-}
-
-// 编辑资料
-function handleEditProfile() {
-  showEditModal.value = true
-}
-
-// 编辑成功回调
-function handleEditSuccess() {
-  message.success('资料更新成功')
-}
-
-// 去浏览记录页面
-function goToHistory() {
-  router.push('/history')
-}
-
-// 去小说详情
-function goToNovel(id) {
-  router.push(`/novel/${id}`)
-}
-
-// 菜单点击
-function handleMenuClick(key) {
-  switch (key) {
-    case 'bookshelf':
-      router.push('/bookshelf')
-      break
-    case 'history':
-      router.push('/history')
-      break
-    case 'favorites':
-      console.log('我的收藏')
-      break
-    case 'downloads':
-      console.log('离线下载')
-      break
-    case 'comments':
-      console.log('我的评论')
-      break
-    case 'coupons':
-      console.log('优惠券')
-      break
-    default:
-      console.log('未知菜单:', key)
-  }
-}
-
-// 设置点击
-function handleSettingClick(key) {
-  switch (key) {
-    case 'account':
-      console.log('账户信息')
-      break
-    case 'security':
-      router.push('/security')
-      break
-    case 'notification':
-      console.log('消息通知')
-      break
-    case 'privacy':
-      console.log('隐私设置')
-      break
-    case 'theme':
-      console.log('主题设置')
-      break
-    case 'about':
-      console.log('关于我们')
-      break
-    default:
-      console.log('未知设置:', key)
-  }
-}
-
-// 退出登录
-function handleLogout() {
-  if (confirm('确定要退出登录吗？')) {
-    userStore.logout()
-    router.push('/login')
-  }
-}
-
-// 初始化
-onMounted(async () => {
-  // 如果未登录，跳转到登录页
-  if (!userStore.isLogin) {
-    router.push('/login')
-    return
-  }
-  
-  // 加载浏览记录
-  await loadViewHistory()
-})
 </script>
 
-<style scoped>
-.profile-page {
-  min-height: 100vh;
-  padding-top: 4rem;
-  padding-bottom: 5rem;
-  background: var(--color-bg-primary);
-}
-
-@media (min-width: 768px) {
-  .profile-page {
-    padding-bottom: 2rem;
-  }
-}
-
-.main-content {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-
-/* 用户信息卡片 */
-.user-info-section {
-  margin: 2rem 0;
-}
-
-.user-card {
-  position: relative;
-  background: var(--color-bg-card);
-  border-radius: 1.5rem;
-  overflow: hidden;
-  box-shadow: 0 10px 30px -5px var(--color-shadow);
-}
-
-.card-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  opacity: 0.8;
-}
-
-.user-content {
-  position: relative;
-  padding: 2rem 1.5rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.avatar-container {
-  position: relative;
-  margin-bottom: 1rem;
-}
-
-.user-avatar {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  border: 4px solid var(--color-bg-card);
-  object-fit: cover;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.avatar-edit-btn {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: white;
-  border: 2px solid var(--color-bg-card);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.avatar-edit-btn:hover {
-  transform: scale(1.1);
-  background: var(--color-primary-dark);
-}
-
-.user-info {
-  margin-bottom: 1rem;
-}
-
-.user-name {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.user-bio {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-  margin-bottom: 1rem;
-}
-
-.user-meta {
-  display: flex;
-  gap: 1.5rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-}
-
-.meta-item svg {
-  width: 1rem;
-  height: 1rem;
-}
-
-.edit-profile-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.5rem;
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.edit-profile-btn:hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* 统计卡片 */
-.stats-section,
-.bookshelf-section,
-.menu-section,
-.settings-section,
-.logout-section {
-  margin-bottom: 2rem;
-}
-
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: 1rem;
-}
-
-.stats-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(2, 1fr);
-}
-
-@media (min-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.stat-card {
-  background: var(--color-bg-card);
-  border-radius: 1rem;
-  padding: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 2px 8px var(--color-shadow);
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px var(--color-shadow);
-}
-
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  flex-shrink: 0;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-number {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  line-height: 1.2;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin-top: 0.25rem;
-}
-
-/* 书架预览 */
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.more-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  color: var(--color-primary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.more-btn:hover {
-  gap: 0.5rem;
-}
-
-.bookshelf-preview {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.book-item {
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.book-item:hover {
-  transform: scale(1.05);
-}
-
-.book-cover {
-  aspect-ratio: 3 / 4;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  box-shadow: 0 4px 8px var(--color-shadow);
-  overflow: hidden;
-  position: relative;
-}
-
-.book-cover-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.book-title {
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-align: center;
-  line-height: 1.4;
-  z-index: 1;
-  position: relative;
-}
-
-.empty-history {
-  padding: 2rem 1rem;
-  text-align: center;
-}
-
-.empty-text {
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-}
-
-.book-progress {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  text-align: center;
-}
-
-/* 功能菜单 */
-.menu-grid {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(1, 1fr);
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--color-bg-card);
-  border: none;
-  border-radius: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: left;
-  box-shadow: 0 2px 8px var(--color-shadow);
-}
-
-.menu-item:hover {
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px var(--color-shadow);
-}
-
-.menu-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  flex-shrink: 0;
-}
-
-.menu-label {
-  flex: 1;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
-
-.menu-arrow {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-/* 设置列表 */
-.settings-list {
-  background: var(--color-bg-card);
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 2px 8px var(--color-shadow);
-}
-
-.setting-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  width: 100%;
-  text-align: left;
-}
-
-.setting-item:last-child {
-  border-bottom: none;
-}
-
-.setting-item:hover {
-  background: var(--color-bg-hover);
-}
-
-.setting-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.setting-icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: var(--color-text-muted);
-}
-
-.setting-label {
-  font-size: 0.9375rem;
-  color: var(--color-text-primary);
-}
-
-.setting-action {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.setting-value {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-}
-
-/* 退出登录 */
-.logout-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: var(--color-bg-card);
-  color: #ef4444;
-  border: 1px solid var(--color-border);
-  border-radius: 1rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px var(--color-shadow);
-}
-
-.logout-btn:hover {
-  background: #fef2f2;
-  border-color: #ef4444;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
-}
-
-/* 工具类 */
-.w-4 {
-  width: 1rem;
-}
-
-.h-4 {
-  height: 1rem;
-}
-
-.w-5 {
-  width: 1.25rem;
-}
-
-.h-5 {
-  height: 1.25rem;
-}
-
-.w-6 {
-  width: 1.5rem;
-}
-
-.h-6 {
-  height: 1.5rem;
-}
-
-/* 淡入动画 */
-.fade-in {
-  animation: fadeIn 0.8s ease-in;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 移动端优化 */
-@media (max-width: 640px) {
-  .main-content {
-    padding: 0 0.75rem;
-  }
-
-  /* 用户信息卡片 */
-  .user-info-section {
-    margin: 1rem 0;
-  }
-
-  .user-card {
-    border-radius: 1rem;
-  }
-
-  .card-background {
-    height: 80px;
-  }
-
-  .user-content {
-    padding: 1.5rem 1rem 1rem;
-  }
-
-  .avatar-container {
-    margin-bottom: 0.75rem;
-  }
-
-  .user-avatar {
-    width: 70px;
-    height: 70px;
-    border-width: 3px;
-  }
-
-  .avatar-edit-btn {
-    width: 26px;
-    height: 26px;
-  }
-
-  .avatar-edit-btn svg {
-    width: 0.875rem;
-    height: 0.875rem;
-  }
-
-  .user-info {
-    margin-bottom: 0.75rem;
-  }
-
-  .user-name {
-    font-size: 1.375rem;
-    margin-bottom: 0.375rem;
-  }
-
-  .user-bio {
-    font-size: 0.8125rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .user-meta {
-    gap: 1rem;
-  }
-
-  .meta-item {
-    font-size: 0.8125rem;
-  }
-
-  .edit-profile-btn {
-    padding: 0.5rem 1.25rem;
-    font-size: 0.8125rem;
-  }
-
-  /* 各区域间距 */
-  .stats-section,
-  .achievement-section,
-  .bookshelf-section,
-  .menu-section,
-  .settings-section,
-  .logout-section {
-    margin-bottom: 1.25rem;
-  }
-
-  .section-title {
-    font-size: 1.0625rem;
-    margin-bottom: 0.75rem;
-  }
-
-  /* 书架预览 */
-  .bookshelf-preview {
-    gap: 0.5rem;
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .book-cover {
-    padding: 0.5rem;
-    margin-bottom: 0.375rem;
-    border-radius: 0.375rem;
-  }
-
-  .book-title {
-    font-size: 0.75rem;
-  }
-
-  .book-progress {
-    font-size: 0.6875rem;
-  }
-
-  /* 功能菜单 - 改为一列4个 */
-  .menu-grid {
-    gap: 0.5rem;
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .menu-item {
-    padding: 0.625rem 0.375rem;
-    flex-direction: column;
-    gap: 0.375rem;
-    border-radius: 0.75rem;
-    text-align: center;
-  }
-
-  .menu-item:hover {
-    transform: translateY(-2px);
-  }
-
-  .menu-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-  }
-
-  .menu-icon svg {
-    width: 1.125rem;
-    height: 1.125rem;
-  }
-
-  .menu-label {
-    font-size: 0.6875rem;
-    line-height: 1.2;
-  }
-
-  .menu-arrow {
-    display: none;
-  }
-
-  /* 设置列表 */
-  .setting-item {
-    padding: 0.875rem 1rem;
-  }
-
-  .setting-info {
-    gap: 0.625rem;
-  }
-
-  .setting-icon {
-    width: 1.125rem;
-    height: 1.125rem;
-  }
-
-  .setting-label {
-    font-size: 0.875rem;
-  }
-
-  .setting-value {
-    font-size: 0.8125rem;
-  }
-
-  /* 退出登录 */
-  .logout-btn {
-    padding: 0.875rem;
-    font-size: 0.875rem;
-    border-radius: 0.75rem;
-  }
-
-  /* 触摸反馈 */
-  .menu-item:active {
-    transform: scale(0.95);
-  }
-
-  .setting-item:active {
-    background: var(--color-bg-hover);
-  }
-
-  .logout-btn:active {
-    transform: scale(0.98);
-  }
-
-  .book-item:active {
-    transform: scale(0.98);
-  }
-}
-</style>
-
+<template>
+  <div class="bg-cream-50 dark:bg-night-900 text-ink-900 dark:text-cream-100 min-h-screen paper-texture">
+    <header class="sticky top-0 z-40 bg-cream-50/85 dark:bg-night-900/85 backdrop-blur-xl pt-safe">
+      <div class="max-w-screen-xl mx-auto px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+        <RouterLink to="/" class="flex items-center gap-2 px-2">
+          <span class="w-8 h-8 rounded-full bg-clay-500 grid place-items-center text-cream-50 font-serif font-semibold">境</span>
+          <span class="font-serif text-lg font-semibold tracking-tight">文字之境</span>
+        </RouterLink>
+        <div class="flex items-center gap-1">
+          <button class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800" aria-label="通知">
+            <Icon name="bell" class="w-5 h-5" />
+          </button>
+          <ThemeToggle />
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+      <!-- PC 双栏：左 用户卡 + 快捷功能 + 阅读统计；右 设置列表 -->
+      <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <!-- 左栏 -->
+        <div class="lg:col-span-2 min-w-0 space-y-5">
+          <!-- 用户卡 -->
+          <section>
+            <div class="rounded-2xl overflow-hidden bg-gradient-to-br from-clay-500 to-clay-700 dark:from-clay-600 dark:to-clay-700 text-cream-50 shadow-cream-lg p-5 sm:p-6 relative">
+              <div class="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-cream-50/10 blur-2xl"></div>
+
+              <div class="relative flex items-center gap-4">
+                <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-cream-50/20 ring-2 ring-cream-50/40 grid place-items-center font-serif text-xl sm:text-2xl font-semibold backdrop-blur overflow-hidden shrink-0">
+                  <img v-if="user.avatar" :src="user.avatar" :alt="user.name" class="w-full h-full object-cover" />
+                  <span v-else>{{ avatarLetter }}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <h1 class="font-serif text-xl sm:text-2xl font-semibold tracking-tight truncate">{{ user.name }}</h1>
+                  <p class="text-sm text-cream-200/85 mt-0.5 truncate">{{ user.handle }} · 加入 {{ user.joinDays }} 天</p>
+                </div>
+                <button class="px-3 py-1.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/25 text-xs shrink-0">编辑</button>
+              </div>
+
+              <p class="relative mt-3 text-sm text-cream-200/90 italic font-serif">"读过的书，遇过的人，都会变成你。"</p>
+
+              <div class="relative mt-4 grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p class="font-serif text-lg sm:text-xl font-semibold">{{ user.shelf }}</p>
+                  <p class="text-[10px] tracking-wider uppercase text-cream-200/70 mt-0.5">书架</p>
+                </div>
+                <div class="border-x border-cream-50/15">
+                  <p class="font-serif text-lg sm:text-xl font-semibold">{{ user.streak }}<span class="text-xs ml-0.5">天</span></p>
+                  <p class="text-[10px] tracking-wider uppercase text-cream-200/70 mt-0.5">连读</p>
+                </div>
+                <div>
+                  <p class="font-serif text-lg sm:text-xl font-semibold">{{ user.hours }}<span class="text-xs ml-0.5">h</span></p>
+                  <p class="text-[10px] tracking-wider uppercase text-cream-200/70 mt-0.5">阅读时长</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 快捷功能 -->
+          <section>
+            <div class="grid grid-cols-4 gap-2 sm:gap-3">
+              <RouterLink to="/bookshelf" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+                <Icon name="shelf" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="text-[11px]">书架</span>
+              </RouterLink>
+              <RouterLink to="/history" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+                <Icon name="clock" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="text-[11px]">历史</span>
+              </RouterLink>
+              <a href="#" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+                <Icon name="heart" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="text-[11px]">收藏</span>
+              </a>
+              <a href="#" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+                <Icon name="arrowDown" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="text-[11px]">下载</span>
+              </a>
+            </div>
+          </section>
+
+          <!-- 阅读统计 -->
+          <section>
+            <div class="flex items-end justify-between mb-3">
+              <div>
+                <p class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1">Reading Stats</p>
+                <h2 class="font-serif text-lg sm:text-xl font-semibold tracking-tight">这周读了什么</h2>
+              </div>
+            </div>
+            <div class="rounded-2xl bg-cream-100 dark:bg-night-800 p-4 sm:p-5">
+              <div class="flex items-end justify-between gap-2 h-28 sm:h-32 mb-3">
+                <div v-for="(d, i) in weekData" :key="i" class="flex-1 flex flex-col items-center gap-1.5">
+                  <div
+                    :class="['w-full rounded-t', d.today ? 'bg-clay-500' : 'bg-clay-500/40']"
+                    :style="{ height: d.pct + '%' }"
+                  ></div>
+                  <span :class="['text-[10px]', d.today ? 'text-clay-700 font-medium' : 'text-ink-500']">{{ d.day }}</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-xs text-ink-500 dark:text-ink-300 pt-3 border-t border-cream-200 dark:border-night-700">
+                <span>共 12.5 小时 · 读完 1 本</span>
+                <span class="text-moss-600 dark:text-moss-500 font-medium">↑ 比上周多 28%</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- 右栏：设置 -->
+        <div class="lg:col-span-1 min-w-0">
+          <section>
+            <h2 class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-2">通用</h2>
+            <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
+              <a href="#" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+                <Icon name="eye" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="flex-1 text-sm">阅读偏好</span>
+                <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
+              </a>
+              <a href="#" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+                <Icon name="bell" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="flex-1 text-sm">通知</span>
+                <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
+              </a>
+              <RouterLink to="/security" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+                <Icon name="settings" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="flex-1 text-sm">账号安全</span>
+                <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
+              </RouterLink>
+            </div>
+
+            <h2 class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-2 mt-5">关于</h2>
+            <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
+              <a href="#" class="flex items-center gap-3 p-3.5">
+                <span class="flex-1 text-sm">帮助与反馈</span>
+                <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
+              </a>
+              <a href="#" class="flex items-center gap-3 p-3.5">
+                <span class="flex-1 text-sm">关于文字之境</span>
+                <span class="text-xs text-ink-500">v 1.0</span>
+              </a>
+              <button v-if="userStore.isLogin" @click="doLogout" class="w-full text-left flex items-center gap-3 p-3.5 text-cinnabar-500 hover:bg-cinnabar-500/5">
+                <span class="flex-1 text-sm font-medium">退出登录</span>
+              </button>
+              <RouterLink v-else to="/login" class="w-full text-left flex items-center gap-3 p-3.5 text-clay-700 dark:text-clay-400">
+                <span class="flex-1 text-sm font-medium">立即登录</span>
+                <Icon name="arrowRight" class="w-4 h-4" />
+              </RouterLink>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <BottomNav />
+  </div>
+</template>

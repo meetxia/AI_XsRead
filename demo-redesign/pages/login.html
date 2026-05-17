@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="theme-cream">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FAF6F1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1A1714" media="(prefers-color-scheme: dark)" />
+  <title>登录 · 文字之境</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/tailwind-cream.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/common.css" />
+  <script src="../shared/theme-toggle.js"></script>
+  <script src="../shared/partials.js"></script>
+</head>
+<body class="bg-cream-50 dark:bg-night-900 text-ink-900 dark:text-cream-100 font-sans antialiased min-h-screen paper-texture">
+
+  <!-- 极简返回 -->
+  <header class="sticky top-0 z-40 pt-safe">
+    <div class="max-w-screen-md mx-auto px-3 h-14 flex items-center justify-between">
+      <button onclick="history.back()" class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800" aria-label="返回">
+        <span id="backIcon"></span>
+      </button>
+      <button data-theme-toggle class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800">
+        <span class="dark:hidden" id="moonIcon"></span>
+        <span class="hidden dark:inline-block" id="sunIcon"></span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto px-6 pt-12 pb-12 min-h-[calc(100vh-3.5rem)] flex flex-col">
+
+    <!-- Logo -->
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-clay-500 text-cream-50 font-serif text-2xl font-semibold mb-4 shadow-cream-lg">境</div>
+      <h1 class="font-serif text-3xl font-semibold tracking-tight">欢迎回来</h1>
+      <p class="text-sm text-ink-700 dark:text-ink-300 mt-2">故事入境，杂念自消</p>
+    </div>
+
+    <!-- 表单 -->
+    <form class="space-y-5">
+      <!-- 账号 -->
+      <div>
+        <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 mb-2 uppercase tracking-wider">账号</label>
+        <input
+          type="text"
+          autocomplete="username"
+          placeholder="手机号 / 邮箱 / 用户名"
+          class="w-full h-12 px-4 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition"
+        />
+      </div>
+
+      <!-- 密码 -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 uppercase tracking-wider">密码</label>
+          <a href="#" class="text-xs text-clay-700 dark:text-clay-400 underline-offset-4 hover:underline">忘记密码？</a>
+        </div>
+        <div class="relative">
+          <input
+            type="password"
+            id="passwordInput"
+            autocomplete="current-password"
+            placeholder="请输入密码"
+            class="w-full h-12 pl-4 pr-12 rounded-xl bg-cream-100 dark:bg-night-800 border border-transparent focus:border-clay-500 focus:bg-cream-50 dark:focus:bg-night-700 outline-none text-sm transition"
+          />
+          <button type="button" id="togglePwd" class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-ink-500 hover:text-clay-700" aria-label="显示密码">
+            <span id="eyeIcon"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 记住我 -->
+      <label class="flex items-center gap-2 text-sm text-ink-700 dark:text-ink-300 cursor-pointer">
+        <input type="checkbox" class="peer sr-only"/>
+        <span class="w-5 h-5 rounded-md border-2 border-ink-300 peer-checked:bg-clay-500 peer-checked:border-clay-500 grid place-items-center text-cream-50 transition">
+          <span id="checkIcon" class="hidden peer-checked:[&]:block"></span>
+        </span>
+        <span>30 天内自动登录</span>
+      </label>
+
+      <!-- 登录按钮 -->
+      <button type="submit" class="w-full h-12 rounded-xl bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif font-semibold hover:bg-clay-600 active:scale-[0.98] transition shadow-cream">
+        登录
+      </button>
+    </form>
+
+    <!-- 分割线 -->
+    <div class="my-8 flex items-center gap-3">
+      <div class="flex-1 h-px bg-cream-200 dark:bg-night-700"></div>
+      <span class="text-[11px] text-ink-500 dark:text-ink-300 tracking-widest uppercase">Or</span>
+      <div class="flex-1 h-px bg-cream-200 dark:bg-night-700"></div>
+    </div>
+
+    <!-- 第三方登录 -->
+    <div class="grid grid-cols-3 gap-3">
+      <button class="h-12 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 grid place-items-center transition">
+        <svg class="w-5 h-5 text-[#07C160]" fill="currentColor" viewBox="0 0 24 24"><path d="M8.4 6.5c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm-3.5 0c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm14.7 8.5c0-2.7-2.7-4.9-6-4.9-3.3 0-6 2.2-6 4.9 0 2.7 2.7 4.9 6 4.9.7 0 1.3-.1 1.9-.3l1.7 1-.5-1.6c1.7-.9 2.9-2.3 2.9-4z"/></svg>
+      </button>
+      <button class="h-12 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 grid place-items-center transition">
+        <svg class="w-5 h-5 text-[#FF6900]" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+      </button>
+      <button class="h-12 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 grid place-items-center transition">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c-2.7 0-5 2.3-5 5 0 2.7 2.3 5 5 5s5-2.3 5-5c0-2.7-2.3-5-5-5zM4 20v-1c0-3.4 2.7-6 6-6h4c3.4 0 6 2.7 6 6v1H4z"/></svg>
+      </button>
+    </div>
+
+    <!-- 注册引导 -->
+    <p class="mt-auto pt-10 text-center text-sm text-ink-700 dark:text-ink-300">
+      还没有账号？
+      <a href="register.html" class="text-clay-700 dark:text-clay-400 font-medium underline-offset-4 hover:underline">立即注册</a>
+    </p>
+
+    <!-- 协议 -->
+    <p class="mt-3 text-center text-[11px] text-ink-500 dark:text-ink-300">
+      登录即表示同意
+      <a href="#" class="underline-offset-2 underline decoration-cream-300">用户协议</a>
+      和
+      <a href="#" class="underline-offset-2 underline decoration-cream-300">隐私政策</a>
+    </p>
+  </main>
+
+  <script>
+    document.getElementById('backIcon').innerHTML = XS.icon('back');
+    document.getElementById('moonIcon').innerHTML = XS.icon('moon');
+    document.getElementById('sunIcon').innerHTML = XS.icon('sun');
+    document.getElementById('eyeIcon').innerHTML = XS.icon('eye', 'w-4 h-4');
+    document.getElementById('checkIcon').innerHTML = XS.icon('check', 'w-3.5 h-3.5');
+
+    document.getElementById('togglePwd').addEventListener('click', () => {
+      const input = document.getElementById('passwordInput');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    });
+  </script>
+</body>
+</html>

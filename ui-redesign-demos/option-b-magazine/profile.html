@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>我的 · 文字之境</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = { darkMode:'class', theme:{ extend:{
+      colors: { 'pink':{400:'#FF6BAB',500:'#FF4D8D'}, 'peach':{500:'#FF8A6D'}, 'night':{800:'#1A1A22',900:'#0F0F12'} }
+    }}}
+  </script>
+  <style>
+    body { font-family:'Noto Sans SC', sans-serif; -webkit-tap-highlight-color: transparent; background:#FFFFFF; color:#0F0F12; }
+    html.dark body { background:#0F0F12; color:#F5F5F7; }
+    .container-app { max-width:480px; margin:0 auto; }
+    @media(min-width:768px){ .container-app{max-width:720px;} }
+    .pop { animation: pop .6s cubic-bezier(.34,1.56,.64,1) both; }
+    @keyframes pop { from{opacity:0; transform: scale(.95);} to{opacity:1; transform: scale(1);} }
+  </style>
+</head>
+<body class="min-h-screen pb-24">
+
+  <!-- 顶部背景 -->
+  <header class="relative h-52 overflow-hidden" style="background: linear-gradient(135deg, #FF4D8D 0%, #FF8FBF 50%, #FFB199 100%);">
+    <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full" style="background: radial-gradient(rgba(255,255,255,.3), transparent 70%);"></div>
+    <div class="absolute -bottom-20 -left-20 w-72 h-72 rounded-full" style="background: radial-gradient(rgba(255,255,255,.2), transparent 70%);"></div>
+
+    <div class="container-app px-4 h-14 flex items-center justify-between relative">
+      <span class="text-white font-extrabold">我的</span>
+      <button id="theme-toggle" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 backdrop-blur text-white">
+        <svg class="w-5 h-5 sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
+        <svg class="w-5 h-5 moon-icon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container-app px-4 -mt-24 relative">
+
+    <!-- 用户卡 -->
+    <section class="pop bg-white dark:bg-night-800 rounded-3xl p-5 shadow-xl">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-peach-500 flex items-center justify-center text-white text-2xl font-black ring-4 ring-white dark:ring-night-800">小</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-extrabold">小满</h2>
+            <span class="px-1.5 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] rounded font-bold">VIP</span>
+          </div>
+          <p class="text-xs text-stone-500 mt-0.5">读书使我快乐 · ID:5829</p>
+        </div>
+        <button class="w-9 h-9 rounded-full bg-stone-100 dark:bg-night-700 flex items-center justify-center">
+          <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+        </button>
+      </div>
+
+      <!-- 数据栏 -->
+      <div class="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-stone-100 dark:border-night-700">
+        <div class="text-center">
+          <div class="text-xl font-extrabold text-pink-500">128</div>
+          <div class="text-[10px] text-stone-500 mt-0.5 font-bold">阅读小时</div>
+        </div>
+        <div class="text-center border-x border-stone-100 dark:border-night-700">
+          <div class="text-xl font-extrabold">24</div>
+          <div class="text-[10px] text-stone-500 mt-0.5 font-bold">已读</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl font-extrabold">37</div>
+          <div class="text-[10px] text-stone-500 mt-0.5 font-bold">连续天数</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 勋章 -->
+    <section class="mt-4 bg-white dark:bg-night-800 rounded-3xl p-5 pop" style="animation-delay:.1s">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold flex items-center gap-2">🏆 阅读成就</h3>
+        <span class="text-xs text-stone-400">8/24</span>
+      </div>
+      <div class="flex gap-3 overflow-x-auto -mx-5 px-5 pb-1" style="scrollbar-width:none;">
+        <div class="flex-shrink-0 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-2xl shadow-lg shadow-yellow-500/30">📚</div>
+          <div class="text-[10px] mt-1 font-bold">书痴</div>
+        </div>
+        <div class="flex-shrink-0 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center text-2xl shadow-lg shadow-pink-500/30">🌙</div>
+          <div class="text-[10px] mt-1 font-bold">夜读</div>
+        </div>
+        <div class="flex-shrink-0 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-mint-400 to-mint-500 flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/30">🌟</div>
+          <div class="text-[10px] mt-1 font-bold">早起</div>
+        </div>
+        <div class="flex-shrink-0 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-lilac-400 to-lilac-500 flex items-center justify-center text-2xl shadow-lg shadow-purple-500/30">📖</div>
+          <div class="text-[10px] mt-1 font-bold">十全</div>
+        </div>
+        <div class="flex-shrink-0 text-center opacity-40">
+          <div class="w-14 h-14 rounded-2xl bg-stone-200 dark:bg-night-700 flex items-center justify-center text-2xl">🔒</div>
+          <div class="text-[10px] mt-1">未解锁</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 功能 -->
+    <section class="mt-4 bg-white dark:bg-night-800 rounded-3xl overflow-hidden pop" style="animation-delay:.15s">
+      <a href="#" class="flex items-center gap-3 px-5 py-4 hover:bg-stone-50 dark:hover:bg-night-700 border-b border-stone-100 dark:border-night-700">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center text-white">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
+        </div>
+        <div class="flex-1">
+          <div class="text-sm font-bold">浏览历史</div>
+          <div class="text-xs text-stone-500 mt-0.5">最近读过 24 本</div>
+        </div>
+        <svg class="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+      </a>
+      <a href="#" class="flex items-center gap-3 px-5 py-4 hover:bg-stone-50 dark:hover:bg-night-700 border-b border-stone-100 dark:border-night-700">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-mint-400 to-mint-500 flex items-center justify-center text-white">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/></svg>
+        </div>
+        <div class="flex-1">
+          <div class="text-sm font-bold">护眼模式</div>
+          <div class="text-xs text-stone-500 mt-0.5">夜间舒适阅读</div>
+        </div>
+        <div class="w-10 h-6 bg-pink-500 rounded-full relative"><div class="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow"></div></div>
+      </a>
+      <a href="#" class="flex items-center gap-3 px-5 py-4 hover:bg-stone-50 dark:hover:bg-night-700 border-b border-stone-100 dark:border-night-700">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-lilac-400 to-lilac-500 flex items-center justify-center text-white">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"/></svg>
+        </div>
+        <div class="flex-1">
+          <div class="text-sm font-bold">账号安全</div>
+          <div class="text-xs text-stone-500 mt-0.5">绑定手机、修改密码</div>
+        </div>
+        <svg class="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+      </a>
+      <a href="#" class="flex items-center gap-3 px-5 py-4 hover:bg-stone-50 dark:hover:bg-night-700">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-peach-400 to-peach-500 flex items-center justify-center text-white">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.068.157 2.148.279 3.238.364.466.037.893.281 1.153.671L12 21l2.652-3.978c.26-.39.687-.634 1.153-.67 1.09-.086 2.17-.208 3.238-.365 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
+        </div>
+        <div class="flex-1">
+          <div class="text-sm font-bold">意见反馈</div>
+          <div class="text-xs text-stone-500 mt-0.5">告诉我们你的想法</div>
+        </div>
+        <svg class="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+      </a>
+    </section>
+
+    <button class="w-full mt-4 py-3.5 rounded-2xl bg-stone-100 dark:bg-night-800 text-stone-500 text-sm">退出登录</button>
+
+  </main>
+
+  <nav class="fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl bg-white/95 dark:bg-night-900/95 border-t border-stone-100 dark:border-night-800" style="padding-bottom: env(safe-area-inset-bottom);">
+    <div class="container-app grid grid-cols-4 h-16">
+      <a href="index.html" class="flex flex-col items-center justify-center text-stone-400">
+        <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+        <span class="text-[10px] font-bold">发现</span>
+      </a>
+      <a href="bookshelf.html" class="flex flex-col items-center justify-center text-stone-400">
+        <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <span class="text-[10px] font-bold">书架</span>
+      </a>
+      <a href="reading.html" class="flex flex-col items-center justify-center -mt-6 relative">
+        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-peach-500 flex items-center justify-center shadow-lg shadow-pink-500/40 ring-4 ring-white dark:ring-night-900">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5"/></svg>
+        </div>
+        <span class="text-[10px] font-bold mt-1 text-stone-400">阅读</span>
+      </a>
+      <a href="profile.html" class="flex flex-col items-center justify-center text-pink-500">
+        <svg class="w-6 h-6 mb-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zM4 22a8 8 0 1116 0H4z"/></svg>
+        <span class="text-[10px] font-bold">我的</span>
+      </a>
+    </div>
+  </nav>
+
+  <a href="../index.html" class="fixed top-3 left-3 z-50 w-9 h-9 flex items-center justify-center rounded-full bg-white/30 backdrop-blur shadow-lg text-white">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+  </a>
+
+  <script>
+    const html = document.documentElement;
+    if (localStorage.getItem('demo-theme-b') === 'dark') html.classList.add('dark');
+    document.querySelector('.sun-icon').classList.toggle('hidden', html.classList.contains('dark'));
+    document.querySelector('.moon-icon').classList.toggle('hidden', !html.classList.contains('dark'));
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      html.classList.toggle('dark');
+      localStorage.setItem('demo-theme-b', html.classList.contains('dark') ? 'dark' : 'light');
+      document.querySelector('.sun-icon').classList.toggle('hidden');
+      document.querySelector('.moon-icon').classList.toggle('hidden');
+    });
+  </script>
+</body>
+</html>

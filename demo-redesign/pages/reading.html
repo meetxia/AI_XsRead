@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="theme-reading">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FAFAF9" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0A0A0A" media="(prefers-color-scheme: dark)" />
+  <title>第十二章 · 雪夜归人 — 山有木兮</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/tailwind-reading.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/common.css" />
+  <script src="../shared/theme-toggle.js"></script>
+  <script src="../shared/partials.js"></script>
+
+  <style>
+    /* 阅读页特定样式 */
+    [data-bg="white"]  { background: #FAFAF9; color: #1A1917; }
+    [data-bg="sepia"]  { background: #F4ECD8; color: #3E2C1B; }
+    [data-bg="eye"]    { background: #CCE0CC; color: #1F2F22; }
+    [data-bg="dark"]   { background: #0A0A0A; color: #B5B0A8; }
+
+    .reading-text {
+      font-family: var(--reading-font, 'Noto Serif SC, Source Serif 4, serif');
+      font-size: var(--reading-font-size, 18px);
+      line-height: var(--reading-line-height, 1.85);
+      letter-spacing: var(--reading-letter-spacing, 0.02em);
+    }
+    .reading-text p {
+      margin-bottom: var(--reading-paragraph-gap, 1.4em);
+      text-indent: 2em;
+    }
+
+    /* 章节进度滑块 */
+    input[type=range].reading-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type=range].reading-slider::-webkit-slider-runnable-track {
+      height: 4px;
+      background: rgba(127,121,117,.25);
+      border-radius: 2px;
+    }
+    input[type=range].reading-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #FF5C39;
+      margin-top: -7px;
+      border: 2px solid #FAFAF9;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+
+    /* 顶/底栏滑入动画 */
+    .toolbar { transition: transform .35s ease, opacity .35s ease; }
+    .toolbar-hide-top    { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+    .toolbar-hide-bottom { transform: translateY(100%);  opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body data-bg="white" class="font-sans antialiased min-h-screen transition-colors duration-300">
+
+  <!-- 顶栏 -->
+  <header id="topBar" class="toolbar fixed top-0 inset-x-0 z-30 bg-stone-50/95 dark:bg-night-900/95 backdrop-blur-xl border-b border-stone-200 dark:border-night-700 pt-safe">
+    <div class="max-w-screen-md mx-auto px-3 h-14 flex items-center justify-between">
+      <a href="detail.html" class="w-10 h-10 grid place-items-center rounded-full hover:bg-stone-100 dark:hover:bg-night-800 transition-colors" aria-label="返回">
+        <span id="backIcon"></span>
+      </a>
+      <div class="flex-1 px-3 min-w-0 text-center">
+        <p class="text-[11px] font-mono text-stone-500 dark:text-stone-300 truncate">山有木兮</p>
+        <p class="text-xs font-medium truncate">第十二章 · 雪夜归人</p>
+      </div>
+      <button data-theme-toggle class="w-10 h-10 grid place-items-center rounded-full hover:bg-stone-100 dark:hover:bg-night-800 transition-colors" aria-label="主题">
+        <span class="dark:hidden" id="moonIcon"></span>
+        <span class="hidden dark:inline-block" id="sunIcon"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 阅读区 -->
+  <main id="readingArea" class="reading-area max-w-[640px] mx-auto px-6 sm:px-8 pt-24 pb-32">
+
+    <!-- 章节标题 -->
+    <header class="mb-8 pb-6 border-b border-stone-200 dark:border-night-700">
+      <p class="text-[11px] font-mono uppercase tracking-[0.2em] text-accent-500 mb-2">CHAPTER 12 · 雪夜归人</p>
+      <h1 class="font-serif text-3xl font-semibold tracking-tight leading-tight" style="font-family: 'Noto Serif SC', serif;">雪夜归人</h1>
+      <div class="flex items-center gap-3 text-[11px] font-mono text-stone-500 dark:text-stone-300 mt-3">
+        <span>6,138 字</span>
+        <span>·</span>
+        <span>约 18 分钟</span>
+        <span>·</span>
+        <span>2025-09-01</span>
+      </div>
+    </header>
+
+    <!-- 正文 -->
+    <article class="reading-text">
+      <p>那年冬天，长安下了五十年来最大的一场雪。</p>
+      <p>沈砚白裹着一件半旧的玄色斗篷，从京郊的雪山道一路骑马回城。马蹄踩在结冰的青石上，踏踏，踏踏，像极了她记忆里某个遥远的夜晚——也是这样的雪，也是这样的人。</p>
+      <p>她有些恍惚，仿佛三年前的那一夜，从未真正过去过。</p>
+      <p>城门口的灯笼挂得不算太亮，雪花被风卷着，斜斜地扑到她的脸上。守门的老兵眯着眼看了她半天，才认出她来：</p>
+      <p>"沈姑娘？三年了，您可算回来了。"</p>
+      <p>她笑了一下，没有说话。这一笑，把脸上残留的雪都笑化了几分。</p>
+      <p>三年。</p>
+      <p>三年前，她也是从这道门走出去的。那时她还不叫沈砚白，她叫江令仪——是大将军江云山唯一的女儿。三年前的那一夜，整个江府被一道圣旨抄了个干净，她被忠仆塞进一辆运米的马车，连夜出城。</p>
+      <p>她记得那天的雪也是这么大。</p>
+      <p>她记得她回头看时，江府的大门已经被铁链锁上，门头那块"忠勇侯府"的匾额上落满了雪，看起来像是结了一层薄薄的霜。</p>
+      <p>她还记得，门外那个身着白衣、撑着一柄油纸伞的男人。</p>
+      <p>她不知道他是谁。她甚至看不清他的脸——白衣、雪、伞，三样东西混在一起，让她至今想起，都觉得那一幕像是一幅未完成的画。</p>
+      <p>但她记得他的眼睛。</p>
+      <p>那双眼睛，在她马车经过的一瞬间，与她对视了。她至今不知道为什么，就是那一眼，让她在之后整整三年，都没法真正忘掉那个雪夜。</p>
+      <p>三年后的今天，她终于回来了。</p>
+      <p>"沈姑娘，您要去哪儿？要不要小老儿给您找个引路的？"老兵问。</p>
+      <p>她摇了摇头："不用。我自己认得路。"</p>
+      <p>她说完这句话，自己都愣了一下。</p>
+      <p>她说她"认得路"——可她明明已经离开了三年，长安城里早该物是人非了。</p>
+      <p>但她真的认得路。</p>
+      <p>不知道为什么，她驱马走在雪里，每一条街、每一个拐角，她都熟悉得像是昨天才走过。她甚至能预判到某条小巷尽头会有一棵歪脖子枣树，某座桥下藏着一家很小的羊汤馆。</p>
+      <p>她忽然想起多年前，娘还在世时，常牵着她的手在长安城里走。娘总笑她："我们令仪呀，是天生认得这座城的人。"</p>
+      <p>娘说这话的时候，她才不到十岁。</p>
+      <p>她记不清娘的脸了。可她记得娘那双手——温温的，软软的，握着她的小手腕，像握着一只刚出壳的小鸟。</p>
+      <p>雪还在下。</p>
+      <p>她拐过一个街角，眼前忽然出现了一座旧客栈。</p>
+      <p>"清远客栈"四个字写在木匾上，被风吹得微微地晃。</p>
+      <p>她抬头看了一眼，缓缓地下了马。</p>
+    </article>
+
+    <!-- 章节末尾 -->
+    <footer class="mt-12 pt-8 border-t border-stone-200 dark:border-night-700">
+      <div class="flex items-center justify-between text-xs font-mono text-stone-500 dark:text-stone-300 mb-6">
+        <span>— 本章完 —</span>
+        <span>读完用时 18 分钟</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <button class="h-12 rounded-full border border-stone-300 dark:border-night-600 text-sm font-medium hover:bg-stone-100 dark:hover:bg-night-800 transition flex items-center justify-center gap-1.5">
+          <span id="prevIcon"></span> 上一章
+        </button>
+        <button class="h-12 rounded-full bg-stone-900 dark:bg-stone-100 text-stone-50 dark:text-stone-900 text-sm font-semibold hover:bg-accent-500 dark:hover:bg-accent-500 dark:hover:text-stone-50 transition flex items-center justify-center gap-1.5">
+          下一章 <span id="nextIcon"></span>
+        </button>
+      </div>
+
+      <!-- 章末互动 -->
+      <div class="mt-8 grid grid-cols-3 gap-3 text-center">
+        <button class="py-3 rounded-2xl bg-stone-100 dark:bg-night-800 hover:bg-stone-200 dark:hover:bg-night-700 transition">
+          <span id="cFav" class="block mx-auto mb-1"></span>
+          <span class="text-xs">收藏</span>
+        </button>
+        <button class="py-3 rounded-2xl bg-stone-100 dark:bg-night-800 hover:bg-stone-200 dark:hover:bg-night-700 transition">
+          <span id="cLike" class="block mx-auto mb-1"></span>
+          <span class="text-xs">推荐 · 1.2k</span>
+        </button>
+        <button class="py-3 rounded-2xl bg-stone-100 dark:bg-night-800 hover:bg-stone-200 dark:hover:bg-night-700 transition">
+          <span id="cChat" class="block mx-auto mb-1"></span>
+          <span class="text-xs">书评 · 87</span>
+        </button>
+      </div>
+    </footer>
+  </main>
+
+  <!-- 底栏 -->
+  <nav id="bottomBar" class="toolbar fixed bottom-0 inset-x-0 z-30 bg-stone-50/95 dark:bg-night-900/95 backdrop-blur-xl border-t border-stone-200 dark:border-night-700 pb-safe">
+
+    <!-- 进度条 -->
+    <div class="px-4 pt-3">
+      <div class="flex items-center gap-3">
+        <span class="text-[11px] font-mono text-stone-500 dark:text-stone-300 w-10">42%</span>
+        <input type="range" min="0" max="100" value="42" class="reading-slider flex-1" id="progressSlider"/>
+        <span class="text-[11px] font-mono text-stone-500 dark:text-stone-300 w-10 text-right">12/36</span>
+      </div>
+    </div>
+
+    <!-- 操作 -->
+    <div class="grid grid-cols-5 px-2 pb-2 pt-1">
+      <button class="flex flex-col items-center gap-0.5 py-2 text-stone-700 dark:text-stone-300 hover:text-accent-500 transition" id="btnList">
+        <span></span>
+        <span class="text-[10px]">目录</span>
+      </button>
+      <button class="flex flex-col items-center gap-0.5 py-2 text-stone-700 dark:text-stone-300 hover:text-accent-500 transition" id="btnMark">
+        <span></span>
+        <span class="text-[10px]">书签</span>
+      </button>
+      <button onclick="document.getElementById('settingsPanel').classList.remove('translate-y-full');" class="flex flex-col items-center gap-0.5 py-2 text-stone-700 dark:text-stone-300 hover:text-accent-500 transition" id="btnSet">
+        <span></span>
+        <span class="text-[10px]">阅读</span>
+      </button>
+      <button data-theme-toggle class="flex flex-col items-center gap-0.5 py-2 text-stone-700 dark:text-stone-300 hover:text-accent-500 transition">
+        <span class="dark:hidden" id="bMoon"></span>
+        <span class="hidden dark:inline-block" id="bSun"></span>
+        <span class="text-[10px]">夜间</span>
+      </button>
+      <button class="flex flex-col items-center gap-0.5 py-2 text-stone-700 dark:text-stone-300 hover:text-accent-500 transition" id="btnMore">
+        <span></span>
+        <span class="text-[10px]">更多</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- 阅读设置面板 -->
+  <div id="settingsPanel" class="fixed inset-x-0 bottom-0 z-40 bg-stone-50 dark:bg-night-800 border-t border-stone-200 dark:border-night-700 rounded-t-3xl shadow-2xl translate-y-full transition-transform duration-300 pb-safe">
+    <div class="max-w-screen-md mx-auto p-5">
+      <!-- 拖拽条 -->
+      <div class="w-10 h-1 mx-auto rounded-full bg-stone-300 dark:bg-night-600 mb-5"></div>
+
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-serif text-lg font-semibold">阅读设置</h3>
+        <button onclick="document.getElementById('settingsPanel').classList.add('translate-y-full');" class="w-8 h-8 grid place-items-center rounded-full hover:bg-stone-100 dark:hover:bg-night-700">
+          <span id="closeSet"></span>
+        </button>
+      </div>
+
+      <!-- 字号 -->
+      <div class="mb-6">
+        <p class="text-xs font-mono uppercase tracking-wider text-stone-500 mb-3">字号</p>
+        <div class="grid grid-cols-5 gap-2">
+          <button data-fs="14" class="font-size-btn h-10 rounded-xl bg-stone-100 dark:bg-night-700 text-xs hover:bg-stone-200">小</button>
+          <button data-fs="16" class="font-size-btn h-10 rounded-xl bg-stone-100 dark:bg-night-700 text-sm hover:bg-stone-200">中</button>
+          <button data-fs="18" class="font-size-btn h-10 rounded-xl bg-accent-500 text-white text-base font-medium">标准</button>
+          <button data-fs="20" class="font-size-btn h-10 rounded-xl bg-stone-100 dark:bg-night-700 text-lg hover:bg-stone-200">大</button>
+          <button data-fs="22" class="font-size-btn h-10 rounded-xl bg-stone-100 dark:bg-night-700 text-xl hover:bg-stone-200">特大</button>
+        </div>
+      </div>
+
+      <!-- 行距 -->
+      <div class="mb-6">
+        <p class="text-xs font-mono uppercase tracking-wider text-stone-500 mb-3">行距</p>
+        <div class="grid grid-cols-3 gap-2">
+          <button data-lh="1.6" class="line-height-btn h-10 rounded-xl bg-stone-100 dark:bg-night-700 text-sm hover:bg-stone-200">紧凑</button>
+          <button data-lh="1.85" class="line-height-btn h-10 rounded-xl bg-accent-500 text-white text-sm font-medium">舒适</button>
+          <button data-lh="2.1" class="line-height-btn h-10 rounded-xl bg-stone-100 dark:bg-night-700 text-sm hover:bg-stone-200">疏朗</button>
+        </div>
+      </div>
+
+      <!-- 背景 -->
+      <div class="mb-6">
+        <p class="text-xs font-mono uppercase tracking-wider text-stone-500 mb-3">背景色</p>
+        <div class="grid grid-cols-4 gap-2">
+          <button data-bg-set="white" class="bg-btn h-12 rounded-xl border-2 border-accent-500 bg-[#FAFAF9] text-[#1A1917] text-xs font-medium">日间</button>
+          <button data-bg-set="sepia" class="bg-btn h-12 rounded-xl border-2 border-transparent bg-[#F4ECD8] text-[#3E2C1B] text-xs font-medium">柔黄</button>
+          <button data-bg-set="eye"   class="bg-btn h-12 rounded-xl border-2 border-transparent bg-[#CCE0CC] text-[#1F2F22] text-xs font-medium">护眼</button>
+          <button data-bg-set="dark"  class="bg-btn h-12 rounded-xl border-2 border-transparent bg-[#0A0A0A] text-[#B5B0A8] text-xs font-medium">夜间</button>
+        </div>
+      </div>
+
+      <!-- 字体 -->
+      <div class="mb-2">
+        <p class="text-xs font-mono uppercase tracking-wider text-stone-500 mb-3">字体</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button data-font="serif" class="font-btn h-10 rounded-xl bg-accent-500 text-white text-sm font-medium" style="font-family:'Noto Serif SC', serif;">衬线（默认）</button>
+          <button data-font="sans"  class="font-btn h-10 rounded-xl bg-stone-100 dark:bg-night-700 text-sm hover:bg-stone-200">无衬线</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // 注入图标
+    document.getElementById('backIcon').innerHTML = XS.icon('back');
+    document.getElementById('moonIcon').innerHTML = XS.icon('moon');
+    document.getElementById('sunIcon').innerHTML  = XS.icon('sun');
+    document.getElementById('prevIcon').innerHTML = XS.icon('back', 'w-4 h-4');
+    document.getElementById('nextIcon').innerHTML = XS.icon('arrowRight', 'w-4 h-4');
+    document.getElementById('cFav').innerHTML  = XS.icon('bookmark');
+    document.getElementById('cLike').innerHTML = XS.icon('heart');
+    document.getElementById('cChat').innerHTML = XS.icon('chat');
+    document.getElementById('bMoon').innerHTML = XS.icon('moon');
+    document.getElementById('bSun').innerHTML  = XS.icon('sun');
+    document.getElementById('closeSet').innerHTML = XS.icon('close', 'w-5 h-5');
+
+    // 底栏图标
+    document.querySelector('#btnList span:first-child').innerHTML = XS.icon('list');
+    document.querySelector('#btnMark span:first-child').innerHTML = XS.icon('bookmark');
+    document.querySelector('#btnSet span:first-child').innerHTML  = XS.icon('settings');
+    document.querySelector('#btnMore span:first-child').innerHTML = XS.icon('share');
+
+    // 点击中间区域 → 切换工具栏显隐
+    let toolbarVisible = true;
+    const topBar = document.getElementById('topBar');
+    const bottomBar = document.getElementById('bottomBar');
+    function toggleToolbar() {
+      toolbarVisible = !toolbarVisible;
+      topBar.classList.toggle('toolbar-hide-top', !toolbarVisible);
+      bottomBar.classList.toggle('toolbar-hide-bottom', !toolbarVisible);
+    }
+    document.getElementById('readingArea').addEventListener('click', (e) => {
+      // 排除按钮点击
+      if (e.target.closest('button, a')) return;
+      toggleToolbar();
+    });
+
+    // 设置：字号
+    document.querySelectorAll('.font-size-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.font-size-btn').forEach(b => {
+          b.classList.remove('bg-accent-500', 'text-white', 'font-medium');
+          b.classList.add('bg-stone-100', 'dark:bg-night-700');
+        });
+        btn.classList.add('bg-accent-500', 'text-white', 'font-medium');
+        btn.classList.remove('bg-stone-100', 'dark:bg-night-700');
+        document.documentElement.style.setProperty('--reading-font-size', btn.dataset.fs + 'px');
+      });
+    });
+
+    // 设置：行距
+    document.querySelectorAll('.line-height-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.line-height-btn').forEach(b => {
+          b.classList.remove('bg-accent-500', 'text-white', 'font-medium');
+          b.classList.add('bg-stone-100', 'dark:bg-night-700');
+        });
+        btn.classList.add('bg-accent-500', 'text-white', 'font-medium');
+        btn.classList.remove('bg-stone-100', 'dark:bg-night-700');
+        document.documentElement.style.setProperty('--reading-line-height', btn.dataset.lh);
+      });
+    });
+
+    // 设置：背景
+    document.querySelectorAll('.bg-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.bg-btn').forEach(b => b.classList.replace('border-accent-500','border-transparent'));
+        btn.classList.replace('border-transparent','border-accent-500');
+        document.body.dataset.bg = btn.dataset.bgSet;
+      });
+    });
+
+    // 设置：字体
+    document.querySelectorAll('.font-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.font-btn').forEach(b => {
+          b.classList.remove('bg-accent-500','text-white','font-medium');
+          b.classList.add('bg-stone-100','dark:bg-night-700');
+        });
+        btn.classList.add('bg-accent-500','text-white','font-medium');
+        btn.classList.remove('bg-stone-100','dark:bg-night-700');
+        const map = { serif: '"Noto Serif SC", serif', sans: '"Inter", "PingFang SC", system-ui, sans-serif' };
+        document.documentElement.style.setProperty('--reading-font', map[btn.dataset.font]);
+      });
+    });
+  </script>
+</body>
+</html>

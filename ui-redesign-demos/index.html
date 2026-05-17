@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文字之境 · UI 重构方案对比</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Noto Serif SC', 'Playfair Display', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', 'Noto Serif SC', sans-serif; }
+    .gradient-bg {
+      background: radial-gradient(at top left, #fee2e2 0%, transparent 50%),
+                  radial-gradient(at top right, #fef3c7 0%, transparent 50%),
+                  radial-gradient(at bottom left, #fce7f3 0%, transparent 50%),
+                  radial-gradient(at bottom right, #e0e7ff 0%, transparent 50%),
+                  #fafaf9;
+    }
+    .card-hover {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-hover:hover {
+      transform: translateY(-8px);
+    }
+    .badge-glow {
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.6);
+    }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen text-stone-900">
+
+  <!-- Hero -->
+  <header class="max-w-6xl mx-auto px-6 pt-16 pb-12">
+    <div class="flex items-center gap-2 text-sm text-stone-500 mb-6">
+      <span class="inline-block w-8 h-px bg-stone-400"></span>
+      <span class="tracking-widest">UI REDESIGN PROPOSAL · 2026.05</span>
+    </div>
+    <h1 class="text-5xl md:text-6xl font-serif font-bold leading-tight mb-4">
+      文字之境
+      <span class="block text-2xl md:text-3xl font-normal text-stone-500 mt-3">三套视觉重构方案 · 静态 Demo</span>
+    </h1>
+    <p class="text-stone-600 max-w-2xl text-lg leading-relaxed mt-6">
+      为新版用户端准备的三个视觉方向。每个方案均包含 5 个核心页面，移动端优先，支持深色/浅色切换。
+      请在不同设备上体验后选择最契合产品定位的方向。
+    </p>
+  </header>
+
+  <!-- 方案卡片 -->
+  <main class="max-w-6xl mx-auto px-6 pb-20">
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <!-- 方案 A -->
+      <a href="option-a-minimal/index.html" class="group card-hover block bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-stone-200/60">
+        <div class="aspect-[4/5] relative overflow-hidden" style="background: linear-gradient(135deg, #FAF8F5 0%, #F0E6D8 100%);">
+          <!-- 极简书香预览 -->
+          <div class="absolute inset-6 flex flex-col">
+            <div class="flex items-center justify-between mb-6">
+              <span class="text-xs tracking-widest text-stone-500">DISCOVER</span>
+              <div class="w-6 h-6 rounded-full bg-stone-900"></div>
+            </div>
+            <div class="font-serif text-stone-900 text-2xl leading-tight mb-3">故事入境，<br/>杂念自消。</div>
+            <div class="grid grid-cols-2 gap-3 mt-auto">
+              <div class="aspect-[3/4] rounded-xl shadow-md" style="background: linear-gradient(135deg,#E85A4F,#F5856E);"></div>
+              <div class="aspect-[3/4] rounded-xl shadow-md mt-6" style="background: linear-gradient(135deg,#5B7B8D,#8FAEB8);"></div>
+            </div>
+          </div>
+          <div class="absolute top-4 right-4 px-3 py-1 bg-stone-900 text-white text-xs rounded-full">A</div>
+        </div>
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-serif text-2xl font-bold">极简书香</h3>
+            <span class="text-stone-400 group-hover:translate-x-1 transition-transform">→</span>
+          </div>
+          <p class="text-sm text-stone-500 leading-relaxed">大量留白，Serif 主导，珊瑚色点缀。微信读书+Apple Books 的克制感。</p>
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 bg-stone-100 text-stone-600 text-xs rounded-full">留白</span>
+            <span class="px-2 py-0.5 bg-stone-100 text-stone-600 text-xs rounded-full">宁静</span>
+            <span class="px-2 py-0.5 bg-stone-100 text-stone-600 text-xs rounded-full">阅读感</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- 方案 B -->
+      <a href="option-b-magazine/index.html" class="group card-hover block bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-stone-200/60">
+        <div class="aspect-[4/5] relative overflow-hidden" style="background: linear-gradient(135deg, #FFE0EC 0%, #FFF5F0 50%, #FFE5D9 100%);">
+          <!-- 杂志风格预览 -->
+          <div class="absolute inset-0 flex flex-col p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs font-bold tracking-widest" style="color:#FF4D8D;">FEATURED</div>
+              <div class="w-8 h-1 rounded-full" style="background:#FF4D8D"></div>
+            </div>
+            <!-- 大图封面 -->
+            <div class="flex-1 rounded-2xl mb-3 relative overflow-hidden shadow-xl" style="background: linear-gradient(135deg, #FF4D8D, #FF8FBF, #FFB199);">
+              <div class="absolute bottom-3 left-3 right-3">
+                <div class="text-white/80 text-[10px] tracking-widest mb-1">本周编辑推荐</div>
+                <div class="text-white font-bold leading-tight">长安月下，归人未归</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="aspect-square rounded-lg" style="background: linear-gradient(135deg,#A8E6CF,#7FD8BE);"></div>
+              <div class="aspect-square rounded-lg" style="background: linear-gradient(135deg,#FFD3B6,#FFAAA5);"></div>
+              <div class="aspect-square rounded-lg" style="background: linear-gradient(135deg,#C9B1FF,#A78BFA);"></div>
+            </div>
+          </div>
+          <div class="absolute top-4 right-4 px-3 py-1 text-white text-xs rounded-full" style="background:#FF4D8D;">B</div>
+        </div>
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-sans text-2xl font-bold">沉浸杂志</h3>
+            <span class="text-stone-400 group-hover:translate-x-1 transition-transform">→</span>
+          </div>
+          <p class="text-sm text-stone-500 leading-relaxed">大图驱动，渐变卡片，玫粉点缀。小红书+番茄小说的内容密度感。</p>
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 bg-pink-50 text-pink-600 text-xs rounded-full">大图</span>
+            <span class="px-2 py-0.5 bg-pink-50 text-pink-600 text-xs rounded-full">动感</span>
+            <span class="px-2 py-0.5 bg-pink-50 text-pink-600 text-xs rounded-full">年轻态</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- 方案 C -->
+      <a href="option-c-luxury/index.html" class="group card-hover block bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-stone-200/60">
+        <div class="aspect-[4/5] relative overflow-hidden" style="background: linear-gradient(135deg, #15110D 0%, #2A1F15 100%);">
+          <!-- 轻奢文艺预览 -->
+          <div class="absolute inset-0 flex flex-col p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="text-[10px] tracking-[0.3em]" style="color:#C9A961;">CURATED · 文字之境</div>
+              <div class="w-1.5 h-1.5 rounded-full" style="background:#C9A961"></div>
+            </div>
+            <div class="font-serif text-2xl leading-tight mb-1" style="color:#F5F1EA;">墨韵</div>
+            <div class="text-xs tracking-widest" style="color:#C9A961;">INK & SOUL</div>
+            <div class="flex-1 flex items-center justify-center my-4">
+              <div class="w-32 h-44 rounded-lg shadow-2xl relative overflow-hidden" style="background: linear-gradient(135deg, #2A1F15, #4A3520);">
+                <div class="absolute inset-2 border rounded" style="border-color: rgba(201,169,97,0.3);"></div>
+                <div class="absolute inset-0 flex flex-col items-center justify-center font-serif" style="color:#C9A961;">
+                  <div class="text-[10px] tracking-widest mb-1">VOL.01</div>
+                  <div class="text-base">长安月下</div>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-1.5 justify-center">
+              <div class="w-8 h-1 rounded-full" style="background:#C9A961"></div>
+              <div class="w-2 h-1 rounded-full" style="background:rgba(201,169,97,0.3);"></div>
+              <div class="w-2 h-1 rounded-full" style="background:rgba(201,169,97,0.3);"></div>
+            </div>
+          </div>
+          <div class="absolute top-4 right-4 px-3 py-1 text-xs rounded-full" style="background:#C9A961;color:#15110D;">C</div>
+        </div>
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-serif text-2xl font-bold">轻奢文艺</h3>
+            <span class="text-stone-400 group-hover:translate-x-1 transition-transform">→</span>
+          </div>
+          <p class="text-sm text-stone-500 leading-relaxed">奶油黑配鎏金，毛玻璃+微动效。网易云+起点的高级收藏感。</p>
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded-full">复古</span>
+            <span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded-full">高级</span>
+            <span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded-full">毛玻璃</span>
+          </div>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- 评估说明 -->
+    <section class="mt-16 bg-white/60 backdrop-blur rounded-3xl p-8 border border-stone-200/60">
+      <h2 class="font-serif text-2xl font-bold mb-4">如何评估</h2>
+      <div class="grid md:grid-cols-2 gap-6 text-sm text-stone-600 leading-relaxed">
+        <div>
+          <h3 class="font-semibold text-stone-900 mb-2">📱 移动端体验</h3>
+          <p>用手机或缩窄浏览器到 480px 宽度，重点看导航是否好按、字号是否舒适、内容是否拥挤。</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-stone-900 mb-2">🌗 深浅切换</h3>
+          <p>每个方案右上角都有切换按钮，深色模式下的可读性同样重要。</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-stone-900 mb-2">📖 阅读页</h3>
+          <p>这是用户停留最久的页面，重点测试字体、行距、底部工具栏的舒适度。</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-stone-900 mb-2">🎨 整体调性</h3>
+          <p>哪个最像你心目中"女性向小说平台"应有的样子？记下感受，之后我们再细化。</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="text-center text-stone-400 text-sm mt-12">
+      文字之境 · AI-XsRead · UI Redesign Demos
+    </footer>
+  </main>
+
+</body>
+</html>

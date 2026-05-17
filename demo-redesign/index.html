@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>文字之境 · 重构方案 V1.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', 'PingFang SC', system-ui; -webkit-font-smoothing: antialiased; }
+    .font-serif { font-family: 'Noto Serif SC', serif; }
+    .device {
+      box-shadow:
+        0 0 0 2px #1a1a1a,
+        0 0 0 12px #2a2a2a,
+        0 25px 50px -15px rgba(0,0,0,.4),
+        0 16px 36px -18px rgba(0,0,0,.6);
+      border-radius: 40px;
+    }
+    iframe { color-scheme: light dark; }
+  </style>
+</head>
+<body class="bg-zinc-50 text-zinc-900 antialiased min-h-screen">
+
+  <!-- 顶部 -->
+  <header class="border-b border-zinc-200 bg-white/85 backdrop-blur-xl sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-lg bg-zinc-900 grid place-items-center text-white font-serif font-bold">境</span>
+        <div>
+          <p class="font-bold tracking-tight">文字之境 · 重构方案 V1.0</p>
+          <p class="text-[11px] text-zinc-500">A 主题（首页/详情等）+ D 主题（阅读页）混搭</p>
+        </div>
+      </div>
+      <a href="proposals.html" class="text-sm text-zinc-500 hover:text-zinc-900">查看初版方案对比 →</a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="max-w-7xl mx-auto px-6 pt-12 pb-6">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-3">VERSION 1.0 · FULL PAGES</p>
+    <h1 class="font-serif text-4xl md:text-5xl font-bold tracking-tight leading-tight max-w-[24ch]">
+      A + D 混搭定稿，<br/>10 个完整页面已就绪。
+    </h1>
+    <p class="mt-5 text-base text-zinc-600 max-w-[60ch] leading-relaxed">
+      首页/详情/书架/搜索/发现/个人中心/登录/注册/历史 使用 <strong class="text-zinc-900">A 奶油杂志风</strong>。<br/>
+      阅读页使用 <strong class="text-zinc-900">D 极简内容流</strong>，专注沉浸阅读。所有页面共享设计 token，深浅模式跨页同步（localStorage）。
+    </p>
+
+    <div class="mt-6 flex flex-wrap gap-2 text-xs">
+      <span class="px-3 py-1.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-medium">10 个完整页面</span>
+      <span class="px-3 py-1.5 rounded-full bg-zinc-100 text-zinc-700">移动端优先 · 375px</span>
+      <span class="px-3 py-1.5 rounded-full bg-zinc-100 text-zinc-700">浅色 / 深色</span>
+      <span class="px-3 py-1.5 rounded-full bg-zinc-100 text-zinc-700">SVG 占位封面</span>
+      <span class="px-3 py-1.5 rounded-full bg-zinc-100 text-zinc-700">无构建直接打开</span>
+    </div>
+  </section>
+
+  <!-- 入口 nav -->
+  <nav class="sticky top-16 z-20 border-y border-zinc-200 bg-zinc-50/85 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-6 flex items-center gap-2 overflow-x-auto py-3 text-sm">
+      <a href="#core" class="shrink-0 px-3 py-1.5 rounded-full bg-zinc-900 text-white font-medium">核心 4 页</a>
+      <a href="#secondary" class="shrink-0 px-3 py-1.5 rounded-full hover:bg-zinc-200">次级页面</a>
+      <a href="#system" class="shrink-0 px-3 py-1.5 rounded-full hover:bg-zinc-200">设计系统</a>
+      <a href="#next" class="shrink-0 px-3 py-1.5 rounded-full hover:bg-zinc-200">下一步</a>
+    </div>
+  </nav>
+
+  <!-- ─────────── 核心 4 页 ─────────── -->
+  <main class="max-w-7xl mx-auto px-6 pb-24">
+
+    <section id="core" class="pt-12">
+      <p class="text-xs font-mono text-zinc-500 mb-2">/ CORE</p>
+      <h2 class="font-serif text-2xl font-bold tracking-tight mb-2">核心 4 页：用户路径主线</h2>
+      <p class="text-sm text-zinc-600 mb-8">首页 → 详情 → 阅读 → 书架，用户最常走的路径。</p>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        <!-- 首页 -->
+        <div class="rounded-3xl bg-white border border-zinc-200 overflow-hidden">
+          <div class="grid grid-cols-[1fr_auto] gap-0">
+            <div class="p-6">
+              <p class="text-[10px] font-mono text-amber-600 mb-1">A · CREAM</p>
+              <h3 class="font-serif text-xl font-bold mb-2">首页 Home</h3>
+              <p class="text-sm text-zinc-600 leading-relaxed">继续阅读 + 主编荐读 + 分类 chip + 推荐书单 + 治愈专题 + 排行榜。所有交互可点击跳转。</p>
+              <a href="pages/home.html" target="_blank" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-900 hover:text-amber-600 transition">
+                打开 <span aria-hidden="true">→</span>
+              </a>
+            </div>
+            <div class="p-4 pl-0">
+              <div class="device w-[260px] h-[480px] bg-black overflow-hidden">
+                <iframe src="pages/home.html" class="w-full h-full" title="首页"></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 详情 -->
+        <div class="rounded-3xl bg-white border border-zinc-200 overflow-hidden">
+          <div class="grid grid-cols-[1fr_auto] gap-0">
+            <div class="p-6">
+              <p class="text-[10px] font-mono text-amber-600 mb-1">A · CREAM</p>
+              <h3 class="font-serif text-xl font-bold mb-2">小说详情 Detail</h3>
+              <p class="text-sm text-zinc-600 leading-relaxed">头图渐隐 + 数据条 + 标签 + 简介展开 + 章节列表（含续读高亮）+ 评分占比 + 评论 + 类似推荐 + 浮动 CTA。</p>
+              <a href="pages/detail.html" target="_blank" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-900 hover:text-amber-600 transition">
+                打开 <span aria-hidden="true">→</span>
+              </a>
+            </div>
+            <div class="p-4 pl-0">
+              <div class="device w-[260px] h-[480px] bg-black overflow-hidden">
+                <iframe src="pages/detail.html" class="w-full h-full" title="详情"></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 阅读 -->
+        <div class="rounded-3xl bg-white border-2 border-orange-300 overflow-hidden relative">
+          <span class="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-orange-500 text-white text-[10px] font-bold tracking-wider z-10">D 主题</span>
+          <div class="grid grid-cols-[1fr_auto] gap-0">
+            <div class="p-6">
+              <p class="text-[10px] font-mono text-orange-600 mb-1">D · MINIMAL</p>
+              <h3 class="font-serif text-xl font-bold mb-2">阅读页 Reading ⭐</h3>
+              <p class="text-sm text-zinc-600 leading-relaxed">极简沉浸阅读。点击中央切换工具栏，底部有进度滑块。<strong class="text-zinc-900">设置面板可调字号/行距/背景色（4 种：日间/柔黄/护眼/夜间）/字体</strong>。</p>
+              <a href="pages/reading.html" target="_blank" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-900 hover:text-orange-600 transition">
+                打开 <span aria-hidden="true">→</span>
+              </a>
+            </div>
+            <div class="p-4 pl-0">
+              <div class="device w-[260px] h-[480px] bg-black overflow-hidden">
+                <iframe src="pages/reading.html" class="w-full h-full" title="阅读"></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 书架 -->
+        <div class="rounded-3xl bg-white border border-zinc-200 overflow-hidden">
+          <div class="grid grid-cols-[1fr_auto] gap-0">
+            <div class="p-6">
+              <p class="text-[10px] font-mono text-amber-600 mb-1">A · CREAM</p>
+              <h3 class="font-serif text-xl font-bold mb-2">我的书架 Bookshelf</h3>
+              <p class="text-sm text-zinc-600 leading-relaxed">阅读统计 + Tab 切换（全部/在读/已读）+ 网格/列表视图切换 + 进度可视化 + 已读完角标 + 智能推荐补全。</p>
+              <a href="pages/bookshelf.html" target="_blank" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-900 hover:text-amber-600 transition">
+                打开 <span aria-hidden="true">→</span>
+              </a>
+            </div>
+            <div class="p-4 pl-0">
+              <div class="device w-[260px] h-[480px] bg-black overflow-hidden">
+                <iframe src="pages/bookshelf.html" class="w-full h-full" title="书架"></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────── 次级页面 ─────────── -->
+    <section id="secondary" class="pt-20">
+      <p class="text-xs font-mono text-zinc-500 mb-2">/ SECONDARY</p>
+      <h2 class="font-serif text-2xl font-bold tracking-tight mb-2">次级页面：6 个支撑页</h2>
+      <p class="text-sm text-zinc-600 mb-8">点击卡片直接打开（小预览图 + 描述）。</p>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <a href="pages/discover.html" target="_blank" class="group block rounded-3xl bg-white border border-zinc-200 overflow-hidden hover:border-amber-400 transition">
+          <div class="aspect-[3/4] bg-zinc-100 overflow-hidden relative">
+            <iframe src="pages/discover.html" class="w-full h-[200%] origin-top-left scale-50 pointer-events-none" loading="lazy"></iframe>
+          </div>
+          <div class="p-5">
+            <p class="text-[10px] font-mono text-amber-600 mb-1">A · CREAM</p>
+            <h3 class="font-serif text-lg font-bold mb-1">发现 Discover</h3>
+            <p class="text-xs text-zinc-600">分类 + Tab + 横向专题轮播 + 为你精选 + 换一批</p>
+          </div>
+        </a>
+
+        <a href="pages/search.html" target="_blank" class="group block rounded-3xl bg-white border border-zinc-200 overflow-hidden hover:border-amber-400 transition">
+          <div class="aspect-[3/4] bg-zinc-100 overflow-hidden relative">
+            <iframe src="pages/search.html" class="w-full h-[200%] origin-top-left scale-50 pointer-events-none" loading="lazy"></iframe>
+          </div>
+          <div class="p-5">
+            <p class="text-[10px] font-mono text-amber-600 mb-1">A · CREAM</p>
+            <h3 class="font-serif text-lg font-bold mb-1">搜索 Search</h3>
+            <p class="text-xs text-zinc-600">搜索框 + 历史 + 热搜榜 + 分类 chip + 猜你想看</p>
+          </div>
+        </a>
+
+        <a href="pages/profile.html" target="_blank" class="group block rounded-3xl bg-white border border-zinc-200 overflow-hidden hover:border-amber-400 transition">
+          <div class="aspect-[3/4] bg-zinc-100 overflow-hidden relative">
+            <iframe src="pages/profile.html" class="w-full h-[200%] origin-top-left scale-50 pointer-events-none" loading="lazy"></iframe>
+          </div>
+          <div class="p-5">
+            <p class="text-[10px] font-mono text-amber-600 mb-1">A · CREAM</p>
+            <h3 class="font-serif text-lg font-bold mb-1">个人中心 Profile</h3>
+            <p class="text-xs text-zinc-600">用户卡 + 快捷功能 + 周阅读柱状图 + 设置列表</p>
+          </div>
+        </a>
+
+        <a href="pages/history.html" target="_blank" class="group block rounded-3xl bg-white border border-zinc-200 overflow-hidden hover:border-amber-400 transition">
+          <div class="aspect-[3/4] bg-zinc-100 overflow-hidden relative">
+            <iframe src="pages/history.html" class="w-full h-[200%] origin-top-left scale-50 pointer-events-none" loading="lazy"></iframe>
+          </div>
+          <div class="p-5">
+            <p class="text-[10px] font-mono text-amber-600 mb-1">A · CREAM</p>
+            <h3 class="font-serif text-lg font-bold mb-1">浏览记录 History</h3>
+            <p class="text-xs text-zinc-600">按时间分组（今天/昨天/本周）+ 阅读进度</p>
+          </div>
+        </a>
+
+        <a href="pages/login.html" target="_blank" class="group block rounded-3xl bg-white border border-zinc-200 overflow-hidden hover:border-amber-400 transition">
+          <div class="aspect-[3/4] bg-zinc-100 overflow-hidden relative">
+            <iframe src="pages/login.html" class="w-full h-[200%] origin-top-left scale-50 pointer-events-none" loading="lazy"></iframe>
+          </div>
+          <div class="p-5">
+            <p class="text-[10px] font-mono text-amber-600 mb-1">A · CREAM</p>
+            <h3 class="font-serif text-lg font-bold mb-1">登录 Login</h3>
+            <p class="text-xs text-zinc-600">极简表单 + 密码可见切换 + 记住我 + 三方登录</p>
+          </div>
+        </a>
+
+        <a href="pages/register.html" target="_blank" class="group block rounded-3xl bg-white border border-zinc-200 overflow-hidden hover:border-amber-400 transition">
+          <div class="aspect-[3/4] bg-zinc-100 overflow-hidden relative">
+            <iframe src="pages/register.html" class="w-full h-[200%] origin-top-left scale-50 pointer-events-none" loading="lazy"></iframe>
+          </div>
+          <div class="p-5">
+            <p class="text-[10px] font-mono text-amber-600 mb-1">A · CREAM</p>
+            <h3 class="font-serif text-lg font-bold mb-1">注册 Register</h3>
+            <p class="text-xs text-zinc-600">手机号 + 验证码 + 密码强度 + 阅读偏好选择</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- ─────────── 设计系统 ─────────── -->
+    <section id="system" class="pt-20">
+      <p class="text-xs font-mono text-zinc-500 mb-2">/ DESIGN TOKENS</p>
+      <h2 class="font-serif text-2xl font-bold tracking-tight mb-8">设计系统</h2>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        <!-- A 主题 -->
+        <div class="p-6 rounded-3xl bg-white border border-zinc-200">
+          <p class="text-[10px] font-mono text-amber-600 mb-1">A · CREAM</p>
+          <h3 class="font-serif text-xl font-bold mb-4">奶油杂志风</h3>
+
+          <div class="space-y-3 mb-5">
+            <div>
+              <p class="text-xs text-zinc-500 mb-1">主品牌色</p>
+              <div class="flex gap-2 flex-wrap">
+                <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-md bg-[#FAF6F1] border"></span><span class="text-[11px] font-mono">#FAF6F1</span></div>
+                <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-md bg-[#A87A56]"></span><span class="text-[11px] font-mono">#A87A56</span></div>
+                <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-md bg-[#5C3B25]"></span><span class="text-[11px] font-mono">#5C3B25</span></div>
+                <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-md bg-[#6B7B5A]"></span><span class="text-[11px] font-mono">#6B7B5A</span></div>
+                <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-md bg-[#B8473C]"></span><span class="text-[11px] font-mono">#B8473C</span></div>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs text-zinc-500 mb-1">字体</p>
+              <p class="font-serif text-2xl">Noto Serif SC · 标题</p>
+              <p class="font-sans text-base text-zinc-600">Inter · 正文</p>
+            </div>
+          </div>
+
+          <p class="text-xs text-zinc-500">用于：<span class="text-zinc-900">9 个非阅读页面</span></p>
+        </div>
+
+        <!-- D 主题 -->
+        <div class="p-6 rounded-3xl bg-white border border-zinc-200">
+          <p class="text-[10px] font-mono text-orange-600 mb-1">D · MINIMAL</p>
+          <h3 class="font-serif text-xl font-bold mb-4">极简内容流（阅读页）</h3>
+
+          <div class="space-y-3 mb-5">
+            <div>
+              <p class="text-xs text-zinc-500 mb-1">主色 + 4 种阅读背景</p>
+              <div class="flex gap-2 flex-wrap">
+                <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-md bg-[#FAFAF9] border"></span><span class="text-[11px] font-mono">日间</span></div>
+                <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-md bg-[#F4ECD8]"></span><span class="text-[11px] font-mono">柔黄</span></div>
+                <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-md bg-[#CCE0CC]"></span><span class="text-[11px] font-mono">护眼</span></div>
+                <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-md bg-[#0A0A0A]"></span><span class="text-[11px] font-mono text-zinc-700">夜间</span></div>
+                <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-md bg-[#FF5C39]"></span><span class="text-[11px] font-mono">强调</span></div>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs text-zinc-500 mb-1">字体</p>
+              <p style="font-family:'Noto Serif SC', serif" class="text-2xl">Noto Serif SC · 阅读默认</p>
+              <p class="font-mono text-sm text-zinc-600">JetBrains Mono · 数据/编号</p>
+            </div>
+          </div>
+
+          <p class="text-xs text-zinc-500">用于：<span class="text-zinc-900">阅读页（核心沉浸场景）</span></p>
+        </div>
+      </div>
+
+      <div class="mt-8 p-6 rounded-3xl bg-zinc-100 border border-zinc-200">
+        <h3 class="font-serif text-lg font-bold mb-3">技术栈与可移植性</h3>
+        <div class="grid md:grid-cols-3 gap-6 text-sm">
+          <div>
+            <p class="text-xs text-zinc-500 mb-2 uppercase tracking-wider">当前 Demo</p>
+            <ul class="space-y-1 text-zinc-700">
+              <li>· TailwindCSS 3.x Play CDN</li>
+              <li>· Vanilla JS（无框架）</li>
+              <li>· Google Fonts</li>
+              <li>· 10 个静态 HTML</li>
+              <li>· shared/ 抽象配置</li>
+            </ul>
+          </div>
+          <div>
+            <p class="text-xs text-zinc-500 mb-2 uppercase tracking-wider">移植后（Vue 3 工程）</p>
+            <ul class="space-y-1 text-zinc-700">
+              <li>· Vite 7 + Vue 3.5</li>
+              <li>· TailwindCSS 3 完整构建</li>
+              <li>· Reka UI（推荐）做复杂组件</li>
+              <li>· Pinia 状态 / Vue Router</li>
+              <li>· 沿用现有 backend API</li>
+            </ul>
+          </div>
+          <div>
+            <p class="text-xs text-zinc-500 mb-2 uppercase tracking-wider">AI 生图封面</p>
+            <ul class="space-y-1 text-zinc-700">
+              <li>· 当前：SVG 渐变 + 标题文字</li>
+              <li>· 后续：接 SD/Flux/智谱 API</li>
+              <li>· prompt 模板按分类生成</li>
+              <li>· CDN 缓存 + 兜底 SVG</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────── 下一步 ─────────── -->
+    <section id="next" class="pt-20">
+      <p class="text-xs font-mono text-zinc-500 mb-2">/ NEXT STEPS</p>
+      <h2 class="font-serif text-2xl font-bold tracking-tight mb-8">下一步</h2>
+
+      <ol class="space-y-4">
+        <li class="flex gap-4 p-5 rounded-2xl bg-white border border-zinc-200">
+          <span class="font-serif text-3xl font-bold text-amber-600 w-10 text-center">1</span>
+          <div class="flex-1">
+            <h3 class="font-bold text-base mb-1">逐页过细节、确定改动点</h3>
+            <p class="text-sm text-zinc-600">浏览每一页（特别是手机视图），告诉我哪里要调整。常见调整：色彩深浅、按钮形状、卡片圆角、字体大小、信息密度等。</p>
+          </div>
+        </li>
+        <li class="flex gap-4 p-5 rounded-2xl bg-white border border-zinc-200">
+          <span class="font-serif text-3xl font-bold text-amber-600 w-10 text-center">2</span>
+          <div class="flex-1">
+            <h3 class="font-bold text-base mb-1">移植到 Vue 3 工程（ai-xsread-vue3）</h3>
+            <p class="text-sm text-zinc-600">把 demo 拆成组件：AppHeader、BottomNav、BookCard、CoverPlaceholder、RatingBar 等。沿用现有的 router 和 stores。</p>
+          </div>
+        </li>
+        <li class="flex gap-4 p-5 rounded-2xl bg-white border border-zinc-200">
+          <span class="font-serif text-3xl font-bold text-amber-600 w-10 text-center">3</span>
+          <div class="flex-1">
+            <h3 class="font-bold text-base mb-1">引入 Reka UI 处理复杂组件</h3>
+            <p class="text-sm text-zinc-600">Drawer（章节抽屉）、Dialog（设置面板）、Toast、Tabs 等。Reka UI 是 Radix Vue 的延续，无样式 + 完全可主题化，最贴合我们的 Tailwind 风格。</p>
+          </div>
+        </li>
+        <li class="flex gap-4 p-5 rounded-2xl bg-white border border-zinc-200">
+          <span class="font-serif text-3xl font-bold text-amber-600 w-10 text-center">4</span>
+          <div class="flex-1">
+            <h3 class="font-bold text-base mb-1">接入 AI 生图 API 替换 SVG 占位</h3>
+            <p class="text-sm text-zinc-600">封装 <code class="px-1.5 py-0.5 rounded bg-zinc-100 text-xs font-mono">CoverPlaceholder.vue</code>：先尝试 AI 生图 URL，失败兜底 SVG。可分类生成（古风/都市/悬疑）不同 prompt 模板。</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="mt-10 p-6 rounded-3xl bg-zinc-900 text-white">
+        <p class="text-xs font-mono uppercase tracking-[0.2em] text-amber-400 mb-2">Status</p>
+        <h3 class="font-serif text-2xl font-bold mb-2">Demo 完成度：100%</h3>
+        <p class="text-sm text-zinc-300 leading-relaxed">10 个页面均可独立打开测试，浅深模式跨页同步，所有跳转链已打通。等你确认无修改后，我开始把 demo 拆成 Vue 组件移植回主工程。</p>
+      </div>
+    </section>
+
+    <footer class="pt-12 pb-6 text-center text-xs text-zinc-500">
+      <p>提示：用浏览器开发者工具切到 iPhone 14 Pro 视图查看真实移动端效果</p>
+      <p class="mt-1">© 文字之境 · 重构方案 V1.0 · 2026-05-17</p>
+    </footer>
+  </main>
+
+</body>
+</html>
