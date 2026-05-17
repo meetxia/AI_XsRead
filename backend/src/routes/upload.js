@@ -97,11 +97,13 @@ router.post(
         maxHeight: 1200
       });
 
-      // 直接返回相对路径，前端会自动使用当前域名
-      const imageUrl = result.data.url;
+      // 保持向后兼容：同时返回相对路径和绝对地址，前端优先使用 url（相对）
+      const base = `${req.protocol}://${req.get('host')}`;
+      const imageUrl = result.data.url; // 形如 /uploads/images/xxx.webp
 
       return Response.success(res, {
-        url: imageUrl
+        url: imageUrl,
+        absoluteUrl: `${base}${imageUrl}`
       }, '图片上传成功');
     } catch (error) {
       console.error('图片上传失败:', error);

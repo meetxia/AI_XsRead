@@ -75,6 +75,17 @@ const idValidation = [
 ];
 
 /**
+ * novelId 参数验证（用于 /:novelId 形态的路由，如书架的添加/删除/更新）
+ */
+const novelIdValidation = [
+  param('novelId')
+    .isInt({ min: 1 })
+    .withMessage('无效的小说ID参数'),
+
+  handleValidationErrors
+];
+
+/**
  * 分页参数验证
  */
 const paginationValidation = [
@@ -115,6 +126,7 @@ module.exports = {
   registerValidation,
   loginValidation,
   idValidation,
+  novelIdValidation,
   paginationValidation,
   textPaginationValidation
 };

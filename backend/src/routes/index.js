@@ -18,21 +18,11 @@ const achievementRoutes = require('./achievements');
 // API版本前缀
 const API_PREFIX = '/api';
 
-// 注册路由
-router.use(`${API_PREFIX}/auth`, authRoutes);
-router.use(`${API_PREFIX}`, novelRoutes); // novels和comments都在这里
-router.use(`${API_PREFIX}`, commentRoutes);
-router.use(`${API_PREFIX}/chapters`, chapterRoutes);
-router.use(`${API_PREFIX}/user`, userRoutes);
-router.use(`${API_PREFIX}/upload`, uploadRoutes);
-router.use(`${API_PREFIX}/authors`, authorRoutes);
-router.use(`${API_PREFIX}`, bookmarkRoutes);
-router.use(`${API_PREFIX}`, paragraphCommentRoutes);
-router.use(`${API_PREFIX}`, highlightRoutes);
-router.use(`${API_PREFIX}`, interestTagRoutes);
-router.use(`${API_PREFIX}`, achievementRoutes);
+// ============================================================
+// 公开端点（必须先于子路由注册，避免被 router.use(authenticate) 误拦）
+// ============================================================
 
-// 健康检查接口
+// 健康检查（无需登录）
 router.get(`${API_PREFIX}/health`, (req, res) => {
   const migrationsState = req.app.locals.migrationsState || {};
   res.json({
@@ -52,7 +42,7 @@ router.get(`${API_PREFIX}/health`, (req, res) => {
   });
 });
 
-// 根路径
+// API 根（无需登录）
 router.get('/', (req, res) => {
   res.json({
     name: '文字之境 API',
@@ -62,5 +52,23 @@ router.get('/', (req, res) => {
   });
 });
 
-module.exports = router;
+// ============================================================
+// 子路由注册
+// 注意：bookmarkRoutes / interestTagRoutes / achievementRoutes 三个子路由内部使用了
+// router.use(authenticate)，必须挂在更具体的前缀（/api/user）下，否则会拦截
+// /api/health 等公开端点。
+// ============================================================
+router.use(`${API_PREFIX}/auth`, authRoutes);
+router.use(`${API_PREFIX}`, novelRoutes); // novels 路径都是 /novels/...
+router.use(`${API_PREFIX}`, commentRoutes);
+router.use(`${API_PREFIX}/chapters`, chapterRoutes);
+router.use(`${API_PREFIX}/user`, userRoutes);
+router.use(`${API_PREFIX}/upload`, uploadRoutes);
+router.use(`${API_PREFIX}/authors`, authorRoutes);
+router.use(`${API_PREFIX}/user`, bookmarkRoutes);          // 路径形如 /api/user/bookmarks
+router.use(`${API_PREFIX}`, paragraphCommentRoutes);       // 内部路径 /paragraph-comments/...
+router.use(`${API_PREFIX}`, highlightRoutes);              // 内部路径 /highlights、/novels/:id/notes、/user/highlights
+router.use(`${API_PREFIX}/user`, interestTagRoutes);       // 路径形如 /api/user/interest-tags
+router.use(`${API_PREFIX}/user`, achievementRoutes);       // 路径形如 /api/user/achievements
 
+module.exports = router;

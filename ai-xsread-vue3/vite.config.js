@@ -44,6 +44,11 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8005',
         changeOrigin: true
+      },
+      // /uploads/* 也走后端，dev 环境才能显示头像/封面等图片
+      '/uploads': {
+        target: 'http://localhost:8005',
+        changeOrigin: true
       }
     }
   },

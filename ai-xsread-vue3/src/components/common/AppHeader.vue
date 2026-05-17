@@ -252,13 +252,16 @@ const handleLogout = () => {
 
 // 获取用户头像
 const getUserAvatar = () => {
-  const avatar = userStore.userInfo?.avatar
+  let avatar = userStore.userInfo?.avatar
   
   // 如果没有头像，返回默认头像
   if (!avatar) {
     return '/default-avatar.svg'
   }
-  
+
+  // 兼容历史数据：把形如 https://host/uploads/... 的绝对地址截成同源相对路径
+  avatar = String(avatar).replace(/^https?:\/\/[^/]+(\/uploads\/)/i, '$1')
+
   // 如果是完整URL（http/https开头），直接返回
   if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
     return avatar

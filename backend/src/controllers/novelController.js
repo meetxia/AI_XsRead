@@ -385,30 +385,43 @@ const uncollectNovel = async (req, res, next) => {
 
 /**
  * 获取用户对小说的状态
+ * 匿名访问时返回全 false / 0 的占位结果，仅小说自身的 likes/collections 计数会查询。
  */
 const getNovelStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    
+    const userId = req.user?.id;
+
     const { pool } = require('../config/database');
-    
-    // 查询点赞状态
-    const [likes] = await pool.query(
-      'SELECT id FROM user_likes WHERE user_id = ? AND novel_id = ?',
-      [userId, id]
-    );
-    
-    // 查询书架状态
-    const [bookshelf] = await pool.query(
-      'SELECT id, type FROM bookshelf WHERE user_id = ? AND novel_id = ?',
-      [userId, id]
-    );
+
+    // 小说级计数（与登录态无关，匿名也能看）
     const [novelRows] = await pool.query(
       'SELECT likes, collections FROM novels WHERE id = ? LIMIT 1',
       [id]
     );
-    
+
+    // 匿名：直接返回占位
+    if (!userId) {
+      return Response.success(res, {
+        isLiked: false,
+        isCollected: false,
+        inBookshelf: false,
+        shelfType: null,
+        likeCount: Number(novelRows[0]?.likes || 0),
+        collectionCount: Number(novelRows[0]?.collections || 0)
+      });
+    }
+
+    // 登录态：查询当前用户对该小说的状态
+    const [likes] = await pool.query(
+      'SELECT id FROM user_likes WHERE user_id = ? AND novel_id = ?',
+      [userId, id]
+    );
+    const [bookshelf] = await pool.query(
+      'SELECT id, type FROM bookshelf WHERE user_id = ? AND novel_id = ?',
+      [userId, id]
+    );
+
     return Response.success(res, {
       isLiked: likes.length > 0,
       isCollected: bookshelf.length > 0,

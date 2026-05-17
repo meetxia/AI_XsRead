@@ -364,8 +364,7 @@ module.exports = {
 
       const relUrl = result.data.url; // 如 /uploads/images/xxx.webp
       const relThumb = result.data.thumbnail; // 如 /uploads/thumbnails/thumb_xxx.webp
-
-      // 直接使用相对路径，前端会自动使用当前域名
+      // 直接落库相对路径，前端按 origin 解析；这样切换域名/HTTPS 都不会拼错
       const avatarUrl = relUrl;
       const avatarThumb = relThumb || null;
 

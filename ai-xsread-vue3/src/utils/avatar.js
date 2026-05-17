@@ -11,14 +11,18 @@ export const DEFAULT_AVATAR = '/default-avatar.svg'
  * @returns {string} 头像URL
  */
 export const getUserAvatarUrl = (user) => {
-  const avatar = user?.avatar
+  let avatar = user?.avatar
   
   // 如果没有头像，返回默认头像
   if (!avatar) {
     return DEFAULT_AVATAR
   }
-  
-  // 如果是完整URL（http/https开头），直接返回
+
+  // 兼容历史数据：把形如 https://host/uploads/... 的绝对地址截成同源相对路径
+  // 这样切换域名 / HTTPS / 反代时都不会失效
+  avatar = String(avatar).replace(/^https?:\/\/[^/]+(\/uploads\/)/i, '$1')
+
+  // 如果是完整URL（http/https开头），直接返回（dicebear 等外部头像生成器）
   if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
     return avatar
   }

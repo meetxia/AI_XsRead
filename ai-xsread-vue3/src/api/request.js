@@ -58,13 +58,15 @@ request.interceptors.request.use(
     const token = localStorage.getItem('token')
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
-      console.log('🔑 添加 Token 到请求头:', {
-        url: config.url,
-        method: config.method,
-        tokenPreview: token.substring(0, 20) + '...',
-        authHeader: config.headers['Authorization'].substring(0, 30) + '...'
-      })
-    } else {
+      if (import.meta.env.DEV) {
+        console.log('🔑 添加 Token 到请求头:', {
+          url: config.url,
+          method: config.method,
+          tokenPreview: token.substring(0, 20) + '...',
+          authHeader: config.headers['Authorization'].substring(0, 30) + '...'
+        })
+      }
+    } else if (import.meta.env.DEV) {
       console.log('⚠️ 未找到 Token:', {
         url: config.url,
         method: config.method
@@ -88,7 +90,7 @@ request.interceptors.response.use(
     removePendingRequest(response.config)
     
     // 性能监控（开发环境）
-    if (process.env.NODE_ENV === 'development' && response.config.metadata) {
+    if (import.meta.env.DEV && response.config.metadata) {
       const duration = Date.now() - response.config.metadata.startTime
       console.log(`⏱️ API [${response.config.method.toUpperCase()}] ${response.config.url}: ${duration}ms`)
     }
@@ -161,7 +163,7 @@ request.getCached = async function(url, params = {}, options = {}) {
   // 尝试从缓存获取
   const cached = requestCache.get(cacheKey)
   if (cached !== null) {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log('✓ 使用缓存:', url)
     }
     return Promise.resolve(cached)
@@ -217,10 +219,21 @@ request.batch = async function(requests, concurrency = 5) {
 
 export default request
 
-function handleUnauthorized() {
+function handleUnauthorized(opts = {}) {
+  // 区分两种 401：
+  // 1) 当前根本没登录 → 不跳转，让组件根据空数据渲染"未登录引导"
+  // 2) 之前登录过、token 过期/失效 → 清空登录态并跳到登录页
+  const hadToken = Boolean(localStorage.getItem('token'))
+
+  // 不论哪种情况，都把可能残留的登录信息清空
   localStorage.removeItem('token')
   localStorage.removeItem('userInfo')
   localStorage.removeItem('refreshToken')
+
+  if (!hadToken) {
+    // 匿名访问就不再硬跳转，避免详情页/书架进不去
+    return
+  }
 
   if (window.location.pathname === '/login') return
   const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`

@@ -26,8 +26,9 @@ function pickRandom(arr) {
 
 function buildAvatarUrl(req, filename) {
   if (!filename) return null;
-  const base = `${req.protocol}://${req.get('host')}`;
-  return `${base}/uploads/tx/${encodeURIComponent(filename)}`;
+  // 返回相对路径，让前端按当前 origin 解析（生产环境走 Nginx 同源代理）
+  // req 参数保留是为了兼容旧调用约定，本身不再使用
+  return `/uploads/tx/${encodeURIComponent(filename)}`;
 }
 
 function getRandomAvatarUrl(req) {

@@ -6,23 +6,33 @@
 import { useUserStore } from '@/stores/user'
 
 /**
- * 需要登录的路由路径
- * 注意：阅读页不需要登录，让游客也能试读
+ * 需要登录才能访问的页面（强制跳转登录）
+ * 说明：
+ * - 主路径 `/bookshelf`、`/profile`、`/history` 改为允许匿名访问，
+ *   组件内自行渲染"未登录引导"或调匿名 API
+ * - 强制鉴权的只剩账号安全、个人深度子页（书签/划线/想法/勋章/关注作者）和上传/兴趣引导
+ *   这些子页继续保留 requiresAuth: true 的 meta，由本守卫读取 to.meta.requiresAuth 兜底
  */
 const AUTH_REQUIRED_ROUTES = [
-  '/bookshelf',
-  // '/reading',  // 移除：阅读页允许游客访问
-  '/user',
-  '/profile',
-  '/settings'
+  '/security',
+  '/profile/achievements',
+  '/profile/bookmarks',
+  '/profile/highlights',
+  '/profile/notes',
+  '/profile/following-authors',
+  '/onboarding/interests',
+  '/upload'
 ]
 
 /**
  * 检查路由是否需要登录
- * @param {string} path - 路由路径
+ * - 优先看 meta.requiresAuth（路由表显式标注）
+ * - 其次看路径前缀白名单
  */
-const requiresAuth = (path) => {
-  return AUTH_REQUIRED_ROUTES.some(route => path.startsWith(route))
+const requiresAuth = (to) => {
+  if (to?.meta?.requiresAuth === true) return true
+  if (to?.meta?.requiresAuth === false) return false
+  return AUTH_REQUIRED_ROUTES.some(route => to.path === route || to.path.startsWith(route + '/'))
 }
 
 /**
@@ -38,7 +48,7 @@ export const setupRouterGuards = (router) => {
     const userStore = useUserStore()
     
     // 检查是否需要登录
-    if (requiresAuth(to.path)) {
+    if (requiresAuth(to)) {
       if (!userStore.isLogin) {
         // 未登录，跳转到登录页
         console.log('需要登录，跳转到登录页')

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import BottomNav from '@/components/v2/layout/BottomNav.vue'
 import Icon from '@/components/v2/icons/Icon.vue'
@@ -12,20 +12,36 @@ import { getFollowingAuthors } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
-const { shelfCount, readingStreak, totalMinutes, todayMinutes, joinDays, weekTrend, formatMinutes, loadStats } = useUserStats()
+const {
+  shelfCount,
+  readingStreak,
+  totalMinutes,
+  todayMinutes,
+  joinDays,
+  weekTrend,
+  formatMinutes,
+  loadStats
+} = useUserStats()
 const followingAuthors = ref([])
 
-const user = computed(() => ({
-  name: userStore.userInfo?.username || userStore.userInfo?.nickname || '阮宁',
-  handle: '@' + (userStore.userInfo?.username || 'ningning'),
-  joinDays: joinDays.value,
-  avatar: userStore.userInfo?.avatar || '',
-  shelf: shelfCount.value,
-  streak: readingStreak.value,
-  hours: formatMinutes(totalMinutes.value),
-}))
+const isLoggedIn = computed(() => userStore.isLogin)
 
-const avatarLetter = computed(() => (user.value.name[0] || '阮').toUpperCase())
+const user = computed(() => {
+  // 已登录：从 store 读真实数据
+  // 未登录：返回占位（仅在登录后分支被渲染时使用）
+  const info = userStore.userInfo || {}
+  return {
+    name: info.nickname || info.username || '读者',
+    handle: info.username ? `@${info.username}` : '',
+    joinDays: joinDays.value,
+    avatar: info.avatar || '',
+    shelf: shelfCount.value,
+    streak: readingStreak.value,
+    hours: formatMinutes(totalMinutes.value)
+  }
+})
+
+const avatarLetter = computed(() => (user.value.name?.[0] || '读').toUpperCase())
 
 async function doLogout() {
   await userStore.logout()
@@ -33,7 +49,10 @@ async function doLogout() {
 }
 
 async function loadFollowingAuthors() {
-  if (!userStore.isLogin) return
+  if (!userStore.isLogin) {
+    followingAuthors.value = []
+    return
+  }
   try {
     const res = await getFollowingAuthors({ page: 1, pageSize: 10 })
     const list = Array.isArray(res?.data) ? res.data : (res?.data?.list || [])
@@ -43,11 +62,18 @@ async function loadFollowingAuthors() {
   }
 }
 
-onMounted(() => {
-  if (userStore.isLogin) {
-    loadStats()
-    loadFollowingAuthors()
-  }
+function maybeLoadAuthedData() {
+  if (!userStore.isLogin) return
+  loadStats()
+  loadFollowingAuthors()
+}
+
+onMounted(maybeLoadAuthedData)
+
+// 登录态切换时（如登录后 SPA 内跳回来）刷新一次数据
+watch(() => userStore.isLogin, (val) => {
+  if (val) maybeLoadAuthedData()
+  else followingAuthors.value = []
 })
 </script>
 
@@ -69,8 +95,47 @@ onMounted(() => {
     </header>
 
     <main class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
-      <!-- PC 双栏：左 用户卡 + 快捷功能 + 阅读统计；右 设置列表 -->
-      <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+      <!-- ========== 未登录分支 ========== -->
+      <section v-if="!isLoggedIn" class="mt-8 max-w-2xl mx-auto">
+        <div class="rounded-2xl overflow-hidden bg-gradient-to-br from-clay-500 to-clay-700 dark:from-clay-600 dark:to-clay-700 text-cream-50 shadow-cream-lg p-6 sm:p-8 relative">
+          <div class="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-cream-50/10 blur-2xl"></div>
+          <div class="relative">
+            <p class="text-[11px] uppercase tracking-[0.2em] text-cream-200/80 mb-2">My Profile</p>
+            <h1 class="font-serif text-2xl sm:text-3xl font-semibold tracking-tight">登录后解锁专属书库</h1>
+            <p class="mt-3 text-sm text-cream-200/85 leading-relaxed">
+              同步阅读进度、收藏喜欢的故事、记录想法和划线，跨设备无缝衔接。
+            </p>
+            <div class="mt-6 flex flex-wrap gap-3">
+              <RouterLink to="/login" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-cream-50 text-clay-700 font-medium text-sm hover:bg-cream-100 transition">
+                <Icon name="user" class="w-4 h-4" />
+                立即登录
+              </RouterLink>
+              <RouterLink to="/register" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/30 text-cream-50 font-medium text-sm hover:bg-cream-50/25 transition">
+                注册新账号
+              </RouterLink>
+            </div>
+          </div>
+        </div>
+
+        <!-- 未登录态也能让用户先逛 -->
+        <div class="mt-6 grid grid-cols-2 gap-3">
+          <RouterLink to="/" class="flex items-center gap-3 p-4 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+            <Icon name="home" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+            <span class="text-sm font-medium">回到首页</span>
+          </RouterLink>
+          <RouterLink to="/recommend" class="flex items-center gap-3 p-4 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+            <Icon name="compass" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+            <span class="text-sm font-medium">发现新故事</span>
+          </RouterLink>
+        </div>
+
+        <div class="mt-6 rounded-2xl bg-cream-100 dark:bg-night-800 p-5 text-center">
+          <p class="text-sm text-ink-700 dark:text-ink-300 italic font-serif">"读过的书，遇过的人，都会变成你。"</p>
+        </div>
+      </section>
+
+      <!-- ========== 已登录分支 ========== -->
+      <div v-else class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         <!-- 左栏 -->
         <div class="lg:col-span-2 min-w-0 space-y-5">
           <!-- 用户卡 -->
@@ -85,7 +150,10 @@ onMounted(() => {
                 </div>
                 <div class="flex-1 min-w-0">
                   <h1 class="font-serif text-xl sm:text-2xl font-semibold tracking-tight truncate">{{ user.name }}</h1>
-                  <p class="text-sm text-cream-200/85 mt-0.5 truncate">{{ user.handle }}<span v-if="user.joinDays"> · 加入 {{ user.joinDays }} 天</span></p>
+                  <p class="text-sm text-cream-200/85 mt-0.5 truncate">
+                    <span v-if="user.handle">{{ user.handle }}</span>
+                    <span v-if="user.joinDays"> · 加入 {{ user.joinDays }} 天</span>
+                  </p>
                 </div>
                 <button class="px-3 py-1.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/25 text-xs shrink-0">编辑</button>
               </div>
@@ -195,13 +263,9 @@ onMounted(() => {
                 <span class="flex-1 text-sm">关于文字之境</span>
                 <span class="text-xs text-ink-500">v 1.0</span>
               </a>
-              <button v-if="userStore.isLogin" @click="doLogout" class="w-full text-left flex items-center gap-3 p-3.5 text-cinnabar-500 hover:bg-cinnabar-500/5">
+              <button @click="doLogout" class="w-full text-left flex items-center gap-3 p-3.5 text-cinnabar-500 hover:bg-cinnabar-500/5">
                 <span class="flex-1 text-sm font-medium">退出登录</span>
               </button>
-              <RouterLink v-else to="/login" class="w-full text-left flex items-center gap-3 p-3.5 text-clay-700 dark:text-clay-400">
-                <span class="flex-1 text-sm font-medium">立即登录</span>
-                <Icon name="arrowRight" class="w-4 h-4" />
-              </RouterLink>
             </div>
           </section>
         </div>
