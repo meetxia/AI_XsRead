@@ -33,13 +33,27 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // 响应压缩
 app.use(compression());
 
+// Express 在 Nginx 反代后面：信任 X-Forwarded-For，否则 rate-limit 会把所有用户都当成同一个 IP
+// 1 = 信任最近的一跳代理（Nginx），不信任更外层
+app.set('trust proxy', 1);
+
 // 请求日志
 app.use(requestLogger);
 
-// 限流配置
+// 限流配置（全局兜底，写接口在路由层另有 writeRateLimiter）
+// 单 IP 每 15 分钟 600 次（约 40 req/min），覆盖正常浏览场景，恶意刷接口仍然挡得住
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15分钟
-  max: 100, // 限制100个请求
+  windowMs: 15 * 60 * 1000,
+  max: 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  // 只对 API 路由限流；静态资源、上传文件、健康检查不参与
+  skip: (req) => {
+    if (req.path === '/api/health') return true;
+    if (req.path.startsWith('/uploads/')) return true;
+    if (!req.path.startsWith('/api/')) return true;
+    return false;
+  },
   message: {
     code: 429,
     message: '请求过于频繁，请稍后再试',
