@@ -1,3 +1,19 @@
+-- ============================================================
+-- 已归档：本文件不会被 migrate.js 自动执行（扩展名 .archived）
+-- 原因：本文件中 idx_reading_history_user_time 等索引引用了
+--       reading_history.read_at 字段，但当前 schema 中实际字段名为
+--       read_time（参见 reading_history 表 init_step1.sql 定义）。
+--       直接执行会触发 ER_KEY_COLUMN_DOES_NOT_EXITS (errno 1072)，
+--       导致 startServer 整个挂掉。
+--
+-- 历史背景：
+--   - 此文件原名 performance_optimization.sql，因不符合 \d{12}__ 命名规则
+--     一直被 migrate.js 跳过，从未执行成功过。
+--   - 2026-05-18 工程化基线（Track D）做迁移命名规范化时把它改成
+--     202605170803__performance_optimization.sql 引入 server boot 失败。
+--   - 当前性能索引由 init_step1.sql 与各业务迁移文件维护，
+--     本文件保留作为历史参考，需要的索引若仍缺失应通过新迁移补齐。
+-- ============================================================
 -- =====================================
 -- 数据库性能优化SQL
 -- 包含索引优化和查询优化

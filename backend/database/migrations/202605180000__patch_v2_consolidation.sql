@@ -4,61 +4,25 @@
 --   * reading_history.chapter_id 设为 NULL —— 已在 202605170801__fix_reading_history_fields.sql 处理
 --   * comments.parent_id 添加 —— 已在 202605170909__migrate_comment_tables.sql 处理
 --   * user_follow_authors 表 —— 已在 202605170904__enable_user_follow_authors.sql 处理
---   * user_achievements 表 —— 与 202605170908__user_achievements.sql 字段定义冲突（保留新版按 code 维度记录的版本，不还原 patch_v2 中按 achievement_id 维度记录的版本）
+--   * user_achievements 表 —— 与 202605170908__user_achievements.sql 字段定义冲突（保留新版）
+
+-- 注意：
+-- migrate.js 的 splitSqlStatements 用 `;` 分隔语句，不识别 `DELIMITER //`，
+-- 因此本文件不使用存储过程；用 BENIGN_IDEMPOTENCY_ERRORS（migrate.js
+-- 内置忽略 ER_DUP_FIELDNAME / ER_DUP_KEYNAME 等）实现幂等加列加索引。
 
 SET NAMES utf8mb4;
 
--- 通用工具：安全添加列
-DROP PROCEDURE IF EXISTS _add_col_if_missing;
-DELIMITER //
-CREATE PROCEDURE _add_col_if_missing(
-  IN tableName VARCHAR(64),
-  IN colName VARCHAR(64),
-  IN colDef VARCHAR(512)
-)
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = DATABASE()
-      AND table_name = tableName
-      AND column_name = colName
-  ) THEN
-    SET @s = CONCAT('ALTER TABLE `', tableName, '` ADD COLUMN `', colName, '` ', colDef);
-    PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-  END IF;
-END //
-DELIMITER ;
-
--- 通用工具：安全添加索引
-DROP PROCEDURE IF EXISTS _add_index_if_missing;
-DELIMITER //
-CREATE PROCEDURE _add_index_if_missing(
-  IN tableName VARCHAR(64),
-  IN indexName VARCHAR(64),
-  IN indexCols VARCHAR(255)
-)
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.statistics
-    WHERE table_schema = DATABASE()
-      AND table_name = tableName
-      AND index_name = indexName
-  ) THEN
-    SET @s = CONCAT('ALTER TABLE `', tableName, '` ADD INDEX `', indexName, '` (', indexCols, ')');
-    PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-  END IF;
-END //
-DELIMITER ;
-
 -- ─── 1. comments 表补齐 reply_count（parent_id 已存在） ───
-CALL _add_col_if_missing('comments', 'reply_count', "INT UNSIGNED DEFAULT 0 COMMENT '回复数'");
-CALL _add_index_if_missing('comments', 'idx_parent_id', '`parent_id`');
+-- 重复执行时 ER_DUP_FIELDNAME / ER_DUP_KEYNAME 会被 migrate.js 自动忽略
+ALTER TABLE `comments` ADD COLUMN `reply_count` INT UNSIGNED DEFAULT 0 COMMENT '回复数';
+ALTER TABLE `comments` ADD INDEX `idx_parent_id` (`parent_id`);
 
 -- ─── 2. users 表补齐阅读统计字段 ───
-CALL _add_col_if_missing('users', 'read_streak',      "INT UNSIGNED DEFAULT 0 COMMENT '连续阅读天数'");
-CALL _add_col_if_missing('users', 'last_read_date',   "DATE DEFAULT NULL COMMENT '最后阅读日期'");
-CALL _add_col_if_missing('users', 'total_read_time',  "INT UNSIGNED DEFAULT 0 COMMENT '累计阅读时长(分钟)'");
-CALL _add_col_if_missing('users', 'total_read_words', "BIGINT UNSIGNED DEFAULT 0 COMMENT '累计阅读字数'");
+ALTER TABLE `users` ADD COLUMN `read_streak` INT UNSIGNED DEFAULT 0 COMMENT '连续阅读天数';
+ALTER TABLE `users` ADD COLUMN `last_read_date` DATE DEFAULT NULL COMMENT '最后阅读日期';
+ALTER TABLE `users` ADD COLUMN `total_read_time` INT UNSIGNED DEFAULT 0 COMMENT '累计阅读时长(分钟)';
+ALTER TABLE `users` ADD COLUMN `total_read_words` BIGINT UNSIGNED DEFAULT 0 COMMENT '累计阅读字数';
 
 -- ─── 3. achievements 定义表（与 user_achievements 解耦，仅作为成就元数据字典） ───
 CREATE TABLE IF NOT EXISTS `achievements` (
@@ -116,7 +80,7 @@ ON DUPLICATE KEY UPDATE
   `sort_order` = VALUES(`sort_order`);
 
 -- ─── 5. novels 表补齐 tags 字段 ───
-CALL _add_col_if_missing('novels', 'tags', "VARCHAR(255) DEFAULT NULL COMMENT '标签（逗号分隔，冗余存储）'");
+ALTER TABLE `novels` ADD COLUMN `tags` VARCHAR(255) DEFAULT NULL COMMENT '标签（逗号分隔，冗余存储）';
 
 -- 给现有小说补充标签（仅在为空时填充）
 UPDATE `novels` SET `tags` = '甜宠,都市,现代' WHERE `category_id` = 101 AND (`tags` IS NULL OR `tags` = '');
@@ -137,7 +101,3 @@ INSERT INTO `categories` (`id`, `name`, `icon`, `description`, `sort_order`) VAL
 ON DUPLICATE KEY UPDATE
   `name` = VALUES(`name`),
   `description` = VALUES(`description`);
-
--- ─── 清理临时存储过程 ───
-DROP PROCEDURE IF EXISTS _add_col_if_missing;
-DROP PROCEDURE IF EXISTS _add_index_if_missing;

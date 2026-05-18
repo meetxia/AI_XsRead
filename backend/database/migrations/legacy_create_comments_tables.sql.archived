@@ -1,4 +1,18 @@
--- 创建评论系统相关表
+-- ============================================================
+-- 已归档：本文件不会被 migrate.js 自动执行（扩展名 .archived）
+-- 原因：本文件中 novel_likes / comment_likes 等表的外键字段是 INT，
+--       但当前 schema 下 novels.id / users.id 已是 BIGINT UNSIGNED，
+--       直接执行会触发 errno 150 "Foreign key constraint is incorrectly formed"
+--       导致 startServer 整个挂掉。
+--
+-- 历史背景：
+--   - 此文件原名 create_comments_tables.sql，因不符合 \d{12}__ 命名规则
+--     一直被 migrate.js 跳过，从未执行成功过。
+--   - 2026-05-18 工程化基线（Track D）做迁移命名规范化时把它改成
+--     202605170802__create_comments_tables_legacy.sql 引入 server boot 失败。
+--   - 当前评论系统的 schema 由 202605170909__migrate_comment_tables.sql 维护，
+--     本文件已无业务作用，仅保留作为历史参考。
+-- ============================================================
 
 -- 评论表
 CREATE TABLE IF NOT EXISTS comments (
