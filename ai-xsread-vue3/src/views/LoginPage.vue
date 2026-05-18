@@ -5,6 +5,14 @@ import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import { useUserStore } from '@/stores/user'
 import { safeReturnUrl } from '@/composables/useReturnUrl'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '登录',
+  description: '登录 MOMO小说，同步书架、阅读进度和个人阅读记录。',
+  url: `${SEO_DEFAULTS.siteUrl}/login`,
+  robots: 'noindex,follow',
+})
 
 const router = useRouter()
 const route = useRoute()
@@ -16,6 +24,7 @@ const remember = ref(true)
 const showPassword = ref(false)
 const loading = ref(false)
 const errorMsg = ref('')
+const logoWhiteUrl = '/logo-white.svg'
 
 async function onSubmit() {
   if (!account.value || !password.value) {
@@ -54,7 +63,7 @@ async function onSubmit() {
     <main class="max-w-md mx-auto px-6 pt-12 pb-12 min-h-[calc(100vh-3.5rem)] flex flex-col">
       <!-- Logo -->
       <div class="text-center mb-12">
-        <img src="/logo-white.svg" alt="MOMO小说" class="inline-block w-14 h-14 rounded-2xl mb-4 shadow-cream-lg" />
+        <img :src="logoWhiteUrl" alt="MOMO小说" class="inline-block w-14 h-14 rounded-2xl mb-4 shadow-cream-lg" />
         <h1 class="font-serif text-3xl font-semibold tracking-tight">欢迎回来</h1>
         <p class="text-sm text-ink-700 dark:text-ink-300 mt-2">故事入境，杂念自消</p>
       </div>

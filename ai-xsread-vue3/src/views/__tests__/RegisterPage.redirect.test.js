@@ -39,6 +39,9 @@ vi.mock('vue-router', () => ({
     replace: replaceMock,
     back: backMock,
   }),
+  useRoute: () => ({
+    query: {},
+  }),
   RouterLink: {
     name: 'RouterLink',
     props: ['to'],
@@ -50,14 +53,12 @@ vi.mock('vue-router', () => ({
 const RegisterPage = (await import('@/views/RegisterPage.vue')).default
 
 function fillForm(wrapper) {
-  // Inputs in DOM order: username(text), phone(tel), code(text),
-  // password(password), agreed(checkbox).
+  // Inputs in DOM order: email, password, confirm password.
   const inputs = wrapper.findAll('input')
   return Promise.all([
-    inputs[0].setValue('alice'),
-    inputs[1].setValue('13800138000'),
-    inputs[3].setValue('Password123!'),
-    inputs[4].setValue(true),
+    inputs[0].setValue('alice@example.com'),
+    inputs[1].setValue('Password123!'),
+    inputs[2].setValue('Password123!'),
   ])
 }
 

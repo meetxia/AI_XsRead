@@ -2,6 +2,14 @@
 import { useRouter } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '账号安全',
+  description: 'MOMO小说账号安全设置页面。',
+  url: `${SEO_DEFAULTS.siteUrl}/security`,
+  robots: 'noindex,follow',
+})
 
 const router = useRouter()
 </script>

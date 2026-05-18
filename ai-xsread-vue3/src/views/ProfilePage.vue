@@ -12,6 +12,14 @@ import { useUserStats } from '@/composables/useUserStats'
 import WeekBarChart from '@/components/profile/WeekBarChart.vue'
 import FollowingAuthorList from '@/components/profile/FollowingAuthorList.vue'
 import { getFollowingAuthors } from '@/api/user'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '我的',
+  description: 'MOMO小说个人中心，用于管理账号、书架、阅读统计和会员信息。',
+  url: `${SEO_DEFAULTS.siteUrl}/profile`,
+  robots: 'noindex,follow',
+})
 
 const router = useRouter()
 const userStore = useUserStore()

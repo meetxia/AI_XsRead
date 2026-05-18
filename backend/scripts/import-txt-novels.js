@@ -9,6 +9,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mysql = require('mysql2/promise');
 const fs = require('fs');
+const crypto = require('crypto');
 
 // 数据库配置
 const DB_CONFIG = {
@@ -85,6 +86,16 @@ function getRandomAuthor() {
   return AUTHORS[Math.floor(Math.random() * AUTHORS.length)];
 }
 
+function getCoverUrl(title) {
+  const hash = crypto
+    .createHash('sha1')
+    .update(title, 'utf8')
+    .digest('hex')
+    .slice(0, 12);
+
+  return `/uploads/images/covers/cover-${hash}.jpg`;
+}
+
 // 导入单个小说
 async function importNovel(connection, novelData) {
   const { title, content, wordCount, description } = novelData;
@@ -103,15 +114,16 @@ async function importNovel(connection, novelData) {
     // 2. 确定分类
     const categoryId = getCategoryId(title);
     const author = getRandomAuthor();
+    const cover = getCoverUrl(title);
     
     // 3. 插入小说记录
     const [novelResult] = await connection.query(`
       INSERT INTO novels (
-        title, author, category_id, description, word_count, 
+        title, author, category_id, cover, description, word_count, 
         chapter_count, status, views, likes, collections, 
         is_recommended, published_at, last_update_time
-      ) VALUES (?, ?, ?, ?, ?, 1, 0, 0, 0, 0, 1, NOW(), NOW())
-    `, [title, author, categoryId, description, wordCount]);
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, 0, 0, 0, 0, 1, NOW(), NOW())
+    `, [title, author, categoryId, cover, description, wordCount]);
     
     const novelId = novelResult.insertId;
     

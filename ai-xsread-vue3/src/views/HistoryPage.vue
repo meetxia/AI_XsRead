@@ -4,6 +4,14 @@ import { useRouter, RouterLink } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import BookCover from '@/components/v2/book/BookCover.vue'
 import { getReadingHistory } from '@/api/user'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '浏览记录',
+  description: 'MOMO小说个人浏览记录，用于继续阅读最近打开的作品。',
+  url: `${SEO_DEFAULTS.siteUrl}/history`,
+  robots: 'noindex,follow',
+})
 
 const router = useRouter()
 

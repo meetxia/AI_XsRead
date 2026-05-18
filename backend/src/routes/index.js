@@ -15,9 +15,13 @@ const highlightRoutes = require('./highlights');
 const interestTagRoutes = require('./interestTags');
 const achievementRoutes = require('./achievements');
 const systemRoutes = require('./system');
+const seoRoutes = require('./seo');
 
 // API版本前缀
 const API_PREFIX = '/api';
+
+// SEO 索引控制文件（根路径，便于被站点或反代直接暴露）
+router.use('/', seoRoutes);
 
 // ============================================================
 // 公开端点（必须先于子路由注册，避免被 router.use(authenticate) 误拦）

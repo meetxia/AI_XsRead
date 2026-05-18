@@ -6,6 +6,7 @@ import { listMyBookmarks } from '@/api/bookmarks'
 import { listMyHighlights } from '@/api/highlights'
 import { listMyNotes } from '@/api/notes'
 import { getFollowingAuthors } from '@/api/user'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
 
 const route = useRoute()
 const items = ref([])
@@ -18,6 +19,13 @@ const config = computed(() => {
   if (type === 'following') return { title: '关注作者', loader: getFollowingAuthors }
   return { title: '我的书签', loader: listMyBookmarks }
 })
+
+useSeoMeta(() => ({
+  title: config.value.title,
+  description: `MOMO小说个人中心 - ${config.value.title}`,
+  url: `${SEO_DEFAULTS.siteUrl}${route.path}`,
+  robots: 'noindex,follow',
+}))
 
 function itemTitle(item) {
   return item.title || item.novel_title || item.name || item.author || '未命名'

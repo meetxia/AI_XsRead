@@ -6,6 +6,14 @@ import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import { useUserStore } from '@/stores/user'
 import { useMembershipStore } from '@/stores/membership'
 import { safeReturnUrl } from '@/composables/useReturnUrl'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '注册',
+  description: '注册 MOMO小说账号，开启阅读进度同步和个性化书架。',
+  url: `${SEO_DEFAULTS.siteUrl}/register`,
+  robots: 'noindex,follow',
+})
 
 const router = useRouter()
 const route = useRoute()
@@ -20,6 +28,7 @@ const activationCode = ref('')
 const showActivationField = ref(false)
 const loading = ref(false)
 const errorMsg = ref('')
+const logoWhiteUrl = '/logo-white.svg'
 
 // 自动生成一个随机用户名（后续可在个人中心修改）
 // 形如 xs_l8w2k9bh，碰撞概率极低；如真碰撞了，提交时一次重试
@@ -132,7 +141,7 @@ async function onSubmit() {
     <main class="max-w-md mx-auto px-6 pt-10 pb-12 min-h-[calc(100vh-3.5rem)] flex flex-col">
       <!-- Logo -->
       <div class="text-center mb-10">
-        <img src="/logo-white.svg" alt="MOMO小说" class="inline-block w-14 h-14 rounded-2xl mb-4 shadow-cream-lg" />
+        <img :src="logoWhiteUrl" alt="MOMO小说" class="inline-block w-14 h-14 rounded-2xl mb-4 shadow-cream-lg" />
         <h1 class="font-serif text-3xl font-semibold tracking-tight">创建账号</h1>
         <p class="text-sm text-ink-700 dark:text-ink-300 mt-2">输入邮箱即可开始阅读</p>
       </div>

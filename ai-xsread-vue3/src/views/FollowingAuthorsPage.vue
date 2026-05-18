@@ -4,6 +4,14 @@ import { RouterLink } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import UnreadBadge from '@/components/bookshelf/UnreadBadge.vue'
 import { listFollowingAuthors } from '@/api/authors'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '关注作者',
+  description: 'MOMO小说个人关注作者列表，用于查看作者更新动态。',
+  url: `${SEO_DEFAULTS.siteUrl}/profile/following-authors`,
+  robots: 'noindex,follow',
+})
 
 const PAGE_SIZE = 20
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000

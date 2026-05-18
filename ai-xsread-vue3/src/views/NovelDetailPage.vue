@@ -13,6 +13,7 @@ import { addToBookshelf, removeFromBookshelf, getReadingProgress } from '@/api/u
 import { useUserStore } from '@/stores/user'
 import { buildLoginUrl } from '@/composables/useReturnUrl'
 import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+import { buildBookSchema, buildBreadcrumbSchema } from '@/utils/schema'
 
 const router = useRouter()
 const route = useRoute()
@@ -348,25 +349,25 @@ useSeoMeta(() => {
     image: cover,
     url: `${SEO_DEFAULTS.siteUrl}/novel/${n.id}`,
     type: 'book',
-    jsonLd: {
-      '@type': 'Book',
-      name: n.title,
-      author: n.author ? { '@type': 'Person', name: n.author } : undefined,
-      image: cover,
-      genre: n.category || undefined,
-      keywords: (n.tags || []).join(','),
-      description: intro || undefined,
-      bookFormat: 'https://schema.org/EBook',
-      inLanguage: 'zh-CN',
-      url: `${SEO_DEFAULTS.siteUrl}/novel/${n.id}`,
-      aggregateRating: n.rating ? {
-        '@type': 'AggregateRating',
-        ratingValue: Number(n.rating),
-        ratingCount: ratingInfo.value.ratingCount || n.commentCount || 1,
-        bestRating: 5,
-        worstRating: 1,
-      } : undefined,
-    },
+    jsonLd: [
+      buildBookSchema({
+        title: n.title,
+        author: n.author,
+        cover,
+        category: n.category,
+        tags: n.tags,
+        description: intro,
+        url: `${SEO_DEFAULTS.siteUrl}/novel/${n.id}`,
+        rating: n.rating,
+        ratingCount: ratingInfo.value.ratingCount,
+        commentCount: n.commentCount,
+      }),
+      buildBreadcrumbSchema([
+        { name: SEO_DEFAULTS.siteName, url: SEO_DEFAULTS.siteUrl + '/' },
+        { name: n.category || '小说', url: `${SEO_DEFAULTS.siteUrl}/recommend${n.category ? `?category=${encodeURIComponent(n.category)}` : ''}` },
+        { name: n.title, url: `${SEO_DEFAULTS.siteUrl}/novel/${n.id}` },
+      ]),
+    ],
   }
 })
 </script>

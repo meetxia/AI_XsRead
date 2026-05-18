@@ -16,6 +16,14 @@ import { RouterLink } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import AchievementCard from '@/components/profile/AchievementCard.vue'
 import { getUserAchievements } from '@/api/achievements'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '我的勋章',
+  description: 'MOMO小说个人勋章墙，用于查看阅读成就和解锁进度。',
+  url: `${SEO_DEFAULTS.siteUrl}/profile/achievements`,
+  robots: 'noindex,follow',
+})
 
 const achievements = ref([])
 const summary = ref({ unlocked: 0, total: 0, percentage: 0 })

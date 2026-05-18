@@ -10,6 +10,14 @@ import GroupSelector from '@/components/bookshelf/GroupSelector.vue'
 import BatchActionBar from '@/components/bookshelf/BatchActionBar.vue'
 import UnreadBadge from '@/components/bookshelf/UnreadBadge.vue'
 import { getBookshelf, batchBookshelf } from '@/api/bookshelf'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '我的书架',
+  description: 'MOMO小说个人书架，用于管理在读、已读和想读作品。',
+  url: `${SEO_DEFAULTS.siteUrl}/bookshelf`,
+  robots: 'noindex,follow',
+})
 
 const activeTab = ref('all') // all | reading | finished | wishlist
 const viewMode = ref('grid') // grid | list

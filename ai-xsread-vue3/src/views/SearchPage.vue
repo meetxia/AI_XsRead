@@ -9,6 +9,14 @@ import {
   getSearchHistory, saveSearchHistory, clearSearchHistory,
   getHotSearch, searchNovels
 } from '@/api/search'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '搜索',
+  description: '在 MOMO小说 搜索书名、作者和标签，快速找到想看的小说。',
+  url: `${SEO_DEFAULTS.siteUrl}/search`,
+  robots: 'noindex,follow',
+})
 
 const router = useRouter()
 const route = useRoute()

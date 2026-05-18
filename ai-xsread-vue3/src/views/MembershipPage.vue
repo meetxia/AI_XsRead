@@ -22,6 +22,14 @@ import ContactCard from '@/components/membership/ContactCard.vue'
 import { useUserStore } from '@/stores/user'
 import { useMembershipStore } from '@/stores/membership'
 import { buildLoginUrl } from '@/composables/useReturnUrl'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '会员中心',
+  description: 'MOMO小说会员中心，用于查看会员状态和激活会员权益。',
+  url: `${SEO_DEFAULTS.siteUrl}/profile/membership`,
+  robots: 'noindex,follow',
+})
 
 const router = useRouter()
 const userStore = useUserStore()

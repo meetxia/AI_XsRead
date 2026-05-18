@@ -21,11 +21,20 @@
  */
 
 import { watchEffect, onUnmounted } from 'vue'
+import {
+  DEFAULT_OG_IMAGE,
+  SITE_DESC,
+  SITE_NAME,
+  SITE_TAGLINE,
+  SITE_URL,
+  absoluteUrl,
+  canonicalUrl,
+  normalizeRobots,
+  pageTitle,
+  truncate,
+} from '@/utils/seo'
 
-const SITE_NAME = 'MOMO小说'
-const SITE_DESC = 'MOMO小说，专为热爱阅读的你打造的精选小说阅读平台。汇聚都市言情、古风穿越、悬疑推理、治愈系、奇幻冒险五大品类。'
-const SITE_URL = 'https://xs.momofx.cn'
-const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.svg`
+const JSON_LD_PREFIX = 'page-jsonld'
 
 function setMeta(attr, key, value) {
   if (typeof document === 'undefined' || value == null) return
@@ -36,6 +45,12 @@ function setMeta(attr, key, value) {
     document.head.appendChild(el)
   }
   el.setAttribute('content', String(value))
+}
+
+function removeMeta(attr, key) {
+  if (typeof document === 'undefined') return
+  const el = document.head.querySelector(`meta[${attr}="${key}"]`)
+  if (el) el.remove()
 }
 
 function setLink(rel, href) {
@@ -49,28 +64,60 @@ function setLink(rel, href) {
   el.setAttribute('href', href)
 }
 
-function injectJsonLd(id, data) {
-  if (typeof document === 'undefined' || !data) return
-  let el = document.getElementById(id)
-  if (!el) {
-    el = document.createElement('script')
-    el.type = 'application/ld+json'
-    el.id = id
-    document.head.appendChild(el)
-  }
-  el.textContent = JSON.stringify(data)
+function normalizeJsonLd(data) {
+  if (!data) return []
+  return (Array.isArray(data) ? data : [data]).filter(Boolean).map(item => ({
+    '@context': 'https://schema.org',
+    ...item,
+  }))
 }
 
-function removeJsonLd(id) {
+function removeJsonLd() {
   if (typeof document === 'undefined') return
-  const el = document.getElementById(id)
-  if (el) el.remove()
+  document.head.querySelectorAll(`script[id^="${JSON_LD_PREFIX}"]`).forEach(el => el.remove())
 }
 
-function truncate(text, n = 160) {
-  if (!text) return ''
-  const s = String(text).replace(/\s+/g, ' ').trim()
-  return s.length > n ? s.slice(0, n - 1) + '…' : s
+function injectJsonLd(data) {
+  if (typeof document === 'undefined') return
+  removeJsonLd()
+  normalizeJsonLd(data).forEach((item, index) => {
+    const el = document.createElement('script')
+    el.type = 'application/ld+json'
+    el.id = `${JSON_LD_PREFIX}-${index}`
+    el.textContent = JSON.stringify(item)
+    document.head.appendChild(el)
+  })
+}
+
+function getLocationHref() {
+  if (typeof location === 'undefined') return SITE_URL
+  return location.href
+}
+
+function applyDefaults() {
+  const title = `${SITE_NAME} - ${SITE_TAGLINE}`
+  const url = canonicalUrl(getLocationHref())
+  if (typeof document !== 'undefined') document.title = title
+  setMeta('name', 'description', SITE_DESC)
+  setMeta('name', 'robots', 'index,follow')
+  removeMeta('name', 'keywords')
+  setLink('canonical', url)
+  setMeta('property', 'og:title', title)
+  setMeta('property', 'og:description', SITE_DESC)
+  setMeta('property', 'og:image', DEFAULT_OG_IMAGE)
+  setMeta('property', 'og:url', url)
+  setMeta('property', 'og:type', 'website')
+  setMeta('property', 'og:site_name', SITE_NAME)
+  setMeta('property', 'og:locale', 'zh_CN')
+  setMeta('name', 'twitter:card', 'summary_large_image')
+  setMeta('name', 'twitter:title', title)
+  setMeta('name', 'twitter:description', SITE_DESC)
+  setMeta('name', 'twitter:image', DEFAULT_OG_IMAGE)
+}
+
+function resolveInput(input) {
+  if (typeof input === 'function') return input() || {}
+  return input?.value ?? input ?? {}
 }
 
 /**
@@ -80,26 +127,28 @@ function truncate(text, n = 160) {
  * @param {string} input.image - 社交分享卡图片完整 URL
  * @param {string} input.url - canonical URL，缺省自动取当前 location
  * @param {string} input.type - og:type，例如 website / article / book / profile
+ * @param {string} input.robots - robots 指令，例如 index,follow / noindex,follow
  * @param {string} input.keywords - 页面 keywords
- * @param {Object} input.jsonLd - 结构化数据对象
+ * @param {Object|Object[]} input.jsonLd - 结构化数据对象或对象数组
  */
 export function useSeoMeta(input) {
-  const JSON_LD_ID = 'page-jsonld'
-
   watchEffect(() => {
-    const opts = typeof input === 'function' ? input() : (input?.value ?? input ?? {})
-    const title = opts.title ? `${opts.title} - ${SITE_NAME}` : `${SITE_NAME} - 故事入境，杂念自消`
+    const opts = resolveInput(input)
+    const title = pageTitle(opts.title)
     const description = truncate(opts.description || SITE_DESC, 160)
-    const image = opts.image || DEFAULT_OG_IMAGE
-    const url = opts.url || (typeof location !== 'undefined' ? location.href : SITE_URL)
+    const image = absoluteUrl(opts.image || DEFAULT_OG_IMAGE, DEFAULT_OG_IMAGE)
+    const url = canonicalUrl(opts.url || getLocationHref())
     const type = opts.type || 'website'
+    const robots = normalizeRobots(opts.robots)
 
     if (typeof document !== 'undefined') document.title = title
 
     setMeta('name', 'description', description)
+    setMeta('name', 'robots', robots)
     if (opts.keywords) setMeta('name', 'keywords', opts.keywords)
+    else removeMeta('name', 'keywords')
 
-    setLink('canonical', url.split('#')[0])
+    setLink('canonical', url)
 
     setMeta('property', 'og:title', title)
     setMeta('property', 'og:description', description)
@@ -107,24 +156,19 @@ export function useSeoMeta(input) {
     setMeta('property', 'og:url', url)
     setMeta('property', 'og:type', type)
     setMeta('property', 'og:site_name', SITE_NAME)
+    setMeta('property', 'og:locale', 'zh_CN')
 
+    setMeta('name', 'twitter:card', opts.twitterCard || 'summary_large_image')
     setMeta('name', 'twitter:title', title)
     setMeta('name', 'twitter:description', description)
     setMeta('name', 'twitter:image', image)
 
-    if (opts.jsonLd) {
-      injectJsonLd(JSON_LD_ID, {
-        '@context': 'https://schema.org',
-        ...opts.jsonLd,
-      })
-    } else {
-      removeJsonLd(JSON_LD_ID)
-    }
+    injectJsonLd(opts.jsonLd || opts.structuredData)
   })
 
   onUnmounted(() => {
-    // 退出页面时清理 JSON-LD，避免影响后续页面
-    removeJsonLd(JSON_LD_ID)
+    removeJsonLd()
+    applyDefaults()
   })
 }
 

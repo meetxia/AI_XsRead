@@ -32,3 +32,4 @@ dist/
 女性向原创系统/*
 data/*
 .playwright-mcp/*
+backend/scripts/.deploy-cache.json

@@ -9,20 +9,15 @@ import RankTabSection from '@/components/novel/RankTabSection.vue'
 import { getRecommendNovels, getNovelList } from '@/api/novel'
 import { useUserStore } from '@/stores/user'
 import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+import { buildOrganizationSchema, buildWebSiteSchema } from '@/utils/schema'
 
 useSeoMeta({
-  title: '首页',
+  title: 'MOMO小说',
   description: SEO_DEFAULTS.description,
   url: SEO_DEFAULTS.siteUrl + '/',
   type: 'website',
   keywords: 'MOMO小说,免费小说,在线阅读,都市言情,古风穿越,悬疑推理,治愈系,奇幻冒险,女频小说',
-  jsonLd: {
-    '@type': 'CollectionPage',
-    name: 'MOMO小说 - 首页',
-    description: SEO_DEFAULTS.description,
-    url: SEO_DEFAULTS.siteUrl + '/',
-    inLanguage: 'zh-CN',
-  },
+  jsonLd: [buildWebSiteSchema(), buildOrganizationSchema()],
 })
 
 const router = useRouter()

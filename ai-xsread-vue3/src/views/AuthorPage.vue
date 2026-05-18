@@ -6,6 +6,7 @@ import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import BookCard from '@/components/v2/book/BookCard.vue'
 import FollowAuthorButton from '@/components/novel/FollowAuthorButton.vue'
 import { getAuthorInfo, getAuthorWorks } from '@/api/novel'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,6 +28,26 @@ const works = ref([
 ])
 
 const toast = ref('')
+
+useSeoMeta(() => ({
+  title: `${author.value.name}的作者主页`,
+  description: `${author.value.name}在 MOMO小说 的作者主页，查看作者简介、关注动态和全部小说作品。${author.value.bio || ''}`,
+  url: `${SEO_DEFAULTS.siteUrl}/author/${author.value.id}`,
+  type: 'profile',
+  keywords: [author.value.name, '作者主页', '小说作者', 'MOMO小说'].filter(Boolean).join(','),
+  jsonLd: {
+    '@type': 'ProfilePage',
+    name: `${author.value.name}的作者主页`,
+    description: author.value.bio,
+    url: `${SEO_DEFAULTS.siteUrl}/author/${author.value.id}`,
+    inLanguage: 'zh-CN',
+    mainEntity: {
+      '@type': 'Person',
+      name: author.value.name,
+      description: author.value.bio,
+    },
+  },
+}))
 
 function showToast(message) {
   toast.value = message

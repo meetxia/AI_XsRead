@@ -6,6 +6,22 @@ import BottomNav from '@/components/v2/layout/BottomNav.vue'
 import BookCard from '@/components/v2/book/BookCard.vue'
 import Icon from '@/components/v2/icons/Icon.vue'
 import { getNovelList, getRecommendNovels } from '@/api/novel'
+import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
+
+useSeoMeta({
+  title: '发现好书',
+  description: 'MOMO小说发现频道精选本周热门、新书上架、完结好书和编辑推荐，按都市言情、古风穿越、悬疑推理等分类发现适合你的故事。',
+  url: `${SEO_DEFAULTS.siteUrl}/recommend`,
+  type: 'website',
+  keywords: '小说推荐,热门小说,完结小说,新书上架,都市言情,古风穿越,悬疑推理,MOMO小说',
+  jsonLd: {
+    '@type': 'CollectionPage',
+    name: 'MOMO小说发现好书',
+    description: '精选热门、新书、完结和编辑推荐小说。',
+    url: `${SEO_DEFAULTS.siteUrl}/recommend`,
+    inLanguage: 'zh-CN',
+  },
+})
 
 const route = useRoute()
 
