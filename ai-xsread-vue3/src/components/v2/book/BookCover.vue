@@ -1,7 +1,8 @@
 <script setup>
 /**
  * 书籍封面组件
- * 优先显示真实封面图片，加载失败时回退到 SVG 渐变占位。
+ * 优先显示 WebP 格式封面（体积更小），加载失败时回退到 JPG，
+ * 都失败则显示 SVG 渐变占位。
  *
  * Props:
  *   - title: 显示在封面上的中文标题（建议 2~4 字）
@@ -27,6 +28,19 @@ watch(() => props.cover, () => { imgFailed.value = false })
 
 const showImg = computed(() => !!props.cover && !imgFailed.value)
 
+/**
+ * 生成 WebP 版本的 URL（如果原始是 .jpg/.png，替换扩展名为 .webp）
+ * 浏览器通过 <picture> 的 <source> 优先尝试 WebP，不支持则回退到原始格式
+ */
+const webpSrc = computed(() => {
+  if (!props.cover) return ''
+  return props.cover.replace(/\.(jpg|jpeg|png)$/i, '.webp')
+})
+
+const hasWebpVariant = computed(() => {
+  return webpSrc.value && webpSrc.value !== props.cover
+})
+
 const palettes = [
   ['#A87A56', '#5C3B25'], // 0 陶土
   ['#6B7B5A', '#2A3528'], // 1 墨绿
@@ -46,15 +60,18 @@ const titleShort = computed(() => (props.title || '').slice(0, 4))
 </script>
 
 <template>
-  <!-- 优先尝试真实封面 -->
-  <img
-    v-if="showImg"
-    :src="cover"
-    :alt="title"
-    class="w-full h-full object-cover"
-    loading="lazy"
-    @error="imgFailed = true"
-  />
+  <!-- 优先尝试真实封面，使用 picture 元素支持 WebP 优先加载 -->
+  <picture v-if="showImg">
+    <source v-if="hasWebpVariant" :srcset="webpSrc" type="image/webp" />
+    <img
+      :src="cover"
+      :alt="title"
+      class="w-full h-full object-cover"
+      loading="lazy"
+      decoding="async"
+      @error="imgFailed = true"
+    />
+  </picture>
 
   <!-- 兜底 SVG 占位封面 -->
   <svg

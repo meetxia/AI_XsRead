@@ -843,6 +843,83 @@ def watch_and_deploy(config: dict) -> bool:
         return True
 
 
+def upload_images(config: dict) -> bool:
+    """
+    上传优化后的图片资源到服务器。
+
+    流程：
+    1. 先在本地运行 optimize-covers.js 压缩封面图片
+    2. 通过 rsync 增量同步 uploads/images/ 和 uploads/thumbnails/ 到服务器
+    """
+    cfg = _normalize(config)
+    try:
+        server_uploads = f"{cfg['server_api_path']}/uploads"
+        _safe_remote_path(cfg, server_uploads)
+
+        # 本地 uploads 目录
+        local_uploads = Path(cfg["local_api_path"]) / "uploads"
+        if not local_uploads.exists():
+            raise RuntimeError(f"本地 uploads 目录不存在: {local_uploads}")
+
+        # Step 1: 运行本地图片优化脚本
+        optimize_script = SCRIPT_DIR / "optimize-covers.js"
+        if optimize_script.exists():
+            logger.info("🖼️  运行封面图片优化脚本...")
+            try:
+                _run(["node", str(optimize_script)], cwd=BACKEND_DIR, dry_run=cfg["dry_run"])
+            except RuntimeError as e:
+                logger.warning("图片优化脚本执行出错（继续上传已有图片）: %s", e)
+        else:
+            logger.info("跳过图片优化（脚本不存在）")
+
+        # Step 2: 确保远端目录存在
+        _ssh(cfg, f"mkdir -p {shlex.quote(server_uploads)}/images/covers")
+        _ssh(cfg, f"mkdir -p {shlex.quote(server_uploads)}/thumbnails/covers")
+
+        # Step 3: rsync 上传图片（仅同步 images 和 thumbnails）
+        images_dir = local_uploads / "images"
+        thumbs_dir = local_uploads / "thumbnails"
+
+        if images_dir.exists():
+            logger.info("📤 上传图片目录...")
+            rsync_result = _run(
+                _build_rsync_command(
+                    cfg=cfg,
+                    source=images_dir,
+                    destination=f"{server_uploads}/images",
+                    excludes=[],
+                    delete=False,  # 不删除服务器上已有的其他图片
+                ),
+                dry_run=cfg["dry_run"],
+            )
+            if rsync_result:
+                parsed = _parse_rsync_itemize_output(rsync_result.stdout)
+                uploaded_count = len(parsed.get("uploaded", []))
+                logger.info("  图片上传: %d 个文件", uploaded_count)
+
+        if thumbs_dir.exists():
+            logger.info("📤 上传缩略图目录...")
+            _run(
+                _build_rsync_command(
+                    cfg=cfg,
+                    source=thumbs_dir,
+                    destination=f"{server_uploads}/thumbnails",
+                    excludes=[],
+                    delete=False,
+                ),
+                dry_run=cfg["dry_run"],
+            )
+
+        # Step 4: 设置权限
+        _ssh(cfg, f"chmod -R 755 {shlex.quote(server_uploads)}")
+
+        logger.info("✅ 图片资源上传完成")
+        return True
+    except Exception as exc:
+        logger.error("图片上传失败: %s", exc)
+        return False
+
+
 def sync_database_full(config: dict) -> bool:
     logger.error("当前脚本未实现数据库同步，请使用 mysql/mysqldump 手动迁移")
     return False
@@ -903,7 +980,8 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument("--watch", action="store_true", help="监控 dist 变化并自动部署前端")
     parser.add_argument("--frontend", action="store_true", help="只部署前端")
     parser.add_argument("--backend", action="store_true", help="只部署后端")
-    parser.add_argument("--all", action="store_true", help="部署前后端")
+    parser.add_argument("--images", action="store_true", help="优化并上传图片资源（封面/缩略图）")
+    parser.add_argument("--all", action="store_true", help="部署前后端+图片")
     parser.add_argument("--all-db", action="store_true", help="兼容参数：等同 --all")
     parser.add_argument("--db", action="store_true", help="兼容参数：当前不支持")
     parser.add_argument("--db-full", action="store_true", help="兼容参数：当前不支持")
@@ -962,7 +1040,8 @@ def main() -> None:
 
     do_front = args.frontend or args.all or args.all_db
     do_back = args.backend or args.all or args.all_db
-    if not (do_front or do_back):
+    do_images = args.images or args.all or args.all_db
+    if not (do_front or do_back or do_images):
         do_front = True
         do_back = True
 
@@ -974,6 +1053,8 @@ def main() -> None:
     )
 
     ok = True
+    if do_images:
+        ok = upload_images(config) and ok
     if do_front:
         ok = upload_dist(config) and ok
     if do_back:
