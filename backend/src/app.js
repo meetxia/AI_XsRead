@@ -116,7 +116,20 @@ const startServer = async () => {
     const migrationsState = await runPendingMigrations(pool);
     app.locals.migrationsState = migrationsState;
     console.log(`✅ 数据库迁移完成，最新版本: ${migrationsState.latestVersion || 'none'}`);
-    
+
+    if (process.env.ENABLE_SCHEDULED_JOBS !== 'false') {
+      try {
+        const { scheduledJobs } = require('../jobs/scheduledJobs');
+        if (scheduledJobs && typeof scheduledJobs.start === 'function') {
+          scheduledJobs.start();
+          app.locals.scheduledJobs = scheduledJobs;
+          console.log('⏰ 定时任务已启动');
+        }
+      } catch (jobErr) {
+        console.warn('⚠️  定时任务启动失败（不影响主服务）:', jobErr.message);
+      }
+    }
+
     // 启动服务器
     const PORT = config.server.port;
     app.listen(PORT, () => {

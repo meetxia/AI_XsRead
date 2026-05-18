@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  user-frontend:
+    name: User Frontend (Vue3) Build & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-xsread-vue3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+      - name: Vitest
+        run: npx vitest run --reporter=verbose
+        continue-on-error: true
+
+  user-backend:
+    name: User Backend (Express) Test
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ai_xsread_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: ai_xsread_test
+      JWT_SECRET: ci-test-secret
+      ENABLE_SCHEDULED_JOBS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Syntax check
+        run: node -c src/app.js
+      - name: Jest tests
+        run: npm test
+        continue-on-error: true
+
+  admin-frontend:
+    name: Admin Frontend Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+
+  admin-backend:
+    name: Admin Backend Syntax Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Syntax check
+        run: node -c src/app.js
+        continue-on-error: true

@@ -3,6 +3,7 @@ const novelService = require('../services/novelService');
 const recommendationService = require('../services/recommendationService');
 const membershipService = require('../services/membershipService');
 const memoryCache = require('../utils/memoryCache');
+const cacheWrapper = require('../services/cacheWrapper');
 const { hasColumn } = require('../utils/schemaCompat');
 
 /**
