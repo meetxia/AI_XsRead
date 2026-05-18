@@ -305,11 +305,63 @@ const logout = async (req, res) => {
   return Response.success(res, null, '登出成功');
 };
 
+/**
+ * 修改密码
+ * 必须已登录（authenticate 中间件），从 req.user.id 取用户。
+ * 请求体：{ oldPassword, newPassword }
+ */
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user && req.user.id;
+    if (!userId) {
+      return Response.error(res, '请先登录', 401);
+    }
+
+    const { oldPassword, newPassword } = req.body || {};
+
+    if (!oldPassword || !newPassword) {
+      return Response.error(res, '请提供旧密码和新密码', 400);
+    }
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      return Response.error(res, '新密码至少 6 位', 400);
+    }
+    if (oldPassword === newPassword) {
+      return Response.error(res, '新密码不能与旧密码相同', 400);
+    }
+
+    // 取用户当前密码
+    const [users] = await pool.query('SELECT id, password FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return Response.error(res, '用户不存在', 404);
+    }
+    const user = users[0];
+
+    // 校验旧密码
+    const isOldValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isOldValid) {
+      return Response.error(res, '旧密码不正确', 400);
+    }
+
+    // 加密新密码并更新
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      'UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?',
+      [hashed, userId]
+    );
+
+    return Response.success(res, null, '密码修改成功');
+  } catch (error) {
+    console.error('Change password error:', error);
+    return Response.error(res, '修改密码失败', 500);
+  }
+};
+
 module.exports = {
   register,
   login,
   refresh,
   getCurrentUser,
-  logout
+  logout,
+  changePassword
 };
 

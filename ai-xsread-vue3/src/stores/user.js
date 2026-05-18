@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { login as loginApi, register as registerApi, logout as logoutApi } from '@/api/auth'
+import {
+  login as loginApi,
+  register as registerApi,
+  logout as logoutApi,
+  refreshToken as refreshTokenApi,
+  changePassword as changePasswordApi
+} from '@/api/auth'
 import { uploadAvatarApi, updateUserProfile as updateUserProfileApi } from '@/api/user'
 
 /**
@@ -136,26 +142,34 @@ export const useUserStore = defineStore('user', () => {
   
   /**
    * 刷新Token
+   * 调用后端 /auth/refresh-token，使用本地保存的 refreshToken 换取新的 accessToken。
+   * 后端响应：{ code:200, data: { accessToken, expiresIn } }
    */
   const refreshAccessToken = async () => {
     try {
       if (!refreshToken.value) {
         throw new Error('没有刷新Token')
       }
-      
-      // TODO: 调用刷新Token API
-      // const response = await refreshTokenApi({ refreshToken: refreshToken.value })
-      
-      // 模拟刷新成功
-      const newToken = 'mock_token_' + Date.now()
-      
+
+      const response = await refreshTokenApi({ refreshToken: refreshToken.value })
+
+      if (!response || response.code !== 200 || !response.data?.accessToken) {
+        throw new Error(response?.message || '刷新Token失败')
+      }
+
+      const newToken = response.data.accessToken
       token.value = newToken
       localStorage.setItem('token', newToken)
-      
+
+      // 后端 refresh 当前未轮换 refreshToken，但若未来返回 refreshToken 字段也兼容保存
+      if (response.data.refreshToken) {
+        refreshToken.value = response.data.refreshToken
+        localStorage.setItem('refreshToken', response.data.refreshToken)
+      }
+
       console.log('Token已刷新')
-      
       return newToken
-      
+
     } catch (error) {
       console.error('刷新Token失败:', error)
       // Token刷新失败，退出登录
@@ -225,15 +239,23 @@ export const useUserStore = defineStore('user', () => {
   
   /**
    * 修改密码
-   * @param {Object} data - 密码数据
+   * @param {Object} data - { oldPassword, newPassword }
+   * @returns {Promise<boolean>} - 是否修改成功
    */
   const changePassword = async (data) => {
     try {
-      // TODO: 调用修改密码API
-      // await changePasswordApi(data)
-      
-      console.log('密码已修改')
-      
+      const response = await changePasswordApi({
+        oldPassword: data.oldPassword,
+        newPassword: data.newPassword
+      })
+
+      if (response && response.code === 200) {
+        console.log('密码已修改')
+        return true
+      }
+
+      throw new Error(response?.message || '修改密码失败')
+
     } catch (error) {
       console.error('修改密码失败:', error)
       throw error

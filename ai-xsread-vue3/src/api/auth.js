@@ -43,3 +43,15 @@ export const logout = () => {
   })
 }
 
+/**
+ * 修改密码
+ * @param {Object} data - { oldPassword, newPassword }
+ */
+export const changePassword = (data) => {
+  return request({
+    url: '/auth/change-password',
+    method: 'post',
+    data
+  })
+}
+

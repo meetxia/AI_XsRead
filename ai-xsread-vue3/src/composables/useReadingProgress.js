@@ -4,6 +4,11 @@
  */
 
 import { ref, onMounted } from 'vue'
+import { throttle } from 'lodash-es'
+import {
+  getReadingProgress,
+  updateReadingProgress
+} from '@/api/readingProgress'
 
 // 存储键前缀
 const STORAGE_KEY_PREFIX = 'reading-progress-'
@@ -56,7 +61,25 @@ export const useReadingProgress = (novelId) => {
   }
   
   /**
-   * 保存进度
+   * 同步到服务器（受 throttle 保护，1500ms 内多次调用合并为一次请求）
+   * 失败不影响本地存储；只在 console.warn 提示。
+   */
+  const syncProgressToServer = async (id, data) => {
+    try {
+      await updateReadingProgress({ novelId: id, ...data })
+    } catch (error) {
+      console.warn('同步阅读进度失败（本地已保存，将在下次成功时覆盖）:', error?.message || error)
+    }
+  }
+
+  // 1500ms 节流，避免每次翻页都打后端
+  const throttledSyncProgress = throttle(syncProgressToServer, 1500, {
+    leading: false,
+    trailing: true
+  })
+
+  /**
+   * 保存进度（本地立即保存 + 服务器节流同步）
    * @param {Object} progressData - 进度数据
    */
   const saveProgress = (progressData) => {
@@ -65,27 +88,27 @@ export const useReadingProgress = (novelId) => {
         ...progressData,
         updatedAt: Date.now()
       }
-      
+
       progress.value = data
-      
-      // 保存到本地
+
+      // 保存到本地（立即生效，离线可读）
       localStorage.setItem(progressKey, JSON.stringify(data))
-      
-      // TODO: 同步到服务器
-      syncProgressToServer(novelId, data)
-      
+
+      // 节流同步到服务器（失败不影响本地）
+      throttledSyncProgress(novelId, data)
+
     } catch (error) {
       console.error('保存阅读进度失败:', error)
     }
   }
-  
+
   /**
    * 获取进度
    */
   const getProgress = () => {
     return progress.value
   }
-  
+
   /**
    * 计算阅读百分比
    * @param {number} currentChapter - 当前章节
@@ -95,31 +118,17 @@ export const useReadingProgress = (novelId) => {
     if (!totalChapters) return 0
     return Math.round((currentChapter / totalChapters) * 100)
   }
-  
-  /**
-   * 同步到服务器
-   */
-  const syncProgressToServer = async (novelId, data) => {
-    try {
-      // TODO: 调用API同步进度
-      // await saveReadingProgress(novelId, data)
-      console.log('同步进度到服务器:', novelId, data)
-    } catch (error) {
-      console.error('同步进度失败:', error)
-    }
-  }
-  
+
   /**
    * 从服务器获取进度
+   * 失败不影响本地（返回 null 走本地兜底）
    */
-  const fetchProgressFromServer = async (novelId) => {
+  const fetchProgressFromServer = async (id) => {
     try {
-      // TODO: 调用API获取进度
-      // const response = await getReadingProgress(novelId)
-      // return response.data
-      return null
+      const response = await getReadingProgress(id)
+      return response?.data ?? null
     } catch (error) {
-      console.error('获取服务器进度失败:', error)
+      console.warn('获取服务器进度失败（使用本地兜底）:', error?.message || error)
       return null
     }
   }
@@ -169,21 +178,22 @@ export const useReadingProgress = (novelId) => {
         ...bookmark,
         createdAt: Date.now()
       }
-      
+
       bookmarks.value.unshift(newBookmark)
-      
+
       // 保存到本地
       localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks.value))
-      
-      // TODO: 同步到服务器
-      
+
+      // 注意：书签云端同步走 api/bookmarks.js，不在本 Track A 范围内，
+      // 留给"书签同步"专项 Track 处理；当前仅保留本地存储。
+
       return newBookmark
     } catch (error) {
       console.error('添加书签失败:', error)
       return null
     }
   }
-  
+
   /**
    * 删除书签
    * @param {number|string} bookmarkId - 书签ID
@@ -191,12 +201,13 @@ export const useReadingProgress = (novelId) => {
   const removeBookmark = (bookmarkId) => {
     try {
       bookmarks.value = bookmarks.value.filter(b => b.id !== bookmarkId)
-      
+
       // 保存到本地
       localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks.value))
-      
-      // TODO: 同步到服务器
-      
+
+      // 注意：书签云端同步走 api/bookmarks.js，不在本 Track A 范围内，
+      // 留给"书签同步"专项 Track 处理；当前仅保留本地存储。
+
     } catch (error) {
       console.error('删除书签失败:', error)
     }

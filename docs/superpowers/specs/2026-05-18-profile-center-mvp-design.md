@@ -11,14 +11,18 @@
 - 顶部铃铛按钮无 `@click`
 - 用户卡「编辑」按钮无 `@click`，且无对应编辑页
 - 设置区「阅读偏好 / 通知 / 帮助与反馈 / 关于」全部是 `<a href="#">`
-- `/security` 内「修改密码 / 绑定手机 / 绑定邮箱 / 设备管理 / 注销账号」5 项均为 `<a href="#">`
 - `useUserStats` 中 `joinDays` 永远是 0（后端 `/api/user/statistics` 未返回该字段）
-- `userStore.changePassword` 仅是 TODO，后端无 `change-password` 路由
 - `userStore.uploadAvatar` 已封装但 ProfilePage 没暴露入口
 - 桌面端快捷入口 4 列 × 2 排只填 7 个，最后一格为空
 - 「关注作者」快捷入口的 `v-if="!followingAuthors.length"` 写反
 
-本设计聚焦上述问题的 MVP 修复。
+**已由其它 Track 完成、不在本设计范围内**：
+
+- 修改密码全链路（Track A）：后端 `POST /api/auth/change-password` + SecurityPage 内置弹窗
+- `userStore.refreshAccessToken` 接通真实接口（Track A）
+- 路由守卫真正生效（Track A）
+
+本设计聚焦上述未解决问题的 MVP 修复 + Track A 修改密码体验小补丁（强制重登 + 弹窗组件化）。
 
 ## 2. 范围
 
@@ -48,18 +52,17 @@
 
 ### 3.1 路由
 
-`ai-xsread-vue3/src/router/index.js` 新增 6 条：
+`ai-xsread-vue3/src/router/index.js` 新增 5 条（不再单独建 `/profile/change-password`，复用 Track A 已落地的 `/security` 弹窗）：
 
 ```js
 { path: '/profile/edit',            name: 'profile-edit',     component: () => import('@/views/profile/ProfileEditPage.vue'),     meta: { title: '编辑资料',   requiresAuth: true } },
 { path: '/profile/preferences',     name: 'profile-prefs',    component: () => import('@/views/profile/PreferencesPage.vue'),     meta: { title: '阅读偏好',   requiresAuth: true } },
 { path: '/profile/notifications',   name: 'notifications',    component: () => import('@/views/profile/NotificationsPage.vue'),   meta: { title: '通知中心',   requiresAuth: true } },
-{ path: '/profile/change-password', name: 'change-password',  component: () => import('@/views/profile/ChangePasswordPage.vue'),  meta: { title: '修改密码',   requiresAuth: true } },
 { path: '/about/help',              name: 'help',             component: () => import('@/views/profile/HelpPage.vue'),            meta: { title: '帮助与反馈' } },
 { path: '/about',                   name: 'about',            component: () => import('@/views/profile/AboutPage.vue'),           meta: { title: '关于 MOMO小说' } },
 ```
 
-`SecurityPage.vue` 保留并改为只承载「修改密码」一个入口，跳到 `/profile/change-password`。
+`SecurityPage.vue` 已由 Track A 落地修改密码弹窗，本次不再清理"绑定手机 / 邮箱 / 设备管理 / 注销账号"4 项——Track A 已把它们改成"即将开放"提示，对运营更友好，保留。
 
 ### 3.2 前端文件清单
 
@@ -68,7 +71,6 @@ ai-xsread-vue3/src/
 ├── views/profile/
 │   ├── ProfileEditPage.vue          # 新增 - 编辑资料（昵称 / 头像 / 口味标签）
 │   ├── PreferencesPage.vue          # 新增 - 阅读偏好
-│   ├── ChangePasswordPage.vue       # 新增 - 修改密码
 │   ├── NotificationsPage.vue        # 新增 - 通知中心
 │   ├── HelpPage.vue                 # 新增 - 帮助与反馈（静态）
 │   └── AboutPage.vue                # 新增 - 关于（静态）
@@ -76,18 +78,19 @@ ai-xsread-vue3/src/
 │   ├── AvatarUploader.vue           # 新增 - 头像上传
 │   ├── InterestTagPicker.vue        # 新增 - 口味标签选择器
 │   ├── NotificationItem.vue         # 新增 - 通知列表项
+│   ├── ChangePasswordDialog.vue     # 新增 - 把 SecurityPage 现有弹窗抽组件
 │   └── PasswordStrengthBar.vue      # 新增 - 密码强度指示
 ├── api/
 │   ├── notifications.js             # 新增
 │   ├── preferences.js               # 新增
-│   └── user.js                      # 改 - 实现 changePassword
+│   └── auth.js                      # Track A 已加 changePassword，不动
 ├── stores/
 │   ├── notification.js              # 新增 - 未读数 + 列表
 │   └── preferences.js               # 新增 - 偏好同步
-├── router/index.js                  # 改 - 新增 6 条路由
+├── router/index.js                  # 改 - 新增 5 条路由
 └── views/
     ├── ProfilePage.vue              # 改 - 修复死链与逻辑
-    └── SecurityPage.vue             # 改 - 清理 4 项死链
+    └── SecurityPage.vue             # 改 - 把内置弹窗改为引用 ChangePasswordDialog 组件
 ```
 
 ### 3.3 后端文件清单
@@ -96,16 +99,18 @@ ai-xsread-vue3/src/
 backend/src/
 ├── routes/
 │   ├── notifications.js             # 新增
-│   ├── user.js                      # 改 - 挂 change-password / preferences
+│   ├── user.js                      # 改 - 挂 preferences GET/PUT
 │   └── index.js                     # 改 - 挂 /notifications
 ├── controllers/
 │   ├── notificationController.js    # 新增
 │   ├── preferenceController.js      # 新增
-│   └── userController.js            # 改 - changePassword + statistics 补 joinDays
+│   └── userController.js            # 改 - statistics 补 joinDays（changePassword 已由 Track A 在 authController 实现）
 └── database/migrations/
-    ├── 2026-05-18-add-notifications-table.sql
-    └── 2026-05-18-add-user-preferences-table.sql
+    ├── 202605180001__add-notifications-table.sql
+    └── 202605180002__add-user-preferences-table.sql
 ```
+
+迁移文件命名遵循 Track D 已统一的 `^(\d{12})__(.+)\.sql$` 规则，`migrate.js` 自动执行。
 
 ### 3.4 数据库迁移
 
@@ -154,7 +159,7 @@ CREATE TABLE user_preferences (
 PUT  /api/user/profile
   body: { nickname?, bio?, gender?, birthday? }   # 已存在，复用
 
-POST /api/user/change-password                     # 新增
+POST /api/auth/change-password                     # Track A 已落地，本设计复用，不重写
   body: { oldPassword, newPassword }
   200: { code: 200, message: '修改成功', data: null }
   400: oldPassword 错误 / newPassword 不合规
@@ -204,13 +209,23 @@ mounted    → 用 userStore.userInfo 填充昵称、头像
 
 校验：头像 ≤ 2MB、jpg/png/webp；昵称 1–24 字。
 
-### 4.2 修改密码 `/profile/change-password`
+### 4.2 修改密码（复用 Track A 已有实现 + 补"强制重登"）
 
-- 三个 password 字段：旧密码 / 新密码 / 确认新密码
-- 新密码下方挂 `PasswordStrengthBar`（弱 / 中 / 强）
-- 校验：新密码 ≥ 8 位、包含字母 + 数字、不能与旧密码相同、与确认密码一致
-- 后端用 `bcrypt.compare` 核对旧密码，`bcrypt.hash` 写入新密码
-- **修改成功后**：清 token + `userInfo`，跳 `/login`，toast「密码已更新，请重新登录」
+Track A（2026-05-18-Track-A 报告）已完成：
+
+- 后端：`POST /api/auth/change-password`（`backend/src/controllers/authController.js:303-363` + `backend/src/routes/auth.js:22`），bcrypt 校验旧密码、新密码 ≥ 6 位、新旧不同
+- 前端 API：`ai-xsread-vue3/src/api/auth.js:50-56`
+- 前端 store：`ai-xsread-vue3/src/stores/user.js:245-263` 已替换 TODO
+- UI：`SecurityPage.vue` 内置轻量 `<dialog>` 弹窗，含旧/新/确认三字段 + 校验
+
+**本次只做两件小事**：
+
+1. 把 SecurityPage 内的弹窗抽成 `components/profile/ChangePasswordDialog.vue`（独立组件，便于将来复用）
+2. 在弹窗的"修改成功"分支补一段：`userStore.logout()` → `router.push('/login')` → toast「密码已更新，请重新登录」
+
+校验保持 Track A 的：新密码 ≥ 6 位、与旧密码不同、与确认密码一致。`PasswordStrengthBar` 仍创建（弱 / 中 / 强），但只显示强度提示，不强行卡保存——避免与 Track A 现有规则冲突。
+
+**不再创建** `views/profile/ChangePasswordPage.vue`。`/profile/change-password` 路由从设计中**移除**——所有修改密码入口统一走 `/security`。
 
 ### 4.3 阅读偏好 `/profile/preferences`
 
@@ -294,14 +309,12 @@ App logo + slogan + 当前版本号 + 团队介绍一段 + 用户协议 / 隐私
 - [ ] 标签选满 5 个后第 6 个不可选
 - [ ] 保存成功 toast + 返回上一页，ProfilePage 显示已更新
 
-### 6.2 修改密码
+### 6.2 修改密码（Track A 已实现接口与基础弹窗，本次只验弹窗组件化 + 强制重登）
 
-- [ ] 旧密码错 → 后端 400/401，提示「旧密码错误」
-- [ ] 新密码 < 8 位 / 不含字母数字 → 前端拦截
-- [ ] 新密码与旧一致 → 前端拦截
-- [ ] 新密码 ≠ 确认 → 前端拦截
-- [ ] 强度条三档颜色正确切换
-- [ ] 成功后 toast + token 清空 + 跳 `/login`
+- [ ] SecurityPage 改为引用 `ChangePasswordDialog` 组件后，原弹窗交互不变（旧/新/确认三字段、长度与一致性校验、成功 toast）
+- [ ] 新密码与旧密码一致 → 拒绝（沿用 Track A 校验）
+- [ ] 强度条三档颜色正确切换（仅显示，不卡保存）
+- [ ] **新增**：成功后 1 秒内 token 清空 + 跳 `/login` + toast「密码已更新，请重新登录」
 
 ### 6.3 阅读偏好
 
@@ -327,7 +340,7 @@ App logo + slogan + 当前版本号 + 团队介绍一段 + 用户协议 / 隐私
 - [ ] 铃铛、「编辑」按钮可点击并跳转
 - [ ] 桌面端 8 个快捷入口排成 2 × 4 整齐网格
 - [ ] `joinDays` 数字正确（创建当天 = 0 天，第二天 = 1 天）
-- [ ] SecurityPage 仅「修改密码」一条且可点击
+- [ ] SecurityPage 中"修改密码"项触发的弹窗与组件化前体验一致；成功后强制重登
 
 ## 7. 子代理分派
 
@@ -335,16 +348,16 @@ App logo + slogan + 当前版本号 + 团队介绍一段 + 用户协议 / 隐私
 
 | Agent | 职责 | 主要文件 | 依赖 |
 |---|---|---|---|
-| **A — 后端 API + 迁移** | change-password、preferences GET/PUT、notifications 4 接口、statistics 补 joinDays、2 个 SQL 迁移、Jest 单测 | `backend/src/controllers/{userController,preferenceController,notificationController}.js`、`backend/src/routes/{user,notifications,index}.js`、`backend/database/migrations/*.sql` | 无 |
-| **B — 编辑资料 + 修改密码** | ProfileEditPage / ChangePasswordPage / AvatarUploader / InterestTagPicker / PasswordStrengthBar | `views/profile/{ProfileEditPage,ChangePasswordPage}.vue`、`components/profile/{AvatarUploader,InterestTagPicker,PasswordStrengthBar}.vue`、`api/user.js`（追加 changePassword） | A 的 change-password 契约 |
+| **A — 后端 API + 迁移** | preferences GET/PUT、notifications 4 接口、statistics 补 joinDays、2 个 SQL 迁移、Jest 单测（changePassword 已由 Track A 完成，本 Agent 不再做） | `backend/src/controllers/{userController,preferenceController,notificationController}.js`、`backend/src/routes/{user,notifications,index}.js`、`backend/database/migrations/202605180001__*.sql`、`202605180002__*.sql` | 无 |
+| **B — 编辑资料 + 改密弹窗组件化** | ProfileEditPage / AvatarUploader / InterestTagPicker / PasswordStrengthBar / 把 SecurityPage 内置弹窗抽成 ChangePasswordDialog 组件 + 加"改密成功后强制重新登录" | `views/profile/ProfileEditPage.vue`、`components/profile/{AvatarUploader,InterestTagPicker,PasswordStrengthBar,ChangePasswordDialog}.vue`、`views/SecurityPage.vue`（仅替换弹窗为组件引用） | 无（Track A 已完成 change-password 接口） |
 | **C — 阅读偏好 + 通知中心** | PreferencesPage / NotificationsPage / NotificationItem / 两个 store / 两个 api 文件 | `views/profile/{PreferencesPage,NotificationsPage}.vue`、`components/profile/NotificationItem.vue`、`api/{preferences,notifications}.js`、`stores/{preferences,notification}.js` | A 的 preferences / notifications 契约 |
-| **D — 静态页 + ProfilePage 修复 + SecurityPage 清理 + 联调收尾** | HelpPage / AboutPage、修 ProfilePage（铃铛 / 编辑 / 关注作者逻辑 / 8 入口 / 设置区链接）、修 SecurityPage（删 4 项死链）、铃铛接 notification store | `views/profile/{HelpPage,AboutPage}.vue`、`views/{ProfilePage,SecurityPage}.vue` | B、C 的页面落地后串联 |
+| **D — 静态页 + ProfilePage 修复 + 联调收尾** | HelpPage / AboutPage、修 ProfilePage（铃铛 / 编辑 / 关注作者逻辑 / 8 入口 / 设置区链接）、铃铛接 notification store | `views/profile/{HelpPage,AboutPage}.vue`、`views/ProfilePage.vue` | B、C 的页面落地后串联 |
 
 **调度顺序**：
 
-1. **第 0 步（主 agent）**：先创建 6 个空白页文件 + 把 `router/index.js` 6 条新路由挂上 + ProfilePage 死链 / SecurityPage 死链清理。这一步单独 commit，避免后续子代理改路由互相打架
-2. **第一波（并行）**：A、B、C 同时启动。A 接口跑通后 B/C 切换到真接口
-3. **第二波**：A、B、C 完成 → 派 D 收尾
+1. **第 0 步（主 agent）**：先创建 5 个空白页文件 + 把 `router/index.js` 5 条新路由挂上 + ProfilePage 内 4 个 `<a href="#">` 改 RouterLink + 铃铛 / 编辑按钮挂 click + 关注作者反逻辑修复 + 桌面端 8 入口。这一步单独 commit，避免后续子代理改路由互相打架
+2. **第一波（并行）**：A、B、C 同时启动。A 接口跑通后 C 切换到真接口
+3. **第二波**：A、B、C 完成 → 派 D 收尾（静态页 + ProfilePage 与 notification store 接通铃铛红点）
 4. **第三波**：主 agent 用浏览器 MCP 跑 §6 验收清单
 
 **冲突预防**：

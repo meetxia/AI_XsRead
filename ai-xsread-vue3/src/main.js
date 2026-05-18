@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import { setupRouterGuards } from './router/guards'
 import './assets/styles/index.css'
 import { initTheme } from './composables/useTheme'
 
@@ -13,6 +14,10 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
+
+// 启用路由守卫（依赖 pinia 已 use，因为 guards 内会调用 useUserStore）
+setupRouterGuards(router)
+
 app.mount('#app')
 
 console.log('✨ MOMO小说 V1.0 启动')

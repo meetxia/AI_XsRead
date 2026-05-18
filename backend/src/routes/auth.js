@@ -19,6 +19,9 @@ router.post('/refresh-token', authController.refresh);
 // 获取当前用户信息（需要认证）
 router.get('/me', authenticate, authController.getCurrentUser);
 
+// 修改密码（需要认证）
+router.post('/change-password', authenticate, authController.changePassword);
+
 // 登出
 router.post('/logout', authenticate, authController.logout);
 
