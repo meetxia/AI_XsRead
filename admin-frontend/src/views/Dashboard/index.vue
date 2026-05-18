@@ -146,7 +146,7 @@
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
-import { getOverview, getTrends, getRanking } from '@/api/dashboard'
+import { getOverview, getTrends, getRanking, getCategoryDistribution } from '@/api/dashboard'
 import { formatNumber } from '@/utils/format'
 
 const router = useRouter()
@@ -230,12 +230,16 @@ const initUserTrendChart = (trendsData = []) => {
 }
 
 // 初始化分类占比图表
-const initCategoryChart = () => {
+const initCategoryChart = (data = []) => {
   if (!categoryChart.value) return
-  
-  categoryChartInstance = echarts.init(categoryChart.value)
-  
-  const option = {
+
+  if (!categoryChartInstance) {
+    categoryChartInstance = echarts.init(categoryChart.value)
+  }
+
+  const hasData = Array.isArray(data) && data.length > 0 && data.some(d => Number(d.value) > 0)
+
+  const baseOption = {
     tooltip: {
       trigger: 'item',
       formatter: '{a} <br/>{b}: {c} ({d}%)'
@@ -243,30 +247,61 @@ const initCategoryChart = () => {
     legend: {
       orient: 'vertical',
       left: 'left'
-    },
-    series: [
-      {
-        name: '分类占比',
-        type: 'pie',
-        radius: '50%',
-        data: [
-          { value: 38, name: '都市言情' },
-          { value: 28, name: '古风穿越' },
-          { value: 22, name: '治愈系' },
-          { value: 12, name: '悬疑推理' }
-        ],
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
-        }
-      }
-    ]
+    }
   }
-  
-  categoryChartInstance.setOption(option)
+
+  const option = hasData
+    ? {
+        ...baseOption,
+        series: [
+          {
+            name: '分类占比',
+            type: 'pie',
+            radius: '50%',
+            data: data.map(d => ({ value: Number(d.value) || 0, name: d.name })),
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }
+        ]
+      }
+    : {
+        ...baseOption,
+        graphic: [
+          {
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: '暂无数据',
+              fill: '#909399',
+              fontSize: 14
+            }
+          }
+        ],
+        series: []
+      }
+
+  categoryChartInstance.setOption(option, true)
+}
+
+// 加载分类占比真数据
+const loadCategoryDistribution = async () => {
+  try {
+    const res = await getCategoryDistribution()
+    if (res.code === 200) {
+      initCategoryChart(res.data || [])
+    } else {
+      initCategoryChart([])
+    }
+  } catch (error) {
+    console.error('加载分类占比失败:', error)
+    initCategoryChart([])
+  }
 }
 
 // 加载概览数据
@@ -338,19 +373,20 @@ const handleResize = () => {
 }
 
 onMounted(async () => {
-  // 初始化图表
+  // 初始化图表（先空状态占位）
   await nextTick()
-  initCategoryChart()
-  
+  initCategoryChart([])
+
   // 监听窗口大小变化
   window.addEventListener('resize', handleResize)
-  
+
   // 加载实际数据
   await Promise.all([
     loadOverview(),
     loadTrends(),
     loadRanking(),
-    loadRealtime()
+    loadRealtime(),
+    loadCategoryDistribution()
   ])
 })
 </script>

@@ -18,5 +18,20 @@ router.get('/realtime', DashboardController.getRealtime);
 // 获取排行榜
 router.get('/ranking', DashboardController.getRanking);
 
+// 分类占比（饼图数据）
+router.get('/category-distribution', DashboardController.getCategoryDistribution);
+
+// 用户活跃趋势（按日聚合独立用户）
+router.get('/user-activity', DashboardController.getUserActivity);
+
+// 阅读时长分布（分桶统计）
+router.get('/reading-time-distribution', DashboardController.getReadingTimeDistribution);
+
+// 小说统计概览（Analytics 页用）
+router.get('/novel-stats', DashboardController.getNovelStats);
+
+// 热门小说 TOP N
+router.get('/top-novels', DashboardController.getTopNovels);
+
 module.exports = router;
 

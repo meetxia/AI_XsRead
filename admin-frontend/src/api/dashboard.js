@@ -41,3 +41,56 @@ export function getRanking(params) {
     params
   })
 }
+
+/**
+ * 分类占比（饼图）
+ */
+export function getCategoryDistribution() {
+  return request({
+    url: '/admin/dashboard/category-distribution',
+    method: 'get'
+  })
+}
+
+/**
+ * 用户活跃趋势
+ * @param {Object} params - { days: 7 | 30 }
+ */
+export function getUserActivity(params) {
+  return request({
+    url: '/admin/dashboard/user-activity',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 阅读时长分布
+ */
+export function getReadingTimeDistribution() {
+  return request({
+    url: '/admin/dashboard/reading-time-distribution',
+    method: 'get'
+  })
+}
+
+/**
+ * 小说统计概览（Analytics 用）
+ */
+export function getNovelStats() {
+  return request({
+    url: '/admin/dashboard/novel-stats',
+    method: 'get'
+  })
+}
+
+/**
+ * 热门小说 TOP N
+ */
+export function getTopNovels(params) {
+  return request({
+    url: '/admin/dashboard/top-novels',
+    method: 'get',
+    params
+  })
+}
