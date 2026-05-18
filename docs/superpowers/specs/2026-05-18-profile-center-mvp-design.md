@@ -1,0 +1,360 @@
+---
+最后更新日期: 2026-05-18
+---
+
+# 个人中心 MVP 优化设计文档
+
+## 1. 背景
+
+`/profile` 路由（`ai-xsread-vue3/src/views/ProfilePage.vue`）当前承载用户卡、阅读统计、勋章 / 想法 / 划线 / 书签 / 关注作者 / 会员中心入口、设置面板、退出登录等。审计后发现存在大量「点了没反应 / 死链 / 占位」的功能：
+
+- 顶部铃铛按钮无 `@click`
+- 用户卡「编辑」按钮无 `@click`，且无对应编辑页
+- 设置区「阅读偏好 / 通知 / 帮助与反馈 / 关于」全部是 `<a href="#">`
+- `/security` 内「修改密码 / 绑定手机 / 绑定邮箱 / 设备管理 / 注销账号」5 项均为 `<a href="#">`
+- `useUserStats` 中 `joinDays` 永远是 0（后端 `/api/user/statistics` 未返回该字段）
+- `userStore.changePassword` 仅是 TODO，后端无 `change-password` 路由
+- `userStore.uploadAvatar` 已封装但 ProfilePage 没暴露入口
+- 桌面端快捷入口 4 列 × 2 排只填 7 个，最后一格为空
+- 「关注作者」快捷入口的 `v-if="!followingAuthors.length"` 写反
+
+本设计聚焦上述问题的 MVP 修复。
+
+## 2. 范围
+
+### 2.1 做（7 项 MVP 必做）
+
+1. **编辑资料**：昵称、头像上传、阅读口味标签
+2. **修改密码**：旧密码 + 新密码 + 二次确认
+3. **阅读偏好**：字号 / 行距 / 主题 / 翻页方式 / 护眼，服务端持久化
+4. **通知中心（轻量）**：列表、单条已读、全部已读、铃铛红点
+5. **帮助与反馈**：静态 FAQ + 联系方式
+6. **关于 MOMO 小说**：版本号、团队介绍、用户协议 / 隐私政策（同页锚点）
+7. **ProfilePage 现有问题修复**
+
+### 2.2 不做
+
+- 注销账号
+- 绑定手机 / 绑定邮箱
+- 登录设备管理
+- 邮箱 / 短信找回密码
+- 反馈表单后台
+- 通知分类 / 后台发送
+- 通知轮询
+
+不做的入口在 `SecurityPage.vue` 中**直接删除**，不留死链。
+
+## 3. 架构
+
+### 3.1 路由
+
+`ai-xsread-vue3/src/router/index.js` 新增 6 条：
+
+```js
+{ path: '/profile/edit',            name: 'profile-edit',     component: () => import('@/views/profile/ProfileEditPage.vue'),     meta: { title: '编辑资料',   requiresAuth: true } },
+{ path: '/profile/preferences',     name: 'profile-prefs',    component: () => import('@/views/profile/PreferencesPage.vue'),     meta: { title: '阅读偏好',   requiresAuth: true } },
+{ path: '/profile/notifications',   name: 'notifications',    component: () => import('@/views/profile/NotificationsPage.vue'),   meta: { title: '通知中心',   requiresAuth: true } },
+{ path: '/profile/change-password', name: 'change-password',  component: () => import('@/views/profile/ChangePasswordPage.vue'),  meta: { title: '修改密码',   requiresAuth: true } },
+{ path: '/about/help',              name: 'help',             component: () => import('@/views/profile/HelpPage.vue'),            meta: { title: '帮助与反馈' } },
+{ path: '/about',                   name: 'about',            component: () => import('@/views/profile/AboutPage.vue'),           meta: { title: '关于 MOMO小说' } },
+```
+
+`SecurityPage.vue` 保留并改为只承载「修改密码」一个入口，跳到 `/profile/change-password`。
+
+### 3.2 前端文件清单
+
+```
+ai-xsread-vue3/src/
+├── views/profile/
+│   ├── ProfileEditPage.vue          # 新增 - 编辑资料（昵称 / 头像 / 口味标签）
+│   ├── PreferencesPage.vue          # 新增 - 阅读偏好
+│   ├── ChangePasswordPage.vue       # 新增 - 修改密码
+│   ├── NotificationsPage.vue        # 新增 - 通知中心
+│   ├── HelpPage.vue                 # 新增 - 帮助与反馈（静态）
+│   └── AboutPage.vue                # 新增 - 关于（静态）
+├── components/profile/
+│   ├── AvatarUploader.vue           # 新增 - 头像上传
+│   ├── InterestTagPicker.vue        # 新增 - 口味标签选择器
+│   ├── NotificationItem.vue         # 新增 - 通知列表项
+│   └── PasswordStrengthBar.vue      # 新增 - 密码强度指示
+├── api/
+│   ├── notifications.js             # 新增
+│   ├── preferences.js               # 新增
+│   └── user.js                      # 改 - 实现 changePassword
+├── stores/
+│   ├── notification.js              # 新增 - 未读数 + 列表
+│   └── preferences.js               # 新增 - 偏好同步
+├── router/index.js                  # 改 - 新增 6 条路由
+└── views/
+    ├── ProfilePage.vue              # 改 - 修复死链与逻辑
+    └── SecurityPage.vue             # 改 - 清理 4 项死链
+```
+
+### 3.3 后端文件清单
+
+```
+backend/src/
+├── routes/
+│   ├── notifications.js             # 新增
+│   ├── user.js                      # 改 - 挂 change-password / preferences
+│   └── index.js                     # 改 - 挂 /notifications
+├── controllers/
+│   ├── notificationController.js    # 新增
+│   ├── preferenceController.js      # 新增
+│   └── userController.js            # 改 - changePassword + statistics 补 joinDays
+└── database/migrations/
+    ├── 2026-05-18-add-notifications-table.sql
+    └── 2026-05-18-add-user-preferences-table.sql
+```
+
+### 3.4 数据库迁移
+
+**`notifications` 表**：
+
+```sql
+CREATE TABLE notifications (
+  id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id      BIGINT UNSIGNED NOT NULL,
+  type         VARCHAR(32) NOT NULL,
+  title        VARCHAR(128) NOT NULL,
+  content      VARCHAR(500) NOT NULL,
+  link         VARCHAR(255) DEFAULT NULL,
+  is_read      TINYINT(1) NOT NULL DEFAULT 0,
+  created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  read_at      DATETIME DEFAULT NULL,
+  KEY idx_user_unread (user_id, is_read, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+`type` 取值：`system | membership | achievement`。
+
+**`user_preferences` 表**：
+
+```sql
+CREATE TABLE user_preferences (
+  user_id        BIGINT UNSIGNED PRIMARY KEY,
+  font_size      TINYINT NOT NULL DEFAULT 16,
+  line_height    DECIMAL(3,1) NOT NULL DEFAULT 1.8,
+  theme          VARCHAR(16) NOT NULL DEFAULT 'cream',
+  page_mode      VARCHAR(16) NOT NULL DEFAULT 'scroll',
+  eye_protection TINYINT(1) NOT NULL DEFAULT 0,
+  updated_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+`users` 表无变更。`joinDays` 在 `getUserStatistics` 控制器内通过 `DATEDIFF(NOW(), users.created_at)` 计算，不入库。
+
+迁移脚本通过 `mysql -u toefl_user -p ai_xsread < <file>` 执行。
+
+### 3.5 接口契约
+
+所有接口沿用 `{ code, message, data, timestamp }` 响应格式。
+
+```
+PUT  /api/user/profile
+  body: { nickname?, bio?, gender?, birthday? }   # 已存在，复用
+
+POST /api/user/change-password                     # 新增
+  body: { oldPassword, newPassword }
+  200: { code: 200, message: '修改成功', data: null }
+  400: oldPassword 错误 / newPassword 不合规
+
+GET  /api/user/preferences                         # 新增
+  200: data = { fontSize, lineHeight, theme, pageMode, eyeProtection }
+
+PUT  /api/user/preferences                         # 新增
+  body: { fontSize?, lineHeight?, theme?, pageMode?, eyeProtection? }
+  200: data = 完整偏好对象
+
+GET  /api/user/interest-tags                       # 已有，复用
+POST /api/user/interest-tags                       # 已有，复用
+
+GET  /api/notifications?page&pageSize&onlyUnread   # 新增
+  200: data = { list: [...], total, page, pageSize }
+
+GET  /api/notifications/unread-count               # 新增
+  200: data = { count }
+
+POST /api/notifications/:id/read                   # 新增
+  200: data = null
+
+POST /api/notifications/read-all                   # 新增
+  200: data = { affected }
+```
+
+接口契约是 4 路子代理之间的唯一耦合点，任何修改必须先在此处更新。
+
+## 4. UI / 交互
+
+### 4.1 编辑资料 `/profile/edit`
+
+- 顶部圆形头像 + 「更换头像」按钮（点击触发文件选择）
+- 昵称输入框（1–24 字）
+- 阅读口味标签（最多 5 个，复用 onboarding 的标签集）
+- 底部「保存」按钮（昵称为空 / 与当前一致 / 上传中均 disabled）
+
+数据流：
+
+```
+mounted    → 用 userStore.userInfo 填充昵称、头像
+           → getMyInterestTags() 填充标签
+头像选择   → store.uploadAvatar(file) → 立即更新 userInfo.avatar
+保存点击   → updateUserInfo({ nickname }) → saveInterestTags(tags) → router.back()
+```
+
+校验：头像 ≤ 2MB、jpg/png/webp；昵称 1–24 字。
+
+### 4.2 修改密码 `/profile/change-password`
+
+- 三个 password 字段：旧密码 / 新密码 / 确认新密码
+- 新密码下方挂 `PasswordStrengthBar`（弱 / 中 / 强）
+- 校验：新密码 ≥ 8 位、包含字母 + 数字、不能与旧密码相同、与确认密码一致
+- 后端用 `bcrypt.compare` 核对旧密码，`bcrypt.hash` 写入新密码
+- **修改成功后**：清 token + `userInfo`，跳 `/login`，toast「密码已更新，请重新登录」
+
+### 4.3 阅读偏好 `/profile/preferences`
+
+- 字号：滑块 12–24
+- 行距：分档按钮 1.4 / 1.6 / 1.8 / 2.0 / 2.2
+- 主题：3 个色块按钮（米 / 夜 / 护眼）
+- 翻页方式：segmented（滚动 / 分页）
+- 护眼模式：switch
+- 顶部固定「预览段落」实时反映当前设置
+
+数据策略：服务端 `user_preferences` 是 truth，本地 `readingSettings` 是缓存。
+
+```
+登录后首次进入阅读器 / 偏好页：
+  GET /api/user/preferences → 写 readingSettings + localStorage
+偏好页修改：
+  本地立即生效 → 防抖 500ms PUT /api/user/preferences
+未登录：
+  仅 localStorage，不发请求
+```
+
+### 4.4 通知中心 `/profile/notifications`
+
+- 列表：未读条目左侧 4px 红点 + 加粗标题；类型 icon（system 喇叭 / membership 星 / achievement 勋章）；标题 + 摘要 + 相对时间
+- 点击单条 → POST `/notifications/:id/read` → 跳 `link`（若有）
+- 右上「全部已读」按钮 → POST `/read-all`
+- 空态：「暂时还没有通知」+ 一句温柔文案
+
+铃铛红点策略（不轮询）：
+
+- App.vue 挂载且 `isLogin` 时拉一次 `unread-count`
+- 登录态变化（登录 / 登出）时拉一次
+- 进入 `/profile` 时拉一次
+- 进入 `/profile/notifications` 时拉一次
+
+种子数据：迁移时给所有现存用户插一条欢迎通知，避免首次空态。
+
+### 4.5 帮助与反馈 `/about/help`（静态）
+
+3 段：FAQ 折叠面板（5–8 个常见问题）→ 联系方式（邮箱 + 客服微信）→ 反馈引导。
+
+### 4.6 关于 MOMO 小说 `/about`（静态）
+
+App logo + slogan + 当前版本号 + 团队介绍一段 + 用户协议 / 隐私政策（页内锚点）。
+
+### 4.7 ProfilePage 修复
+
+| 位置 | 修改 |
+|---|---|
+| 顶部铃铛 | `@click="router.push('/profile/notifications')"` + 红点徽章（基于 notification store） |
+| 用户卡「编辑」 | `@click="router.push('/profile/edit')"` |
+| 关注作者快捷入口 | 始终显示，去掉 `v-if`；`FollowingAuthorList` 在有数据时才显示 |
+| 桌面端 7 入口 | 固定 8 入口：书架 / 历史 / 勋章 / 想法 / 划线 / 书签 / 关注作者 / 编辑资料 |
+| `joinDays = 0` | 后端 `getUserStatistics` SQL 增加 `DATEDIFF(NOW(), u.created_at) AS joinDays` |
+| 设置区 4 个 `<a href="#">` | 改成 `<RouterLink>` 指对应路由 |
+
+### 4.8 SecurityPage 清理
+
+删除：绑定手机 / 绑定邮箱 / 登录设备管理 / 注销账号 4 行。
+保留：修改密码（跳 `/profile/change-password`）。
+底部说明文案改为：「目前仅支持修改密码，更多账号安全功能将后续上线」。
+
+## 5. 测试策略
+
+| 层级 | 工具 | 范围 |
+|---|---|---|
+| 后端单元 | Jest | `changePassword` / `getUserPreferences` / `updateUserPreferences` / `notifications.list` / `markRead` / `markAllRead` / `unreadCount`，覆盖正常 + 校验失败 + 鉴权失败 |
+| 前端组件 | Vitest（项目已有则用） | `PasswordStrengthBar` / `AvatarUploader` 边界行为 |
+| E2E | 浏览器 MCP（主 agent 手动） | 按 §6 验收清单跑一遍 |
+
+不做：可视化回归、性能压测、跨浏览器矩阵。
+
+## 6. 验收清单
+
+### 6.1 编辑资料
+
+- [ ] 进入时昵称、头像、口味标签均填回当前值
+- [ ] 昵称 0/25 字、与当前一致 → 保存按钮 disabled
+- [ ] 头像 > 2MB / 非 jpg/png/webp → 前端拦截并 toast
+- [ ] 头像上传成功后 ProfilePage 头像立刻刷新
+- [ ] 标签选满 5 个后第 6 个不可选
+- [ ] 保存成功 toast + 返回上一页，ProfilePage 显示已更新
+
+### 6.2 修改密码
+
+- [ ] 旧密码错 → 后端 400/401，提示「旧密码错误」
+- [ ] 新密码 < 8 位 / 不含字母数字 → 前端拦截
+- [ ] 新密码与旧一致 → 前端拦截
+- [ ] 新密码 ≠ 确认 → 前端拦截
+- [ ] 强度条三档颜色正确切换
+- [ ] 成功后 toast + token 清空 + 跳 `/login`
+
+### 6.3 阅读偏好
+
+- [ ] 未登录进入 → 只存 localStorage，不发请求
+- [ ] 已登录修改 → 立刻预览生效，500ms 后看到 PUT 请求落地
+- [ ] 偏好页修改后进入阅读器 → 设置自动应用
+- [ ] 阅读器内修改 → 偏好页打开值同步
+
+### 6.4 通知中心
+
+- [ ] 空态文案正确显示
+- [ ] 未读条目左侧红点 + 加粗标题
+- [ ] 点击 → 红点消失 + 跳到 `link`
+- [ ] 「全部已读」后铃铛红点立即消失
+- [ ] ProfilePage 铃铛红点反映真实未读数（> 0 显示，= 0 隐藏）
+
+### 6.5 帮助 / 关于
+
+- [ ] 静态内容显示，无报错，无死链
+
+### 6.6 ProfilePage 修复
+
+- [ ] 铃铛、「编辑」按钮可点击并跳转
+- [ ] 桌面端 8 个快捷入口排成 2 × 4 整齐网格
+- [ ] `joinDays` 数字正确（创建当天 = 0 天，第二天 = 1 天）
+- [ ] SecurityPage 仅「修改密码」一条且可点击
+
+## 7. 子代理分派
+
+按「接口契约先锁定 → 子代理彼此不抢同一文件」分派。
+
+| Agent | 职责 | 主要文件 | 依赖 |
+|---|---|---|---|
+| **A — 后端 API + 迁移** | change-password、preferences GET/PUT、notifications 4 接口、statistics 补 joinDays、2 个 SQL 迁移、Jest 单测 | `backend/src/controllers/{userController,preferenceController,notificationController}.js`、`backend/src/routes/{user,notifications,index}.js`、`backend/database/migrations/*.sql` | 无 |
+| **B — 编辑资料 + 修改密码** | ProfileEditPage / ChangePasswordPage / AvatarUploader / InterestTagPicker / PasswordStrengthBar | `views/profile/{ProfileEditPage,ChangePasswordPage}.vue`、`components/profile/{AvatarUploader,InterestTagPicker,PasswordStrengthBar}.vue`、`api/user.js`（追加 changePassword） | A 的 change-password 契约 |
+| **C — 阅读偏好 + 通知中心** | PreferencesPage / NotificationsPage / NotificationItem / 两个 store / 两个 api 文件 | `views/profile/{PreferencesPage,NotificationsPage}.vue`、`components/profile/NotificationItem.vue`、`api/{preferences,notifications}.js`、`stores/{preferences,notification}.js` | A 的 preferences / notifications 契约 |
+| **D — 静态页 + ProfilePage 修复 + SecurityPage 清理 + 联调收尾** | HelpPage / AboutPage、修 ProfilePage（铃铛 / 编辑 / 关注作者逻辑 / 8 入口 / 设置区链接）、修 SecurityPage（删 4 项死链）、铃铛接 notification store | `views/profile/{HelpPage,AboutPage}.vue`、`views/{ProfilePage,SecurityPage}.vue` | B、C 的页面落地后串联 |
+
+**调度顺序**：
+
+1. **第 0 步（主 agent）**：先创建 6 个空白页文件 + 把 `router/index.js` 6 条新路由挂上 + ProfilePage 死链 / SecurityPage 死链清理。这一步单独 commit，避免后续子代理改路由互相打架
+2. **第一波（并行）**：A、B、C 同时启动。A 接口跑通后 B/C 切换到真接口
+3. **第二波**：A、B、C 完成 → 派 D 收尾
+4. **第三波**：主 agent 用浏览器 MCP 跑 §6 验收清单
+
+**冲突预防**：
+
+- 每个 agent 改的文件清单互不重叠
+- `router/index.js` 仅由主 agent 在第 0 步动一次，子代理不再改
+- B/C 写页面时，路由占位文件已存在；子代理只需替换占位组件内容
+
+## 8. 已知风险
+
+- **修改密码强制重新登录**：体验上会打断，但避免旧 token 在他设备继续可用。
+- **通知不轮询**：仅在进入 `/profile`、`/profile/notifications`、登录态变化时拉未读数；及时性较弱但 MVP 够用。
+- **阅读偏好双源一致性**：服务端 `user_preferences` 与本地 `readingSettings` 双源；约定服务端为 truth，登录后首次拉取覆盖本地，离线/未登录回退 localStorage。
