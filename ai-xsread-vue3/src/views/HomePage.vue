@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import AppHeader from '@/components/v2/layout/AppHeader.vue'
 import BottomNav from '@/components/v2/layout/BottomNav.vue'
 import BookCard from '@/components/v2/book/BookCard.vue'
+import BookCover from '@/components/v2/book/BookCover.vue'
 import Icon from '@/components/v2/icons/Icon.vue'
 import RankTabSection from '@/components/novel/RankTabSection.vue'
 import { getRecommendNovels, getNovelList } from '@/api/novel'
@@ -65,6 +66,7 @@ async function loadData() {
           intro: (first.description || '').replace(/\r\n/g, ' ').slice(0, 120) + '…',
           rating: Number(first.rating || 0).toFixed(1),
           readers: first.views ? `${(first.views / 10000).toFixed(1)} 万` : '0',
+          cover: first.cover,
         }
         // 其余作为书单（PC 端最多显示 10 本）
         books.value = list.slice(1, 11).map((n, i) => ({
@@ -100,6 +102,8 @@ async function loadData() {
         readers: n.views ? `${(n.views / 10000).toFixed(1)} 万` : '0',
         rating: Number(n.rating || 0).toFixed(1),
         color: colors[i],
+        cover: n.cover,
+        variant: i,
       }))
     }
 
@@ -277,13 +281,12 @@ onMounted(loadData)
             <RouterLink :to="`/novel/${editorPick.id}`" class="flex gap-3 sm:gap-5">
               <!-- 头图：移动端 ≈ 100×144（封面比例），PC 大些 -->
               <div class="relative w-[100px] sm:w-44 lg:w-52 aspect-[3/4] sm:aspect-[4/5] shrink-0 overflow-hidden bg-clay-500">
-                <svg viewBox="0 0 200 280" class="w-full h-full" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-                  <defs><linearGradient id="pickBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6B7B5A"/><stop offset="100%" stop-color="#2A2520"/></linearGradient></defs>
-                  <rect width="200" height="280" fill="url(#pickBg)"/>
-                  <path d="M0,210 Q40,180 90,195 T200,200 L200,280 L0,280 Z" fill="#1A1714" opacity="0.35"/>
-                  <text x="20" y="135" font-family="Noto Serif SC, serif" font-size="22" font-weight="600" fill="#FDFAF6" letter-spacing="2">{{ editorPick.title.slice(0, 4) }}</text>
-                  <text x="20" y="158" font-family="Inter, sans" font-size="9" fill="#FDFAF6" opacity="0.7" letter-spacing="2">EDITOR'S PICK</text>
-                </svg>
+                <BookCover
+                  :title="editorPick.title"
+                  sub="EDITOR'S PICK"
+                  :variant="0"
+                  :cover="editorPick.cover"
+                />
                 <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-cream-50 text-clay-700">编辑荐</span>
               </div>
               <div class="py-3 pr-3 sm:py-5 sm:pr-5 flex-1 min-w-0 flex flex-col">
@@ -340,7 +343,9 @@ onMounted(loadData)
             <li v-for="r in ranks" :key="r.id">
               <RouterLink :to="`/novel/${r.id}`" class="flex items-center gap-3 p-3 hover:bg-cream-200/40 dark:hover:bg-night-700/40 transition-colors">
                 <span :class="['font-serif text-lg font-semibold w-6 text-center shrink-0', r.rank <= 2 ? 'text-clay-700 dark:text-clay-400' : 'text-ink-500 dark:text-ink-300']">{{ r.rank }}</span>
-                <div :class="['w-10 h-14 rounded shadow-cream shrink-0 bg-gradient-to-br', r.color]"></div>
+                <div class="w-10 h-14 rounded shadow-cream shrink-0 overflow-hidden bg-cream-200 dark:bg-night-700">
+                  <BookCover :title="r.title" :variant="r.variant" :cover="r.cover" :footer="false" />
+                </div>
                 <div class="flex-1 min-w-0">
                   <h4 class="font-serif font-semibold text-sm truncate">{{ r.title }}</h4>
                   <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">{{ r.author }} · {{ r.cat }}</p>
@@ -396,11 +401,14 @@ onMounted(loadData)
               </RouterLink>
             </div>
             <div class="flex gap-2 overflow-x-auto no-scrollbar shrink-0">
-              <RouterLink to="/recommend?categoryId=101" class="shrink-0 w-14 sm:w-16 aspect-[3/4] rounded-lg bg-gradient-to-br from-clay-400 to-clay-700 hover:scale-105 transition-transform"></RouterLink>
-              <RouterLink to="/recommend?categoryId=102" class="shrink-0 w-14 sm:w-16 aspect-[3/4] rounded-lg bg-gradient-to-br from-moss-500 to-moss-600 hover:scale-105 transition-transform"></RouterLink>
-              <RouterLink to="/recommend?categoryId=104" class="shrink-0 w-14 sm:w-16 aspect-[3/4] rounded-lg bg-gradient-to-br from-cream-300 to-clay-500 hover:scale-105 transition-transform"></RouterLink>
-              <RouterLink to="/recommend?categoryId=103" class="shrink-0 w-14 sm:w-16 aspect-[3/4] rounded-lg bg-gradient-to-br from-night-800 to-clay-700 hover:scale-105 transition-transform"></RouterLink>
-              <RouterLink to="/recommend?categoryId=105" class="shrink-0 w-14 sm:w-16 aspect-[3/4] rounded-lg bg-gradient-to-br from-clay-500 to-moss-600 hover:scale-105 transition-transform"></RouterLink>
+              <RouterLink
+                v-for="(b, i) in books.slice(0, 5)"
+                :key="b.id"
+                :to="`/novel/${b.id}`"
+                class="shrink-0 w-14 sm:w-16 aspect-[3/4] rounded-lg overflow-hidden hover:scale-105 transition-transform bg-cream-200 dark:bg-night-700"
+              >
+                <BookCover :title="b.title" :variant="i" :cover="b.cover" :footer="false" />
+              </RouterLink>
             </div>
           </div>
         </div>

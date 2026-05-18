@@ -1,16 +1,16 @@
 <script setup>
 /**
- * 书籍占位封面（SVG 渐变）
- * 后续接入 AI 生图后，可在此组件内做"先 img + 失败兜底 SVG"。
+ * 书籍封面组件
+ * 优先显示真实封面图片，加载失败时回退到 SVG 渐变占位。
  *
  * Props:
- *   - title: 显示在封面上的中文标题（建议 2 字）
+ *   - title: 显示在封面上的中文标题（建议 2~4 字）
  *   - sub: 副标题（可选）
  *   - variant: 0~5 不同色板
  *   - footer: 是否显示底部 "AI GENERATED" 字样（默认 true）
  *   - cover: 真实封面 URL（如有）
  */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   title: { type: String, default: '' },
@@ -19,6 +19,13 @@ const props = defineProps({
   footer: { type: Boolean, default: true },
   cover: { type: String, default: '' },
 })
+
+const imgFailed = ref(false)
+
+// 当 cover URL 变化时重置失败状态
+watch(() => props.cover, () => { imgFailed.value = false })
+
+const showImg = computed(() => !!props.cover && !imgFailed.value)
 
 const palettes = [
   ['#A87A56', '#5C3B25'], // 0 陶土
@@ -41,12 +48,12 @@ const titleShort = computed(() => (props.title || '').slice(0, 4))
 <template>
   <!-- 优先尝试真实封面 -->
   <img
-    v-if="cover"
+    v-if="showImg"
     :src="cover"
     :alt="title"
     class="w-full h-full object-cover"
     loading="lazy"
-    @error="(e) => e.target.style.display = 'none'"
+    @error="imgFailed = true"
   />
 
   <!-- 兜底 SVG 占位封面 -->

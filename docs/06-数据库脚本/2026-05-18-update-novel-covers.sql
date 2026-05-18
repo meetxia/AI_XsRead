@@ -1,7 +1,6 @@
--- 最后更新日期：2026-05-18
 -- MOMO小说正式封面路径更新脚本
--- 说明：将现有 novels.cover 替换为 backend/uploads/images/covers 下的本地封面。
-USE `ai_xsread`;
+-- 最后更新日期：2026-05-18
+-- 说明：将 data/ 目录 TXT 小说的 novels.cover 替换为 backend/uploads/images/covers 下的一体化 AI 中文标题封面。
 
 UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-2cf44a5b2300.jpg' WHERE `title` = '不会说话的你，被政界新贵指定联姻';
 UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-6629b2025d26.jpg' WHERE `title` = '大师劝复合，我闺蜜差点信了爱情';
@@ -37,15 +36,5 @@ UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-a77a07e1d259.jpg' WH
 UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-7a9e87f842a5.jpg' WHERE `title` = '战友说是遗愿，可这照顾方式太过暧昧';
 UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-8bd7c2821562.jpg' WHERE `title` = '重生后我在朋友圈屏蔽了前夫，他开始全网找我';
 UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-5b80283a0a2a.jpg' WHERE `title` = '醉酒误睡未婚夫叔叔，这下玩大了！';
-UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-2dee63f91a7d.jpg' WHERE `title` = '时光里的温柔相遇';
-UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-e22522c867a0.jpg' WHERE `title` = '总裁的隐婚甜妻';
-UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-c15fcae6598e.jpg' WHERE `title` = '星光璀璨遇见你';
-UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-89fb06ce5460.jpg' WHERE `title` = '穿越之嫡女风华';
-UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-b8afaf769df4.jpg' WHERE `title` = '锦绣良缘：王爷的小娇妻';
-UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-c2f46805298b.jpg' WHERE `title` = '九天仙缘';
-UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-a7c24958e742.jpg' WHERE `title` = '午夜惊魂：心理医生手札';
-UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-a5c09adbe742.jpg' WHERE `title` = '密室之谜';
-UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-6b1e350698e1.jpg' WHERE `title` = '那些年，我们追过的梦想';
-UPDATE `novels` SET `cover` = '/uploads/images/covers/cover-049d660aa022.jpg' WHERE `title` = '校草的小甜饼';
 
-SELECT '✅ 小说封面更新完成' AS Status, COUNT(*) AS 小说总数 FROM novels WHERE cover LIKE '/uploads/images/covers/%';
+SELECT '小说封面更新完成' AS Status, COUNT(*) AS 小说总数 FROM novels WHERE cover LIKE '/uploads/images/covers/%';

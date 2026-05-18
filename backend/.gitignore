@@ -11,6 +11,10 @@ npm-debug.log*
 # 上传文件
 uploads/*
 !uploads/.gitkeep
+!uploads/images/
+!uploads/images/covers/
+!uploads/images/covers/*.jpg
+!uploads/images/covers/*.json
 
 # 操作系统
 .DS_Store

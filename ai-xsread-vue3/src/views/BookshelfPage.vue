@@ -302,7 +302,7 @@ onMounted(async () => {
         <div class="flex gap-3 overflow-x-auto no-scrollbar -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pb-1">
           <RouterLink v-for="r in recommends" :key="r.id" :to="`/novel/${r.id}`" class="shrink-0 w-24 sm:w-28">
             <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-cream">
-              <BookCover :title="r.title.slice(0,2)" :variant="r.variant" />
+              <BookCover :title="r.title.slice(0,2)" :variant="r.variant" :cover="r.cover" />
             </div>
             <p class="mt-2 text-xs font-medium line-clamp-1">{{ r.title }}</p>
             <p class="text-[10px] text-ink-500 dark:text-ink-300">{{ r.author }}</p>
