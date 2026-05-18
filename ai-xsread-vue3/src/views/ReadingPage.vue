@@ -39,6 +39,15 @@ const { settings, applyToDocument } = useReadingSettings()
 const novelId = computed(() => route.params.id)
 const currentChapterId = ref(route.query.chapter ? Number(route.query.chapter) : null)
 const novelTitle = ref('加载中…')
+
+/** 智能返回：优先浏览器历史后退，无历史时 fallback 到详情页 */
+function goBack() {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.replace(`/novel/${novelId.value}`)
+  }
+}
 const chapterTitle = ref('')
 const chapterIndex = ref(0)
 const totalChapters = ref(0)
@@ -807,7 +816,7 @@ onUnmounted(async () => {
       :class="{ 'toolbar-hide-top': !toolbarVisible }"
     >
       <div class="max-w-screen-md mx-auto px-3 h-14 flex items-center justify-between">
-        <button @click="router.push(`/novel/${novelId}`)" class="w-10 h-10 grid place-items-center rounded-full hover:bg-stone-100 dark:hover:bg-night-800 transition-colors" aria-label="返回">
+        <button @click="goBack()" class="w-10 h-10 grid place-items-center rounded-full hover:bg-stone-100 dark:hover:bg-night-800 transition-colors" aria-label="返回">
           <Icon name="back" class="w-5 h-5" />
         </button>
         <div class="flex-1 px-3 min-w-0 text-center">
