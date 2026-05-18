@@ -6,7 +6,7 @@ const router = createRouter({
     { path: '/',           name: 'home',         component: () => import('@/views/HomePage.vue'),         meta: { title: '首页',     keepAlive: true } },
     { path: '/recommend',  name: 'recommend',    component: () => import('@/views/RecommendPage.vue'),    meta: { title: '发现',     keepAlive: true } },
     { path: '/discover',   redirect: '/recommend' },
-    { path: '/bookshelf',  name: 'bookshelf',    component: () => import('@/views/BookshelfPage.vue'),    meta: { title: '我的书架', keepAlive: true, requiresAuth: false } },
+    { path: '/bookshelf',  name: 'bookshelf',    component: () => import('@/views/BookshelfPage.vue'),    meta: { title: '我的书架', keepAlive: true, requiresAuth: true } },
     { path: '/history',    name: 'history',      component: () => import('@/views/HistoryPage.vue'),      meta: { title: '浏览记录', keepAlive: true, requiresAuth: false } },
     { path: '/profile',    name: 'profile',      component: () => import('@/views/ProfilePage.vue'),      meta: { title: '我的',     keepAlive: true } },
     { path: '/profile/achievements', name: 'achievements', component: () => import('@/views/AchievementsPage.vue'), meta: { title: '我的勋章', requiresAuth: true } },

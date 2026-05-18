@@ -385,7 +385,7 @@ function flushProgressBeacon() {
 async function loadChapterList() {
   if (!novelId.value || novelId.value === 'demo') return
   try {
-    const res = await getChapterList(novelId.value, { page: 1, pageSize: 200 })
+    const res = await getChapterList(novelId.value, { page: 1, pageSize: 100 })
     if (res?.code === 200) {
       const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data?.chapters || [])
       chapterIds.value = list.map((item) => Number(item.id || item.chapter_id)).filter(Boolean)
