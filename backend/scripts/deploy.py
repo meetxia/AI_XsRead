@@ -50,9 +50,13 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 BACKEND_DIR = SCRIPT_DIR.parent                     # backend/
 ROOT_DIR = BACKEND_DIR.parent                       # 项目根目录
 FRONTEND_DIR = ROOT_DIR / "ai-xsread-vue3"          # 用户前端
+ADMIN_FRONTEND_DIR = ROOT_DIR / "admin-frontend"    # 管理前端
+ADMIN_BACKEND_DIR = ROOT_DIR / "admin-backend"      # 管理后端
 
 DEFAULT_LOCAL_DIST_PATH = FRONTEND_DIR / "dist"
 DEFAULT_LOCAL_API_PATH = BACKEND_DIR
+DEFAULT_LOCAL_ADMIN_DIST_PATH = ADMIN_FRONTEND_DIR / "dist"
+DEFAULT_LOCAL_ADMIN_API_PATH = ADMIN_BACKEND_DIR
 
 # 服务器与站点信息（默认按 xs.momofx.cn 实际部署结构配置，可通过命令行/环境变量覆盖）
 # 服务器实际目录结构（已通过 SSH 现场确认）：
@@ -74,14 +78,19 @@ DEFAULT_SSH_KEY = str(Path.home() / ".ssh" / "id_rsa")
 DEFAULT_SERVER_FRONTEND_PATH = f"{DEFAULT_SERVER_ROOT}/ai-xsread-vue3/dist"
 DEFAULT_SERVER_API_PATH = f"{DEFAULT_SERVER_ROOT}/backend"
 DEFAULT_SERVER_PM2_CONFIG = f"{DEFAULT_SERVER_ROOT}/ecosystem.config.js"
+DEFAULT_SERVER_ADMIN_FRONTEND_PATH = f"{DEFAULT_SERVER_ROOT}/admin-frontend/dist"
+DEFAULT_SERVER_ADMIN_API_PATH = f"{DEFAULT_SERVER_ROOT}/admin-backend"
 
 # 健康检查相关
 DEFAULT_FRONTEND_HEALTHCHECK_HOST = "xs.momofx.cn"
 DEFAULT_BACKEND_PORT = 8005
 DEFAULT_BACKEND_HEALTHCHECK_URL = f"http://127.0.0.1:{DEFAULT_BACKEND_PORT}/api/health"
+DEFAULT_ADMIN_BACKEND_PORT = 8001
+DEFAULT_ADMIN_BACKEND_HEALTHCHECK_URL = f"http://127.0.0.1:{DEFAULT_ADMIN_BACKEND_PORT}/api/health"
 
 # PM2 进程名（与服务器 ecosystem.config.js 中保持一致）
 DEFAULT_BACKEND_PM2_NAME = "xsread-backend"
+DEFAULT_ADMIN_BACKEND_PM2_NAME = "xsread-admin-backend"
 
 # 监听 dist 变化的轮询周期
 CHECK_INTERVAL = 5
@@ -443,6 +452,28 @@ def build_frontend_healthcheck_command(cfg: dict) -> str:
     )
 
 
+def build_admin_backend_restart_command(cfg: dict) -> str:
+    """
+    远端重启管理后端命令（与用户后端流程一致，独立 PM2 进程名 / 端口 / 健康检查）。
+    """
+    pm2_name = cfg.get("admin_backend_pm2_name") or DEFAULT_ADMIN_BACKEND_PM2_NAME
+    healthcheck_url = cfg.get("admin_backend_healthcheck_url") or DEFAULT_ADMIN_BACKEND_HEALTHCHECK_URL
+    admin_api_path = cfg.get("server_admin_api_path") or DEFAULT_SERVER_ADMIN_API_PATH
+    pm2_config = cfg.get("server_pm2_config") or DEFAULT_SERVER_PM2_CONFIG
+    pm2_bin = cfg.get("pm2_bin") or "pm2"
+    npm_bin = cfg.get("npm_bin") or "npm"
+    return (
+        f"set -e; "
+        f"cd {shlex.quote(admin_api_path)} && "
+        f"{shlex.quote(npm_bin)} ci --omit=dev --no-audit --no-fund && "
+        f"({shlex.quote(pm2_bin)} reload {shlex.quote(pm2_name)} --update-env "
+        f"|| {shlex.quote(pm2_bin)} start {shlex.quote(pm2_config)} --only {shlex.quote(pm2_name)} --update-env) && "
+        f"{shlex.quote(pm2_bin)} save && "
+        f"sleep 2 && "
+        f"curl -fsS --max-time 15 {shlex.quote(healthcheck_url)}"
+    )
+
+
 # ============================================================
 # 配置归一
 # ============================================================
@@ -487,6 +518,32 @@ def _normalize(config: dict) -> dict:
         cfg.get("backend_healthcheck_url") or DEFAULT_BACKEND_HEALTHCHECK_URL
     )
     cfg["backend_restart_cmd"] = (cfg.get("backend_restart_cmd") or "").strip() or build_backend_restart_command(cfg)
+
+    # admin-frontend / admin-backend 相关默认值（与用户端独立）
+    cfg["server_admin_frontend_path"] = (
+        cfg.get("server_admin_frontend_path") or f"{root}/admin-frontend/dist"
+    )
+    cfg["server_admin_api_path"] = (
+        cfg.get("server_admin_api_path") or f"{root}/admin-backend"
+    )
+    cfg["local_admin_dist_path"] = (
+        cfg.get("local_admin_dist_path") or str(DEFAULT_LOCAL_ADMIN_DIST_PATH)
+    )
+    cfg["local_admin_api_path"] = (
+        cfg.get("local_admin_api_path") or str(DEFAULT_LOCAL_ADMIN_API_PATH)
+    )
+    cfg["install_admin_frontend_deps"] = bool(cfg.get("install_admin_frontend_deps", False))
+    cfg["skip_admin_frontend_build"] = bool(cfg.get("skip_admin_frontend_build", False))
+    cfg["admin_backend_pm2_name"] = (
+        cfg.get("admin_backend_pm2_name") or DEFAULT_ADMIN_BACKEND_PM2_NAME
+    )
+    cfg["admin_backend_healthcheck_url"] = (
+        cfg.get("admin_backend_healthcheck_url") or DEFAULT_ADMIN_BACKEND_HEALTHCHECK_URL
+    )
+    cfg["admin_backend_restart_cmd"] = (
+        (cfg.get("admin_backend_restart_cmd") or "").strip()
+        or build_admin_backend_restart_command(cfg)
+    )
     return cfg
 
 
@@ -666,6 +723,18 @@ def _build_frontend(cfg: dict) -> None:
     _run(["npm", "run", "build"], cwd=FRONTEND_DIR, dry_run=cfg["dry_run"])
 
 
+def _build_admin_frontend(cfg: dict) -> None:
+    """管理前端构建（admin-frontend），与用户前端独立 npm install / npm run build。"""
+    if cfg.get("skip_admin_frontend_build"):
+        logger.info("跳过管理前端构建")
+        return
+    if not ADMIN_FRONTEND_DIR.exists():
+        raise RuntimeError(f"管理前端目录不存在: {ADMIN_FRONTEND_DIR}")
+    if cfg.get("install_admin_frontend_deps") or not (ADMIN_FRONTEND_DIR / "node_modules").exists():
+        _run(["npm", "install"], cwd=ADMIN_FRONTEND_DIR, dry_run=cfg["dry_run"])
+    _run(["npm", "run", "build"], cwd=ADMIN_FRONTEND_DIR, dry_run=cfg["dry_run"])
+
+
 def _frontend_excludes(cfg: dict) -> list[str]:
     return [str(item) for item in cfg["frontend_preserve_files"]]
 
@@ -815,6 +884,79 @@ def upload_api(config: dict) -> bool:
         return True
     except Exception as exc:
         logger.error("后端部署失败: %s", exc)
+        return False
+
+
+def upload_admin_dist(config: dict) -> bool:
+    """部署管理前端（admin-frontend）到 admin-frontend/dist。"""
+    cfg = _normalize(config)
+    try:
+        _safe_remote_path(cfg, cfg["server_admin_frontend_path"])
+        _build_admin_frontend(cfg)
+        dist_root = Path(cfg["local_admin_dist_path"])
+        if not dist_root.exists():
+            raise RuntimeError(f"管理前端 dist 不存在: {dist_root}")
+        _ssh(cfg, f"mkdir -p {shlex.quote(cfg['server_admin_frontend_path'])}")
+        rsync_result = _run(
+            _build_rsync_command(
+                cfg=cfg,
+                source=dist_root,
+                destination=cfg["server_admin_frontend_path"],
+                excludes=_frontend_excludes(cfg),
+                chmod_mode=_frontend_chmod_mode(),
+                delete=True,
+            ),
+            dry_run=cfg["dry_run"],
+        )
+        _log_and_persist_deploy_summary(
+            cache_key="admin_frontend_dist",
+            target_name="管理前端",
+            root=dist_root,
+            dry_run=cfg["dry_run"],
+            rsync_output="" if rsync_result is None else rsync_result.stdout,
+        )
+        logger.info(
+            "✅ 管理前端部署完成（远端目录：%s，需要 Nginx/反代另行配置子域名或子路径）",
+            cfg["server_admin_frontend_path"],
+        )
+        return True
+    except Exception as exc:
+        logger.error("管理前端部署失败: %s", exc)
+        return False
+
+
+def upload_admin_api(config: dict) -> bool:
+    """部署管理后端（admin-backend），独立 PM2 进程。"""
+    cfg = _normalize(config)
+    try:
+        _safe_remote_path(cfg, cfg["server_admin_api_path"])
+        api_root = Path(cfg["local_admin_api_path"])
+        if not api_root.exists():
+            raise RuntimeError(f"管理后端目录不存在: {api_root}")
+        _ssh(cfg, f"mkdir -p {shlex.quote(cfg['server_admin_api_path'])}")
+        rsync_result = _run(
+            _build_rsync_command(
+                cfg=cfg,
+                source=api_root,
+                destination=cfg["server_admin_api_path"],
+                excludes=_backend_excludes(),
+            ),
+            dry_run=cfg["dry_run"],
+        )
+        restart = cfg["admin_backend_restart_cmd"] or "echo '管理后端上传完成（未设置重启命令）'"
+        _ssh(cfg, restart)
+        _log_and_persist_deploy_summary(
+            cache_key="admin_backend_api",
+            target_name="管理后端",
+            root=api_root,
+            should_skip=_skip_backend,
+            dry_run=cfg["dry_run"],
+            rsync_output="" if rsync_result is None else rsync_result.stdout,
+        )
+        logger.info("✅ 管理后端部署完成（PM2：%s）", cfg["admin_backend_pm2_name"])
+        return True
+    except Exception as exc:
+        logger.error("管理后端部署失败: %s", exc)
         return False
 
 
@@ -978,10 +1120,14 @@ def create_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--once", action="store_true", help="兼容参数：执行一次并退出")
     parser.add_argument("--watch", action="store_true", help="监控 dist 变化并自动部署前端")
-    parser.add_argument("--frontend", action="store_true", help="只部署前端")
-    parser.add_argument("--backend", action="store_true", help="只部署后端")
+    parser.add_argument("--frontend", action="store_true", help="只部署用户前端")
+    parser.add_argument("--backend", action="store_true", help="只部署用户后端")
+    parser.add_argument("--admin-frontend", dest="admin_frontend", action="store_true", help="只部署管理前端")
+    parser.add_argument("--admin-backend", dest="admin_backend", action="store_true", help="只部署管理后端")
+    parser.add_argument("--admin", action="store_true", help="部署管理前端 + 管理后端（等同于 --admin-frontend --admin-backend）")
     parser.add_argument("--images", action="store_true", help="优化并上传图片资源（封面/缩略图）")
-    parser.add_argument("--all", action="store_true", help="部署前后端+图片")
+    parser.add_argument("--all", action="store_true", help="部署用户前端+后端+图片（不含管理端）")
+    parser.add_argument("--all-with-admin", dest="all_with_admin", action="store_true", help="部署用户端 + 管理端 + 图片（最完整）")
     parser.add_argument("--all-db", action="store_true", help="兼容参数：等同 --all")
     parser.add_argument("--db", action="store_true", help="兼容参数：当前不支持")
     parser.add_argument("--db-full", action="store_true", help="兼容参数：当前不支持")
@@ -1038,10 +1184,12 @@ def main() -> None:
     if args.db:
         sys.exit(0 if sync_database_migrations(config) else 1)
 
-    do_front = args.frontend or args.all or args.all_db
-    do_back = args.backend or args.all or args.all_db
-    do_images = args.images or args.all or args.all_db
-    if not (do_front or do_back or do_images):
+    do_front = args.frontend or args.all or args.all_db or args.all_with_admin
+    do_back = args.backend or args.all or args.all_db or args.all_with_admin
+    do_images = args.images or args.all or args.all_db or args.all_with_admin
+    do_admin_front = args.admin_frontend or args.admin or args.all_with_admin
+    do_admin_back = args.admin_backend or args.admin or args.all_with_admin
+    if not (do_front or do_back or do_images or do_admin_front or do_admin_back):
         do_front = True
         do_back = True
 
@@ -1049,7 +1197,7 @@ def main() -> None:
         "目标站点：%s（站点根：%s，后端目录：%s）",
         config.get("server_host") or DEFAULT_SERVER_HOST,
         config.get("server_root") or DEFAULT_SERVER_ROOT,
-        config.get("server_api_path") or f"{config.get('server_root') or DEFAULT_SERVER_ROOT}/api",
+        config.get("server_api_path") or f"{config.get('server_root') or DEFAULT_SERVER_ROOT}/backend",
     )
 
     ok = True
@@ -1059,6 +1207,10 @@ def main() -> None:
         ok = upload_dist(config) and ok
     if do_back:
         ok = upload_api(config) and ok
+    if do_admin_front:
+        ok = upload_admin_dist(config) and ok
+    if do_admin_back:
+        ok = upload_admin_api(config) and ok
     if not ok:
         sys.exit(1)
 
