@@ -6,6 +6,7 @@ import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
 import { useUserStore } from '@/stores/user'
 import { useMembershipStore } from '@/stores/membership'
+import { useNotificationStore } from '@/stores/notification'
 import MembershipBadge from '@/components/membership/MembershipBadge.vue'
 import Countdown from '@/components/membership/Countdown.vue'
 import { useUserStats } from '@/composables/useUserStats'
@@ -24,6 +25,7 @@ useSeoMeta({
 const router = useRouter()
 const userStore = useUserStore()
 const membershipStore = useMembershipStore()
+const notificationStore = useNotificationStore()
 const {
   shelfCount,
   readingStreak,
@@ -35,6 +37,9 @@ const {
   loadStats
 } = useUserStats()
 const followingAuthors = ref([])
+
+// 铃铛红点：从 notification store 取真实未读数
+const hasUnreadNotifications = computed(() => notificationStore.unreadCount > 0)
 
 const isLoggedIn = computed(() => userStore.isLogin)
 
@@ -79,14 +84,20 @@ function maybeLoadAuthedData() {
   loadStats()
   loadFollowingAuthors()
   membershipStore.fetch()
+  notificationStore.fetchUnreadCount()
 }
 
 onMounted(maybeLoadAuthedData)
 
 // 登录态切换时（如登录后 SPA 内跳回来）刷新一次数据
 watch(() => userStore.isLogin, (val) => {
-  if (val) maybeLoadAuthedData()
-  else followingAuthors.value = []
+  if (val) {
+    maybeLoadAuthedData()
+    notificationStore.fetchUnreadCount()
+  } else {
+    followingAuthors.value = []
+    notificationStore.reset()
+  }
 })
 </script>
 
@@ -99,9 +110,18 @@ watch(() => userStore.isLogin, (val) => {
           <span class="font-serif text-lg font-semibold tracking-tight">MOMO小说</span>
         </RouterLink>
         <div class="flex items-center gap-1">
-          <button class="w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800" aria-label="通知">
+          <RouterLink
+            to="/profile/notifications"
+            class="relative w-10 h-10 grid place-items-center rounded-full hover:bg-cream-100 dark:hover:bg-night-800"
+            aria-label="通知"
+          >
             <Icon name="bell" class="w-5 h-5" />
-          </button>
+            <span
+              v-if="hasUnreadNotifications"
+              class="absolute top-2 right-2 w-2 h-2 rounded-full bg-cinnabar-500"
+              aria-hidden="true"
+            ></span>
+          </RouterLink>
           <ThemeToggle />
         </div>
       </div>
@@ -169,7 +189,10 @@ watch(() => userStore.isLogin, (val) => {
                   </p>
                 </div>
                 <div class="flex flex-col items-end gap-2 shrink-0">
-                  <button class="px-3 py-1.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/25 text-xs">编辑</button>
+                  <RouterLink
+                    to="/profile/edit"
+                    class="px-3 py-1.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/25 text-xs hover:bg-cream-50/25 transition"
+                  >编辑</RouterLink>
                   <MembershipBadge
                     size="md"
                     :level="membershipStore.level"
@@ -238,14 +261,18 @@ watch(() => userStore.isLogin, (val) => {
                 <Icon name="bookmarkFill" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
                 <span class="text-[11px]">书签</span>
               </RouterLink>
-              <RouterLink v-if="!followingAuthors.length" to="/profile/following-authors" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+              <RouterLink to="/profile/following-authors" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
                 <Icon name="user" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
                 <span class="text-[11px]">关注作者</span>
+              </RouterLink>
+              <RouterLink to="/profile/edit" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition">
+                <Icon name="settings" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
+                <span class="text-[11px]">编辑资料</span>
               </RouterLink>
             </div>
           </section>
 
-          <FollowingAuthorList :authors="followingAuthors" />
+          <FollowingAuthorList v-if="followingAuthors.length" :authors="followingAuthors" />
 
           <!-- 阅读统计 -->
           <section>
@@ -281,16 +308,21 @@ watch(() => userStore.isLogin, (val) => {
                 />
                 <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
               </RouterLink>
-              <a href="#" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+              <RouterLink to="/profile/preferences" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
                 <Icon name="eye" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
                 <span class="flex-1 text-sm">阅读偏好</span>
                 <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
-              </a>
-              <a href="#" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
+              </RouterLink>
+              <RouterLink to="/profile/notifications" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
                 <Icon name="bell" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
                 <span class="flex-1 text-sm">通知</span>
+                <span
+                  v-if="hasUnreadNotifications"
+                  class="w-2 h-2 rounded-full bg-cinnabar-500"
+                  aria-hidden="true"
+                ></span>
                 <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
-              </a>
+              </RouterLink>
               <RouterLink to="/security" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
                 <Icon name="settings" class="w-5 h-5 text-clay-700 dark:text-clay-400" />
                 <span class="flex-1 text-sm">账号安全</span>
@@ -300,14 +332,14 @@ watch(() => userStore.isLogin, (val) => {
 
             <h2 class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-2 mt-5">关于</h2>
             <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
-              <a href="#" class="flex items-center gap-3 p-3.5">
+              <RouterLink to="/about/help" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
                 <span class="flex-1 text-sm">帮助与反馈</span>
                 <Icon name="arrowRight" class="w-4 h-4 text-ink-500" />
-              </a>
-              <a href="#" class="flex items-center gap-3 p-3.5">
+              </RouterLink>
+              <RouterLink to="/about" class="flex items-center gap-3 p-3.5 hover:bg-cream-200/40 dark:hover:bg-night-700/40">
                 <span class="flex-1 text-sm">关于 MOMO小说</span>
                 <span class="text-xs text-ink-500">v 1.0</span>
-              </a>
+              </RouterLink>
               <button @click="doLogout" class="w-full text-left flex items-center gap-3 p-3.5 text-cinnabar-500 hover:bg-cinnabar-500/5">
                 <span class="flex-1 text-sm font-medium">退出登录</span>
               </button>

@@ -3,6 +3,7 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const authorController = require('../controllers/authorController');
 const membershipController = require('../controllers/membershipController');
+const preferenceController = require('../controllers/preferenceController');
 const { authenticate } = require('../middlewares/auth');
 const { paginationValidation, idValidation, novelIdValidation } = require('../utils/validators');
 const { asyncHandler } = require('../middlewares/errorHandler');
@@ -60,5 +61,9 @@ router.get('/following-authors', paginationValidation, asyncHandler(authorContro
 // 用户资料
 router.get('/profile', userController.getUserProfile);
 router.put('/profile', userController.updateUserProfile);
+
+// 阅读偏好（个人中心 MVP）
+router.get('/preferences', asyncHandler(preferenceController.getMyPreferences));
+router.put('/preferences', writeRateLimiter, asyncHandler(preferenceController.updateMyPreferences));
 
 module.exports = router;

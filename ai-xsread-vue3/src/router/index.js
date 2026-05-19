@@ -15,6 +15,11 @@ const router = createRouter({
     { path: '/profile/notes', name: 'profile-notes', component: () => import('@/views/ProfileListPage.vue'), meta: { title: '我的想法', requiresAuth: true, kind: 'notes' } },
     { path: '/profile/following-authors', name: 'profile-following-authors', component: () => import('@/views/FollowingAuthorsPage.vue'), meta: { title: '关注作者', requiresAuth: true } },
     { path: '/profile/membership', name: 'profile-membership', component: () => import('@/views/MembershipPage.vue'), meta: { title: '会员中心', requiresAuth: true } },
+    { path: '/profile/edit', name: 'profile-edit', component: () => import('@/views/profile/ProfileEditPage.vue'), meta: { title: '编辑资料', requiresAuth: true } },
+    { path: '/profile/preferences', name: 'profile-prefs', component: () => import('@/views/profile/PreferencesPage.vue'), meta: { title: '阅读偏好', requiresAuth: true } },
+    { path: '/profile/notifications', name: 'notifications', component: () => import('@/views/profile/NotificationsPage.vue'), meta: { title: '通知中心', requiresAuth: true } },
+    { path: '/about/help', name: 'help', component: () => import('@/views/profile/HelpPage.vue'), meta: { title: '帮助与反馈' } },
+    { path: '/about', name: 'about', component: () => import('@/views/profile/AboutPage.vue'), meta: { title: '关于 MOMO小说' } },
     { path: '/security',   name: 'security',     component: () => import('@/views/SecurityPage.vue'),     meta: { title: '账号安全', requiresAuth: true } },
 
     // 阅读

@@ -537,7 +537,7 @@ const getUserStatistics = async (req, res) => {
 
     // 阅读章节统计
     const [chapterStats] = await pool.query(
-      `SELECT 
+      `SELECT
         COUNT(DISTINCT chapter_id) as total_chapters,
         COUNT(DISTINCT novel_id) as total_novels_read
        FROM reading_history
@@ -545,7 +545,20 @@ const getUserStatistics = async (req, res) => {
       [userId]
     );
 
+    // 加入天数（基于 users.created_at）
+    // - 当天注册返回 0
+    // - 第二天返回 1，依此类推
+    const [joinDaysRows] = await pool.query(
+      `SELECT GREATEST(DATEDIFF(NOW(), created_at), 0) AS joinDays
+       FROM users
+       WHERE id = ?
+       LIMIT 1`,
+      [userId]
+    );
+    const joinDays = Number(joinDaysRows[0]?.joinDays || 0);
+
     return Response.success(res, {
+      joinDays,
       bookshelf: {
         total: bookshelfStats[0].total_books || 0,
         reading: bookshelfStats[0].reading_books || 0,

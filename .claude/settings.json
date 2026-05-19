@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"try{require\\('./src/services/cacheWrapper'\\); console.log\\('cacheWrapper loaded ok'\\)}catch\\(e\\){console.error\\('CW ERR:', e.message\\)}\")"
+    ]
+  }
+}

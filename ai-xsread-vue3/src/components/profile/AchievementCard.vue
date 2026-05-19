@@ -104,7 +104,7 @@ const iconText = computed(() => {
           'w-12 h-12 rounded-2xl grid place-items-center shrink-0 text-2xl',
           unlocked
             ? 'bg-clay-500 text-cream-50'
-            : 'bg-cream-200 dark:bg-night-700 text-ink-400 dark:text-ink-300'
+            : 'bg-cream-200 dark:bg-night-700 text-ink-500 dark:text-ink-300'
         ]"
         aria-hidden="true"
       >
@@ -114,7 +114,7 @@ const iconText = computed(() => {
       <div class="flex-1 min-w-0">
         <h3
           data-testid="achievement-title"
-          :class="['font-serif font-semibold truncate', unlocked ? '' : 'text-ink-700 dark:text-ink-200']"
+          :class="['font-serif font-semibold truncate', unlocked ? '' : 'text-ink-700 dark:text-ink-300']"
         >
           {{ title }}
         </h3>

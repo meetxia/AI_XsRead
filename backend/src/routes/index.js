@@ -16,6 +16,7 @@ const interestTagRoutes = require('./interestTags');
 const achievementRoutes = require('./achievements');
 const systemRoutes = require('./system');
 const seoRoutes = require('./seo');
+const notificationRoutes = require('./notifications');
 
 // API版本前缀
 const API_PREFIX = '/api';
@@ -78,5 +79,6 @@ router.use(`${API_PREFIX}`, paragraphCommentRoutes);       // 内部路径 /para
 router.use(`${API_PREFIX}`, highlightRoutes);              // 内部路径 /highlights、/novels/:id/notes、/user/highlights
 router.use(`${API_PREFIX}/user`, interestTagRoutes);       // 路径形如 /api/user/interest-tags
 router.use(`${API_PREFIX}/user`, achievementRoutes);       // 路径形如 /api/user/achievements
+router.use(`${API_PREFIX}/notifications`, notificationRoutes); // 通知中心 /api/notifications/*
 
 module.exports = router;
