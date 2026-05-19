@@ -6,8 +6,10 @@
  *
  * Property 16 (frontend portion):
  *   For any timeline of `report` calls and a `minIntervalMs` window:
- *     1. Reporter call count R ≤ ceil((tMax - tMin) / minIntervalMs) + 1
- *     2. In-flight singleflight: when the same key is reported twice in quick
+ *     1. During the triggering timeline, reporter call count
+ *        R_active ≤ ceil((tMax - tMin) / minIntervalMs) + 1
+ *     2. Draining the trailing timer may add one latest-payload sync
+ *     3. In-flight singleflight: when the same key is reported twice in quick
  *        succession, the underlying reporter receives only one in-flight call,
  *        and that call carries the latest payload.
  *
@@ -52,12 +54,16 @@ describe('[Property 16 / FE] throttle reporter call count bound', () => {
             inst.report({ at: t })
           }
 
-          // Drain any scheduled trailing call.
-          await vi.advanceTimersByTimeAsync(minIntervalMs + 10)
-
           const span = timeline[timeline.length - 1] - timeline[0]
           const upperBound = Math.ceil(span / minIntervalMs) + 1
-          expect(reporter.mock.calls.length).toBeLessThanOrEqual(upperBound)
+          const activeCallCount = reporter.mock.calls.length
+          expect(activeCallCount).toBeLessThanOrEqual(upperBound)
+
+          // Drain any scheduled trailing call. With leading + trailing throttle
+          // semantics, a burst may legitimately produce one final latest-payload
+          // sync after the triggering timeline has ended.
+          await vi.advanceTimersByTimeAsync(minIntervalMs + 10)
+          expect(reporter.mock.calls.length).toBeLessThanOrEqual(upperBound + 1)
           inst.cancel()
         }
       ),

@@ -90,29 +90,35 @@ const routes = [
   }
 ]
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
+export function createRouterForAdmin(history = createWebHistory()) {
+  const router = createRouter({
+    history,
+    routes
+  })
 
-// 路由守卫
-router.beforeEach((to, from, next) => {
-  const token = getToken()
-  
-  if (to.meta.requiresAuth !== false) {
-    if (!token) {
-      next('/login')
+  // 路由守卫
+  router.beforeEach((to, from, next) => {
+    const token = getToken()
+
+    if (to.meta.requiresAuth !== false) {
+      if (!token) {
+        next('/login')
+      } else {
+        next()
+      }
     } else {
-      next()
+      if (token && to.path === '/login') {
+        next('/')
+      } else {
+        next()
+      }
     }
-  } else {
-    if (token && to.path === '/login') {
-      next('/')
-    } else {
-      next()
-    }
-  }
-})
+  })
+
+  return router
+}
+
+const router = createRouterForAdmin()
 
 export default router
 

@@ -5,14 +5,21 @@ const { hasColumn } = require('../utils/schemaCompat');
 const achievementService = require('../services/achievementService');
 const { attachUnreadUpdate } = require('../services/unreadUpdateService');
 const { resolveParagraphAnchor } = require('../utils/paragraphAnchor');
-
-const ALLOWED_SHELF_TYPES = ['reading', 'finished', 'collected', 'wishlist'];
-const SORTABLE_FIELDS = {
-  recent_read: 'b.last_read_time',
-  recent_update: 'n.updated_at',
-  added_at: 'b.added_time',
-  title: 'n.title'
-};
+const {
+  ALLOWED_SHELF_TYPES,
+  buildBookshelfExtraSelect,
+  buildBookshelfOrder,
+  buildBookshelfWhere,
+  createBookshelfTotals,
+  normalizeBookshelfQuery,
+  normalizeGroupName,
+  sanitizeBookshelfIds
+} = require('./user/bookshelfHelpers');
+const {
+  buildProfileUpdate,
+  formatProfileStats
+} = require('./user/profileHelpers');
+const { formatUserStatistics } = require('./user/statisticsPresenter');
 
 /**
  * 获取用户书架
@@ -32,31 +39,20 @@ const SORTABLE_FIELDS = {
 const getBookshelf = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { page = 1, pageSize = 20 } = req.query;
-    const requestedType = typeof req.query.type === 'string' ? req.query.type.trim() : '';
-    const requestedSortBy = typeof req.query.sortBy === 'string' ? req.query.sortBy.trim() : '';
-
-    const filterType = ALLOWED_SHELF_TYPES.includes(requestedType) ? requestedType : null;
-    const sortField = SORTABLE_FIELDS[requestedSortBy] || SORTABLE_FIELDS.recent_read;
-    const sortDirection = requestedSortBy === 'title' ? 'ASC' : 'DESC';
+    const {
+      filterType,
+      sortField,
+      sortDirection,
+      pageNum,
+      sizeNum,
+      offset
+    } = normalizeBookshelfQuery(req.query);
 
     const hasIsTop = await hasColumn('bookshelf', 'is_top');
     const hasGroupName = await hasColumn('bookshelf', 'group_name');
     const hasLastSeen = await hasColumn('bookshelf', 'last_seen_chapter_id');
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const sizeNum = Math.min(100, Math.max(1, parseInt(pageSize, 10) || 20));
-    const offset = (pageNum - 1) * sizeNum;
-
-    const whereClauses = ['b.user_id = ?'];
-    const whereParams = [userId];
-    if (filterType) {
-      whereClauses.push('b.type = ?');
-      whereParams.push(filterType);
-    } else {
-      whereClauses.push("(b.type IS NULL OR b.type <> 'wishlist')");
-    }
-    const whereSql = whereClauses.join(' AND ');
+    const { whereSql, whereParams } = buildBookshelfWhere(userId, filterType);
 
     // 查询总数
     const [countResult] = await pool.query(
@@ -66,19 +62,8 @@ const getBookshelf = async (req, res) => {
     const total = Number(countResult[0]?.total || 0);
 
     // 排序：置顶优先 + 用户选择字段
-    const orderClauses = [];
-    if (hasIsTop) {
-      orderClauses.push('COALESCE(b.is_top, 0) DESC');
-    }
-    orderClauses.push(`${sortField} ${sortDirection}`);
-    orderClauses.push('b.updated_at DESC');
-    const orderSql = orderClauses.join(', ');
-
-    const extraSelect = [
-      hasIsTop ? 'b.is_top' : 'NULL AS is_top',
-      hasGroupName ? 'b.group_name' : 'NULL AS group_name',
-      hasLastSeen ? 'b.last_seen_chapter_id' : 'NULL AS last_seen_chapter_id'
-    ].join(', ');
+    const orderSql = buildBookshelfOrder({ hasIsTop, sortField, sortDirection });
+    const extraSelect = buildBookshelfExtraSelect({ hasIsTop, hasGroupName, hasLastSeen });
 
     // 查询书架数据
     const [bookshelfRows] = await pool.query(
@@ -103,13 +88,7 @@ const getBookshelf = async (req, res) => {
       `SELECT type, COUNT(*) as cnt FROM bookshelf WHERE user_id = ? GROUP BY type`,
       [userId]
     );
-    const totals = { reading: 0, finished: 0, collected: 0, wishlist: 0 };
-    for (const row of totalsRows) {
-      const key = row.type && totals.hasOwnProperty(row.type) ? row.type : null;
-      if (key) {
-        totals[key] = Number(row.cnt || 0);
-      }
-    }
+    const totals = createBookshelfTotals(totalsRows);
 
     return res.status(200).json({
       code: 200,
@@ -557,38 +536,15 @@ const getUserStatistics = async (req, res) => {
     );
     const joinDays = Number(joinDaysRows[0]?.joinDays || 0);
 
-    return Response.success(res, {
+    return Response.success(res, formatUserStatistics({
       joinDays,
-      bookshelf: {
-        total: bookshelfStats[0].total_books || 0,
-        reading: bookshelfStats[0].reading_books || 0,
-        finished: bookshelfStats[0].finished_books || 0,
-        collected: bookshelfStats[0].collected_books || 0
-      },
-      readTime: {
-        total: timeStats[0]?.total_read_time || 0,
-        today: timeStats[0]?.today_read_time || 0,
-        weekly: timeStats[0]?.weekly_read_time || 0,
-        monthly: timeStats[0]?.monthly_read_time || 0
-      },
-      reading: {
-        totalNovels: chapterStats[0].total_novels_read || 0,
-        totalChapters: chapterStats[0].total_chapters || 0,
-        readingStreak: streakResult[0].reading_streak || 0
-      },
-      favoriteCategory: favoriteCategory.length > 0 ? {
-        id: favoriteCategory[0].id,
-        name: favoriteCategory[0].name,
-        count: favoriteCategory[0].count
-      } : null,
-      readingTrend: trendData.map(item => ({
-        date: item.date,
-        novelsRead: item.novels_read,
-        chaptersRead: item.chapters_read,
-        count: item.chapters_read, // 用于图表显示
-        readTime: item.read_time || 0
-      }))
-    });
+      bookshelfStats,
+      timeStats,
+      favoriteCategory,
+      streakResult,
+      trendData,
+      chapterStats
+    }));
   } catch (error) {
     console.error('Get user statistics error:', error);
     return Response.error(res, '获取统计数据失败', 500);
@@ -652,12 +608,7 @@ const getUserProfile = async (req, res) => {
 
     return Response.success(res, {
       user: users[0],
-      stats: {
-        totalBooks: stats[0].total_books || 0,
-        totalLikes: stats[0].total_likes || 0,
-        totalCollections: stats[0].total_collections || 0,
-        totalComments: stats[0].total_comments || 0
-      }
+      stats: formatProfileStats(stats[0])
     });
   } catch (error) {
     console.error('Get user profile error:', error);
@@ -671,45 +622,14 @@ const getUserProfile = async (req, res) => {
 const updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { nickname, bio, gender, birthday } = req.body;
+    const profileUpdate = buildProfileUpdate(req.body);
 
-    // 构建更新字段
-    const updates = [];
-    const values = [];
-
-    if (nickname !== undefined) {
-      updates.push('nickname = ?');
-      values.push(nickname);
-    }
-
-    if (bio !== undefined) {
-      updates.push('bio = ?');
-      values.push(bio);
-    }
-
-    if (gender !== undefined) {
-      // 验证性别值：0-保密, 1-女, 2-男
-      if (![0, 1, 2].includes(parseInt(gender))) {
-        return Response.error(res, '性别值无效', 400);
-      }
-      updates.push('gender = ?');
-      values.push(parseInt(gender));
-    }
-
-    if (birthday !== undefined) {
-      // 验证日期格式 YYYY-MM-DD
-      if (birthday && !/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
-        return Response.error(res, '生日格式无效，应为 YYYY-MM-DD', 400);
-      }
-      updates.push('birthday = ?');
-      values.push(birthday || null);
-    }
-
-    if (updates.length === 0) {
-      return Response.error(res, '没有需要更新的字段', 400);
+    if (profileUpdate.error) {
+      return Response.error(res, profileUpdate.error, 400);
     }
 
     // 添加更新时间
+    const { updates, values } = profileUpdate;
     updates.push('updated_at = NOW()');
     values.push(userId);
 
@@ -791,9 +711,7 @@ module.exports = {
       }
 
       // 仅保留合法的整数 id
-      const sanitizedIds = ids
-        .map(id => Number.parseInt(id, 10))
-        .filter(id => Number.isInteger(id) && id > 0);
+      const sanitizedIds = sanitizeBookshelfIds(ids);
       if (sanitizedIds.length === 0) {
         return Response.error(res, '缺少书籍ID列表', 400);
       }
@@ -811,7 +729,7 @@ module.exports = {
         if (!hasGroupName) {
           return Response.error(res, '分组功能尚未启用', 400);
         }
-        const normalizedGroup = typeof groupName === 'string' ? groupName.trim().slice(0, 50) : '';
+        const normalizedGroup = normalizeGroupName(groupName);
         [result] = await pool.query(
           `UPDATE bookshelf
              SET group_name = ?, updated_at = NOW()
@@ -856,4 +774,3 @@ module.exports = {
     }
   }
 };
-

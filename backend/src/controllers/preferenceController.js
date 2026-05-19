@@ -54,7 +54,7 @@ function validateAndNormalize(body = {}) {
   const patch = {};
 
   if (body.fontSize !== undefined) {
-    const n = Number.parseInt(body.fontSize, 10);
+    const n = Number(body.fontSize);
     if (!Number.isInteger(n) || n < 12 || n > 24) {
       return { ok: false, error: 'fontSize 必须为 12-24 之间的整数' };
     }

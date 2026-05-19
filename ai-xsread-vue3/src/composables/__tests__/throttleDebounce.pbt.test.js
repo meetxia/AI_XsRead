@@ -4,8 +4,9 @@
  *
  * createThrottledProgressReporter({ minIntervalMs }) 包装一个异步上报函数。
  * 性质：
- *   - 对任意时间线 [t1, t2, …, tn]（在 T_total 毫秒内触发），实际 reporter 调用数
- *     R ≤ ceil((max(t) - min(t)) / minIntervalMs) + 1
+ *   - 对任意时间线 [t1, t2, …, tn]（在 T_total 毫秒内触发），触发期间实际
+ *     reporter 调用数 R_active ≤ ceil((max(t) - min(t)) / minIntervalMs) + 1
+ *   - Drain trailing timer 后最多额外补发 1 次 latest payload
  *   - flush() 始终至少触发 1 次（如果存在挂起的 payload）
  *
  * Validates: Requirements 4.2, 4.7
@@ -46,12 +47,16 @@ describe('[Property 6] createThrottledProgressReporter', () => {
             inst.report({ at: t })
           }
 
-          // Drain any scheduled trailing call.
-          await vi.advanceTimersByTimeAsync(minIntervalMs + 10)
-
           const span = timeline[timeline.length - 1] - timeline[0]
           const upperBound = Math.ceil(span / minIntervalMs) + 1
-          expect(reporter.mock.calls.length).toBeLessThanOrEqual(upperBound)
+          const activeCallCount = reporter.mock.calls.length
+          expect(activeCallCount).toBeLessThanOrEqual(upperBound)
+
+          // Drain any scheduled trailing call. With leading + trailing throttle
+          // semantics, a burst may legitimately produce one final latest-payload
+          // sync after the triggering timeline has ended.
+          await vi.advanceTimersByTimeAsync(minIntervalMs + 10)
+          expect(reporter.mock.calls.length).toBeLessThanOrEqual(upperBound + 1)
           inst.cancel()
         }
       ),

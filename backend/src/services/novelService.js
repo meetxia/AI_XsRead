@@ -4,6 +4,16 @@
  */
 const { pool } = require('../config/database');
 const { isMember } = require('./membershipService');
+const {
+  buildNovelListQuery,
+  buildNovelSearchQuery
+} = require('./novel/queryBuilders');
+const {
+  createPagination,
+  getOffset,
+  paginateTextByChars
+} = require('./novel/pagination');
+const { formatNovelDownloadText } = require('./novel/textFormatters');
 
 /**
  * VIP 试读截断字数（按 String.length 简单截断 1500 个字符）
@@ -18,90 +28,9 @@ class NovelService {
    * @returns {Promise<Object>} 小说列表和分页信息
    */
   async getNovelList(options = {}) {
-    const {
-      page = 1,
-      pageSize = 20,
-      categoryId,
-      status,
-      wordCountMin,
-      wordCountMax,
-      ratingMin,
-      hasFinished,
-      tags,
-      exclude,
-      sortBy = 'updated_at',
-      order = 'DESC'
-    } = options;
-    
-    const offset = (page - 1) * pageSize;
-    
-    // 构建查询条件
-    let whereClause = 'WHERE 1=1';
-    const params = [];
-    
-    if (categoryId) {
-      whereClause += ' AND n.category_id = ?';
-      params.push(categoryId);
-    }
-    
-    if (status) {
-      if (status === 'finished') {
-        whereClause += ' AND n.status = 0';
-      } else {
-        whereClause += ' AND n.status = ?';
-        params.push(status);
-      }
-    }
-
-    if (hasFinished !== undefined) {
-      whereClause += hasFinished === 'true' || hasFinished === true
-        ? ' AND n.status = 0'
-        : ' AND n.status <> 0';
-    }
-
-    if (wordCountMin) {
-      whereClause += ' AND n.word_count >= ?';
-      params.push(Number.parseInt(wordCountMin, 10));
-    }
-
-    if (wordCountMax) {
-      whereClause += ' AND n.word_count <= ?';
-      params.push(Number.parseInt(wordCountMax, 10));
-    }
-
-    if (ratingMin) {
-      whereClause += ' AND n.rating >= ?';
-      params.push(Number(ratingMin));
-    }
-
-    if (exclude) {
-      whereClause += ' AND n.id <> ?';
-      params.push(Number.parseInt(exclude, 10));
-    }
-
-    const tagList = typeof tags === 'string'
-      ? tags.split(',').map(tag => tag.trim()).filter(Boolean)
-      : [];
-    if (tagList.length > 0) {
-      whereClause += ` AND EXISTS (
-        SELECT 1 FROM novel_tags nt
-        JOIN tags t ON t.id = nt.tag_id
-        WHERE nt.novel_id = n.id AND t.name IN (${tagList.map(() => '?').join(',')})
-      )`;
-      params.push(...tagList);
-    }
-
-    const sortMap = {
-      updated_at: 'n.updated_at',
-      last_update_time: 'n.last_update_time',
-      word_count: 'n.word_count',
-      views: 'n.views',
-      rating: 'n.rating',
-      likes: 'n.likes',
-      default: 'n.updated_at'
-    };
-    const safeSort = sortMap[sortBy] || sortMap.default;
-    const safeOrder = String(order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const { page = 1, pageSize = 20 } = options;
+    const offset = getOffset(page, pageSize);
+    const { whereClause, params, safeSort, safeOrder } = buildNovelListQuery(options);
     
     // 查询总数
     const [countResult] = await pool.query(
@@ -129,12 +58,7 @@ class NovelService {
     
     return {
       list: novels,
-      pagination: {
-        page: parseInt(page),
-        pageSize: parseInt(pageSize),
-        total,
-        totalPages: Math.ceil(total / pageSize)
-      }
+      pagination: createPagination(page, pageSize, total)
     };
   }
   
@@ -280,84 +204,14 @@ class NovelService {
    * @returns {Promise<Object>} 搜索结果和分页信息
    */
   async searchNovels(options = {}) {
-    const { 
-      keyword, 
-      page = 1, 
-      pageSize = 20,
-      categoryId,
-      wordCountMin,
-      wordCountMax,
-      ratingMin,
-      hasFinished,
-      tags,
-      exclude,
-      sortBy = 'views',
-      order = 'DESC'
-    } = options;
+    const { keyword, page = 1, pageSize = 20 } = options;
     
     if (!keyword) {
       throw new Error('请输入搜索关键词');
     }
     
-    const offset = (page - 1) * pageSize;
-    const searchTerm = `%${keyword}%`;
-    
-    // 构建查询条件
-    let whereClause = 'WHERE (n.title LIKE ? OR n.author LIKE ? OR n.description LIKE ?)';
-    const params = [searchTerm, searchTerm, searchTerm];
-    
-    if (categoryId) {
-      whereClause += ' AND n.category_id = ?';
-      params.push(categoryId);
-    }
-
-    if (wordCountMin) {
-      whereClause += ' AND n.word_count >= ?';
-      params.push(Number.parseInt(wordCountMin, 10));
-    }
-
-    if (wordCountMax) {
-      whereClause += ' AND n.word_count <= ?';
-      params.push(Number.parseInt(wordCountMax, 10));
-    }
-
-    if (ratingMin) {
-      whereClause += ' AND n.rating >= ?';
-      params.push(Number(ratingMin));
-    }
-
-    if (hasFinished !== undefined) {
-      whereClause += hasFinished === 'true' || hasFinished === true
-        ? ' AND n.status = 0'
-        : ' AND n.status <> 0';
-    }
-
-    if (exclude) {
-      whereClause += ' AND n.id <> ?';
-      params.push(Number.parseInt(exclude, 10));
-    }
-
-    const tagList = typeof tags === 'string'
-      ? tags.split(',').map(tag => tag.trim()).filter(Boolean)
-      : [];
-    if (tagList.length > 0) {
-      whereClause += ` AND EXISTS (
-        SELECT 1 FROM novel_tags nt
-        JOIN tags t ON t.id = nt.tag_id
-        WHERE nt.novel_id = n.id AND t.name IN (${tagList.map(() => '?').join(',')})
-      )`;
-      params.push(...tagList);
-    }
-
-    const sortMap = {
-      updated_at: 'n.updated_at',
-      word_count: 'n.word_count',
-      views: 'n.views',
-      rating: 'n.rating',
-      default: 'n.views'
-    };
-    const safeSort = sortMap[sortBy] || sortMap.default;
-    const safeOrder = String(order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const offset = getOffset(page, pageSize);
+    const { whereClause, params, safeSort, safeOrder } = buildNovelSearchQuery(options);
     
     // 查询总数
     const [countResult] = await pool.query(
@@ -384,12 +238,7 @@ class NovelService {
     
     return {
       list: novels,
-      pagination: {
-        page: parseInt(page),
-        pageSize: parseInt(pageSize),
-        total,
-        totalPages: Math.ceil(total / pageSize)
-      }
+      pagination: createPagination(page, pageSize, total)
     };
   }
   
@@ -626,75 +475,14 @@ class NovelService {
       }
     }
 
-    const totalChars = fullText.length;
-    const baseSize = Math.max(500, Math.min(20000, parseInt(pageSize)));
-
-    // 智能分页：在 baseSize 附近（±tolerance）寻找标点或换行作为边界
-    const tolerance = Math.max(100, Math.floor(baseSize * 0.15)); // 默认±15%
-    const windowMin = Math.max(1, baseSize - tolerance);
-    const windowMax = baseSize + tolerance;
-
-    // 标点与分隔符（中英文句号/问号/感叹号/逗号/分号、换行、双换行）
-    const boundaryRegex = /[。！？.!?；;，,]\s|\n\n|\n/g;
-
-    // 预计算分页边界索引（每页结束位置的下一个索引）
-    const pageEnds = [];
-    let cursor = 0;
-    while (cursor < totalChars) {
-      const remaining = totalChars - cursor;
-      if (remaining <= baseSize + tolerance) {
-        // 剩余不足一大页，整块作为最后一页
-        pageEnds.push(totalChars);
-        break;
-      }
-
-      // 目标窗口区间
-      const targetStart = cursor + windowMin;
-      const targetEnd = Math.min(cursor + windowMax, totalChars);
-
-      // 在窗口中寻找最近边界（尽量靠近 baseSize）
-      let bestBoundary = -1;
-      boundaryRegex.lastIndex = targetStart;
-      let match;
-      while ((match = boundaryRegex.exec(fullText)) && match.index <= targetEnd) {
-        bestBoundary = match.index + (match[0].length > 1 ? match[0].length : 1);
-      }
-
-      if (bestBoundary === -1) {
-        // 窗口中找不到边界，退而求其次：向后再找一个边界，避免硬切
-        boundaryRegex.lastIndex = targetEnd;
-        const forward = boundaryRegex.exec(fullText);
-        if (forward) {
-          bestBoundary = forward.index + (forward[0].length > 1 ? forward[0].length : 1);
-        }
-      }
-
-      if (bestBoundary === -1) {
-        // 仍未找到，最后兜底在 baseSize 处硬切
-        bestBoundary = cursor + baseSize;
-      }
-
-      // 防止死循环
-      if (bestBoundary <= cursor) {
-        bestBoundary = Math.min(cursor + baseSize, totalChars);
-      }
-
-      pageEnds.push(bestBoundary);
-      cursor = bestBoundary;
-    }
-
-    const totalPages = Math.max(1, pageEnds.length);
-    const currentPage = Math.min(Math.max(1, parseInt(page)), totalPages);
-    const sliceStart = currentPage === 1 ? 0 : pageEnds[currentPage - 2];
-    const sliceEnd = pageEnds[currentPage - 1];
-    const content = fullText.slice(sliceStart, sliceEnd);
+    const paged = paginateTextByChars(fullText, { page, pageSize });
 
     const result = {
-      page: currentPage,
-      pageSize: baseSize,
-      totalPages,
-      totalChars,
-      content,
+      page: paged.page,
+      pageSize: paged.pageSize,
+      totalPages: paged.totalPages,
+      totalChars: paged.totalChars,
+      content: paged.content,
       is_vip: novelIsVip ? 1 : 0,
       vip_required: vipRequired,
       truncated
@@ -729,47 +517,8 @@ class NovelService {
       [novelId]
     );
 
-    const title = String(novel.title || '未命名小说').trim() || '未命名小说';
-    const author = String(novel.author || '佚名').trim() || '佚名';
-    const description = String(novel.description || '').trim();
-    const parts = [
-      `《${title}》`,
-      `作者：${author}`
-    ];
-
-    if (description) {
-      parts.push(`简介：${description}`);
-    }
-
-    parts.push('');
-
-    if (!chapters || chapters.length === 0) {
-      parts.push('本书暂无章节内容。');
-    } else {
-      chapters.forEach((chapter, index) => {
-        const chapterNumber = chapter.chapter_number || index + 1;
-        const chapterTitle = String(chapter.title || '').trim();
-        const heading = chapterTitle
-          ? `第${chapterNumber}章 ${chapterTitle}`
-          : `第${chapterNumber}章`;
-        const content = String(chapter.content || '').trim();
-
-        parts.push(heading);
-        parts.push('');
-        parts.push(content || '本章暂无内容。');
-        parts.push('');
-      });
-    }
-
-    const filenameBase = title.replace(/[\\/:*?"<>|]/g, '').trim() || 'novel';
-
-    return {
-      title,
-      filename: `${filenameBase}.txt`,
-      text: `${parts.join('\n').replace(/\n{4,}/g, '\n\n\n')}\n`
-    };
+    return formatNovelDownloadText(novel, chapters);
   }
 }
 
 module.exports = new NovelService();
-

@@ -395,7 +395,7 @@ router.delete(
  */
 router.get(
   '/novels/:id/status',
-  optionalAuth,
+  authenticate,
   idValidation,
   asyncHandler(novelController.getNovelStatus)
 );

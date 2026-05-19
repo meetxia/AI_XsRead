@@ -33,6 +33,7 @@ export const useNotificationStore = defineStore('notification', () => {
     if (!userStore || !userStore.isLogin) {
       list.value = []
       total.value = 0
+      unreadCount.value = 0
       return
     }
     loading.value = true

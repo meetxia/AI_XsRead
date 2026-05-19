@@ -68,7 +68,7 @@ jobs:
         continue-on-error: true
 
   admin-frontend:
-    name: Admin Frontend Build
+    name: Admin Frontend Build & Test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -80,11 +80,13 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
+      - name: Vitest
+        run: npm test
       - name: Build
         run: npm run build
 
   admin-backend:
-    name: Admin Backend Syntax Check
+    name: Admin Backend Test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -98,4 +100,5 @@ jobs:
         run: npm install
       - name: Syntax check
         run: node -c src/app.js
-        continue-on-error: true
+      - name: Jest tests
+        run: npm test
