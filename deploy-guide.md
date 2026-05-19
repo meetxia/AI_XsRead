@@ -58,6 +58,8 @@ cd backend && npm install && cd ..
 
 # ② 本地最终验证（语法 + 构建）
 node -c backend/src/app.js
+node -c admin-backend/src/app.js
+node -c admin-backend/src/server.js
 cd ai-xsread-vue3 && npm run build && cd ..
 cd admin-frontend && npm run build && cd ..
 

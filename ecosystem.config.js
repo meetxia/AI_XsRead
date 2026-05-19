@@ -18,7 +18,7 @@ module.exports = {
     },
     {
       name: 'xsread-admin-backend',
-      script: 'src/app.js',
+      script: 'src/server.js',
       cwd: '/www/wwwroot/xs.momofx.cn/admin-backend',
       instances: 1,
       autorestart: true,

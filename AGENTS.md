@@ -188,7 +188,7 @@ mysql -u toefl_user -p ai_xsread < docx/06-数据库脚本/seed_data_complete.sq
 
 1. **数据库必须备份**（mysqldump --single-transaction）。无备份不得执行迁移类部署，违反者后果自负。
 2. 备份当前 `git rev-parse HEAD` 与 `.env` 文件，作为回滚依据。
-3. 本机至少跑通：`node -c backend/src/app.js`、`cd ai-xsread-vue3 && npm run build`、`cd admin-frontend && npm run build`。
+3. 本机至少跑通：`node -c backend/src/app.js`、`node -c admin-backend/src/app.js`、`node -c admin-backend/src/server.js`、`cd ai-xsread-vue3 && npm run build`、`cd admin-frontend && npm run build`。
 
 ### 数据库迁移规范
 
