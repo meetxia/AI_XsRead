@@ -185,7 +185,9 @@ curl -s http://127.0.0.1:8001/api/health | head -c 200
 | 路由守卫 | 退出后访问 `/profile` | 自动跳 `/login` |
 | 修改密码 | 登录后 → 个人中心 → 账号安全 → 修改密码 | 弹窗能改成功 |
 | 阅读进度同步 | A 设备读 N 章 → B 设备登录同账号打开同书 | 自动跳到 N 章 |
-| 管理端 | `https://admin.momofx.cn/` 或 `/admin/` | 登录 → 看板 / 设置 / 数据统计正常 |
+| 管理端 | `http://admin.xs.momofx.cn/` | 登录 → 看板 / 设置 / 数据统计正常 |
+
+> 证书注意：现有 `*.momofx.cn` 证书只能覆盖一层子域，例如 `admin.momofx.cn`，不能覆盖 `admin.xs.momofx.cn`。当前管理端已配置 HTTP 入口；如需 HTTPS，需要为 `admin.xs.momofx.cn` 单独签证书，或改用 `admin.momofx.cn`。
 
 ---
 
