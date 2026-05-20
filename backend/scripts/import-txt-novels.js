@@ -9,7 +9,23 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mysql = require('mysql2/promise');
 const fs = require('fs');
-const crypto = require('crypto');
+
+const COVER_MAP_FILE = path.join(__dirname, '..', 'uploads', 'images', 'covers', 'cover-map.json');
+const DEFAULT_COVER = '/uploads/images/covers-jpg/mute-political-marriage.jpg';
+
+let coverMapCache = null;
+function loadCoverMap() {
+  if (coverMapCache) return coverMapCache;
+  try {
+    const raw = JSON.parse(fs.readFileSync(COVER_MAP_FILE, 'utf8'));
+    const { _meta, ...entries } = raw;
+    coverMapCache = entries;
+  } catch (err) {
+    console.warn(`⚠️  无法读取 cover-map.json: ${err.message}`);
+    coverMapCache = {};
+  }
+  return coverMapCache;
+}
 
 // 数据库配置
 const DB_CONFIG = {
@@ -87,13 +103,8 @@ function getRandomAuthor() {
 }
 
 function getCoverUrl(title) {
-  const hash = crypto
-    .createHash('sha1')
-    .update(title, 'utf8')
-    .digest('hex')
-    .slice(0, 12);
-
-  return `/uploads/images/covers/cover-${hash}.jpg`;
+  const map = loadCoverMap();
+  return map[title] || DEFAULT_COVER;
 }
 
 // 导入单个小说
