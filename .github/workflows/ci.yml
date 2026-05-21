@@ -24,7 +24,6 @@ jobs:
         run: npm run build
       - name: Vitest
         run: npx vitest run --reporter=verbose
-        continue-on-error: true
 
   user-backend:
     name: User Backend (Express) Test
@@ -65,7 +64,6 @@ jobs:
         run: node -c src/app.js
       - name: Jest tests
         run: npm test
-        continue-on-error: true
 
   admin-frontend:
     name: Admin Frontend Build
@@ -98,4 +96,3 @@ jobs:
         run: npm install
       - name: Syntax check
         run: node -c src/app.js
-        continue-on-error: true

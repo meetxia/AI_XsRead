@@ -43,7 +43,7 @@ async function handleItemClick(item) {
   if (item?.link && typeof item.link === 'string') {
     // 优先使用 vue-router；外链则直接 window.open
     if (/^https?:\/\//i.test(item.link)) {
-      window.open(item.link, '_blank', 'noopener')
+      window.open(item.link, '_blank', 'noopener,noreferrer')
     } else {
       router.push(item.link).catch(() => {})
     }

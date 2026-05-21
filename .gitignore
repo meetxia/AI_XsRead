@@ -33,3 +33,20 @@ dist/
 data/*
 .playwright-mcp/*
 backend/scripts/.deploy-cache.json
+backend/uploads/images/covers-optimized/*
+.qa-test-output/*
+
+# 显式忽略环境变量
+.env
+.env.local
+.env.production
+backend/.env
+admin-backend/.env
+
+# 测试与验证产物
+verify-*.png
+covers-loaded-after-fix.png
+.qa-test-output/
+
+# 部署脚本日志与缓存
+backend/scripts/deploy.log

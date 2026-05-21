@@ -10,27 +10,14 @@ const authenticate = async (req, res, next) => {
     // 获取token
     const authHeader = req.headers.authorization;
 
-    console.log('🔐 认证检查:', {
-      url: req.url,
-      method: req.method,
-      hasAuthHeader: !!authHeader,
-      authHeaderPreview: authHeader ? authHeader.substring(0, 20) + '...' : 'null'
-    });
-
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('❌ 认证失败: 未提供认证令牌或格式错误');
       return Response.error(res, '请先登录', 401);
     }
 
     const token = authHeader.substring(7); // 移除 "Bearer " 前缀
 
     // 验证token
-    const decoded = jwt.verify(token, config.jwt.secret);
-
-    console.log('✅ Token验证成功:', {
-      userId: decoded.id,
-      username: decoded.username
-    });
+    const decoded = jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] });
 
     // 将用户信息附加到请求对象
     req.user = {
@@ -42,11 +29,6 @@ const authenticate = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.log('❌ Token验证失败:', {
-      errorName: error.name,
-      errorMessage: error.message
-    });
-
     if (error.name === 'TokenExpiredError') {
       return Response.error(res, '请先登录', 401);
     } else if (error.name === 'JsonWebTokenError') {
@@ -66,7 +48,7 @@ const optionalAuthenticate = async (req, res, next) => {
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, config.jwt.secret);
+      const decoded = jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] });
       
       req.user = {
         id: decoded.id,

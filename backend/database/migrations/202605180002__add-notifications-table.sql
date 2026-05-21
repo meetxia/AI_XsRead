@@ -17,9 +17,9 @@
 SET NAMES utf8mb4;
 
 CREATE TABLE IF NOT EXISTS notifications (
-  id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  user_id      BIGINT UNSIGNED NOT NULL,
-  type         VARCHAR(32) NOT NULL,
+  id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id      INT UNSIGNED NOT NULL,
+  type         ENUM('system', 'membership', 'achievement') NOT NULL,
   title        VARCHAR(128) NOT NULL,
   content      VARCHAR(500) NOT NULL,
   link         VARCHAR(255) DEFAULT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   read_at      DATETIME DEFAULT NULL,
   KEY idx_user_unread (user_id, is_read, created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 种子欢迎通知：为现有所有用户每人插一条
 -- 幂等：通过 NOT EXISTS 检查 (user_id, type='system', title='欢迎来到 MOMO 小说') 确保重复执行不会重复插入

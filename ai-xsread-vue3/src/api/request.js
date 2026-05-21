@@ -59,18 +59,10 @@ request.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
       if (import.meta.env.DEV) {
-        console.log('🔑 添加 Token 到请求头:', {
-          url: config.url,
-          method: config.method,
-          tokenPreview: token.substring(0, 20) + '...',
-          authHeader: config.headers['Authorization'].substring(0, 30) + '...'
-        })
+        console.debug('[api] →', config.method?.toUpperCase(), config.url, '(authed)')
       }
     } else if (import.meta.env.DEV) {
-      console.log('⚠️ 未找到 Token:', {
-        url: config.url,
-        method: config.method
-      })
+      console.debug('[api] →', config.method?.toUpperCase(), config.url, '(anon)')
     }
 
     // 添加请求时间戳（用于性能监控）

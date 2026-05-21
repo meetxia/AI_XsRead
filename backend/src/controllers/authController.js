@@ -71,14 +71,14 @@ const register = async (req, res) => {
         role: user.role || 'user'
       },
       config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
+      { expiresIn: config.jwt.expiresIn, algorithm: 'HS256' }
     );
-    
+
     // 生成刷新令牌
     const refreshToken = jwt.sign(
       { id: user.id },
       config.jwt.refreshSecret,
-      { expiresIn: config.jwt.refreshExpiresIn }
+      { expiresIn: config.jwt.refreshExpiresIn, algorithm: 'HS256' }
     );
 
     // 可选：注册时附带激活码 → 注册流程已成功，激活失败不阻断
@@ -181,14 +181,14 @@ const login = async (req, res) => {
         role: user.role || 'user'
       },
       config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
+      { expiresIn: config.jwt.expiresIn, algorithm: 'HS256' }
     );
-    
+
     // 生成刷新令牌
     const refreshToken = jwt.sign(
       { id: user.id },
       config.jwt.refreshSecret,
-      { expiresIn: config.jwt.refreshExpiresIn }
+      { expiresIn: config.jwt.refreshExpiresIn, algorithm: 'HS256' }
     );
     
     // 返回登录信息
@@ -222,7 +222,7 @@ const refresh = async (req, res) => {
     }
     
     // 验证刷新令牌
-    const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
+    const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret, { algorithms: ['HS256'] });
     
     // 查询用户信息
     const [users] = await pool.query(
@@ -245,7 +245,7 @@ const refresh = async (req, res) => {
         role: user.role || 'user'
       },
       config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
+      { expiresIn: config.jwt.expiresIn, algorithm: 'HS256' }
     );
     
     return Response.success(res, {

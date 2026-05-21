@@ -61,10 +61,21 @@ const limiter = rateLimit({
   }
 });
 
-// 应用限流（仅在生产环境）
-if (config.server.env === 'production') {
-  app.use(limiter);
-}
+// 应用限流（始终启用，dev 环境放宽到 3000/15min 不影响本地开发）
+const isProd = config.server.env === 'production';
+const effectiveLimiter = isProd ? limiter : rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    if (req.path === '/api/health') return true;
+    if (req.path.startsWith('/uploads/')) return true;
+    if (!req.path.startsWith('/api/')) return true;
+    return false;
+  }
+});
+app.use(effectiveLimiter);
 
 // ================== 路由配置 ==================
 
@@ -76,17 +87,19 @@ app.use('/uploads', (req, res, next) => {
   next();
 }, express.static('uploads'));
 
-// API 文档
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'MOMO小说 API 文档'
-}));
+// API 文档（仅非生产环境暴露）
+if (config.server.env !== 'production') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'MOMO小说 API 文档'
+  }));
 
-// API 文档 JSON
-app.get('/api-docs.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
-});
+  // API 文档 JSON
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+}
 
 // 注册所有路由
 app.use('/', routes);
