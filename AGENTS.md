@@ -1,15 +1,15 @@
 # AGENTS.md
 
-> 最后更新日期：2026-05-19
+> 最后更新日期：2026-05-21
 
 ## 项目概述
 
 **MOMO小说**（AI-XsRead）是一个面向女性用户的小说阅读平台，采用前后端分离架构，包含用户端和管理后台两套独立系统。
 
 - **产品定位**：女性向小说阅读平台
-- **核心功能**：小说阅读、书架管理、阅读进度同步、评论互动、后台内容管理
+- **核心功能**：小说阅读、书架管理、阅读进度同步、评论与段评、划线书签、关注作者、上传 TXT、会员激活、后台内容管理、激活码、系统设置、SEO
 - **内容方向**：都市言情、古风穿越、悬疑推理、治愈系、奇幻冒险
-- **当前版本**：开发中期（用户端基本可用，管理后台 0.1 版本）
+- **当前版本**：用户端 Sprint 1（2026-05-20）+ 管理端 Sprint 2（2026-05-21）双 Sprint 完成，**具备整站对外发布能力**，仅待 staging 真实演练
 
 ## 技术栈
 
@@ -19,8 +19,11 @@
 | 管理前端 | Vue 3 + Vite + Element Plus + ECharts + SCSS | Vue 3.5 / Element Plus 2.11 / ECharts 6 |
 | 用户后端 | Express + MySQL2 + JWT + Redis | Express 4.18 / MySQL2 3.6 |
 | 管理后端 | Express + MySQL2 + JWT | Express 5.1 / MySQL2 3.15 |
-| 数据库 | MySQL 8.0 | utf8mb4 / 12 张表 |
+| 数据库 | MySQL 8.0 | utf8mb4 / utf8mb4_unicode_ci / 共享库 `ai_xsread`（25+ 张迁移管理的表） |
 | 构建工具 | Vite 7 + Terser + Gzip/Brotli 压缩 | - |
+| 测试 | Jest（用户/管理后端）+ Vitest（用户/管理前端）+ Playwright（E2E） | - |
+| 部署 | rsync `--checksum` 增量 + PM2 + Nginx + 自动迁移流水线 | `backend/scripts/deploy.py` 唯一权威 |
+| CI | GitHub Actions（4 子工程 build + test 全闸门必绿） | `.github/workflows/ci.yml` |
 
 ## 项目结构
 
@@ -28,46 +31,60 @@
 AI-XsRead/
 ├── ai-xsread-vue3/          # 用户前端（端口 3008）
 │   ├── src/
-│   │   ├── views/           # 14 个页面
+│   │   ├── views/           # 24 个页面（含 profile 子目录 5 个页面）
 │   │   ├── components/      # 46+ 组件（common/novel/reading/profile/search）
-│   │   ├── composables/     # 组合式函数（手势/键盘/进度/设置/主题/计时）
+│   │   ├── composables/     # 组合式函数（手势/键盘/进度/设置/主题/计时/TTS）
 │   │   ├── stores/          # Pinia 状态（bookshelf/theme/user）
-│   │   ├── api/             # API 请求封装
-│   │   ├── router/          # 路由配置
+│   │   ├── api/             # API 请求封装（含 request.js DEV 日志脱敏）
+│   │   ├── router/          # 路由配置（含 profile 子路由）
 │   │   └── assets/          # 静态资源
-│   └── vite.config.js       # 代理 /api → localhost:8005
+│   └── vite.config.js       # 代理 /api、/uploads → localhost:8005
 │
 ├── backend/                  # 用户后端（端口 8005）
 │   ├── src/
-│   │   ├── controllers/     # 5 个控制器
-│   │   ├── routes/          # 8 个路由模块
-│   │   ├── middlewares/     # 认证/错误处理/日志
+│   │   ├── controllers/     # 15 个控制器：auth/novel/chapter/user/comment/upload/author/
+│   │   │                    #              bookmark/highlight/paragraphComment/interestTag/
+│   │   │                    #              achievement/notification/preference/membership/system
+│   │   ├── routes/          # 16 个路由模块（含 seo/notifications/system）
+│   │   ├── middlewares/     # 认证（JWT HS256 锁定）/ 错误处理 / 日志 / 限流（含登录注册专项 10/15min）
 │   │   ├── services/        # 业务服务
-│   │   ├── config/          # 数据库/应用配置
-│   │   └── utils/           # 工具函数
-│   ├── database/            # SQL 初始化脚本
+│   │   ├── config/          # 数据库 / 应用配置
+│   │   └── utils/           # 工具函数（含 jwt.js 双密钥）
+│   ├── database/
+│   │   ├── init_step1.sql   # 基础初始化（12 张表）
+│   │   ├── migrations/      # 25 个迁移文件（202605170800 → 202605200001）
+│   │   ├── optimization.sql # 复合索引
+│   │   ├── triggers.sql     # 评论数 / 书架统计同步
+│   │   └── procedures.sql
 │   ├── cache/               # 缓存管理
-│   └── jobs/                # 定时任务
+│   ├── scripts/             # deploy.py（唯一部署工具）/ migrate.js / import-txt-novels.js
+│   └── jobs/                # node-cron 定时任务
 │
 ├── admin-frontend/           # 管理前端（端口 3010）
 │   ├── src/
 │   │   ├── views/           # 7 个模块（Dashboard/Content/Users/Comments/Analytics/Settings/Login）
 │   │   ├── components/      # Layout 等组件
+│   │   ├── __tests__/       # Vitest 静态守护（login.test.js / request.test.js）
 │   │   ├── stores/          # 状态管理
 │   │   └── router/          # 路由（含权限守卫）
 │   └── vite.config.js       # 代理 /api → localhost:8001
 │
 ├── admin-backend/            # 管理后端（端口 8001）
 │   ├── src/
-│   │   ├── controllers/     # 认证/看板/小说/章节/用户/评论
-│   │   ├── routes/          # API 路由
-│   │   ├── middlewares/     # 中间件
-│   │   └── services/        # 服务层
-│   └── scripts/             # 初始化脚本
+│   │   ├── controllers/     # 10 个控制器：auth/dashboard/novel/chapter/user/comment/
+│   │   │                    #              code/contact/membershipAdmin/config
+│   │   ├── routes/          # 10 个路由模块（含 codes/system）
+│   │   ├── middlewares/     # 含 errorHandler 字典化错误码 + 生产 5xx 文案统一
+│   │   └── services/        # 含 uploadService（MIME 严格白名单，拒绝 SVG）
+│   ├── scripts/             # init-admin.js（随机密码 + .admin-credentials）
+│   └── tests/               # auth.test.js / security.test.js（10 条 smoke）
 │
-├── data/                     # 35 部小说 TXT 文件
-├── docx/                     # 项目文档（80+ 文件，分 7 个目录）
-├── docs/                     # 补充文档和报告
+├── data/                     # 35+ 部小说 TXT 文件
+├── docs/                     # 项目文档（项目总文档 / 核心文档 / 快速启动 / 数据库脚本 / AI完成后报告 / 历史归档）
+├── docx/                     # 历史文档迁移来源
+├── nginx.conf                # 用户域 + admin 子域 server block + HSTS / X-Frame / Permissions-Policy
+├── ecosystem.config.js       # PM2 进程定义（xsread-backend / xsread-admin-backend）
+├── deploy-guide.md           # 唯一权威部署文档
 └── AGENTS.md                 # 本文件
 ```
 
@@ -88,7 +105,7 @@ cd backend
 npm install
 npm run dev          # nodemon 热重载（端口 8005）
 npm start            # 生产启动
-npm run test         # Jest 测试
+npm run test         # Jest（42 套件 / 251 通过）
 ```
 
 ### 管理前端
@@ -96,6 +113,7 @@ npm run test         # Jest 测试
 cd admin-frontend
 npm install
 npm run dev          # 启动开发服务器（端口 3010）
+npm test             # Vitest（5 条静态守护）
 npm run build        # 生产构建
 ```
 
@@ -105,15 +123,41 @@ cd admin-backend
 npm install
 npm run dev          # nodemon 热重载（端口 8001）
 npm start            # 生产启动
-node scripts/init-admin.js  # 初始化管理员账号
+npm test             # Jest + Supertest（10 条 smoke）
+node scripts/init-admin.js  # 初始化管理员账号（生成 .admin-credentials 随机密码文件）
 ```
 
 ### 数据库
+
 ```bash
-# 初始化数据库（使用 phpMyAdmin 或命令行）
-mysql -u toefl_user -p ai_xsread < backend/database/init_step1.sql
-mysql -u toefl_user -p ai_xsread < docx/06-数据库脚本/seed_data_complete.sql
+# 1. 基础初始化（仅一次性）
+mysql -u <user> -p ai_xsread < backend/database/init_step1.sql
+
+# 2. 启动用户后端时自动跑迁移流水线（25+ 个迁移文件，含管理端 5 张表）
+cd backend && npm run dev
 ```
+
+迁移文件命名 `^\d{12}__描述.sql$`，由 `backend/database/migrations/migrate.js` 自动按时间戳顺序执行。SQL 必须**幂等**（`IF NOT EXISTS` / `ON DUPLICATE KEY`）。详见 `docs/项目总文档/2026-05-21-数据库与迁移现状说明.md`。
+
+## 管理员账号与默认密码
+
+**旧版 `admin/admin123` 默认密码已彻底废除**（管理端 Sprint 2 / T-2.1 / T-2.2，2026-05-21）。
+
+首次部署执行：
+
+```bash
+cd admin-backend
+node scripts/init-admin.js
+```
+
+脚本行为：
+- 不再硬编码密码，使用 `crypto.randomBytes` 生成 20 位强随机密码
+- bcrypt rounds 12（旧版 10）
+- 凭证写入 `admin-backend/.admin-credentials`（mode 0o600）
+- 如果 admin 账号已存在，**不会重置密码**（避免误操作生产）
+- `.gitignore` 已忽略 `.admin-credentials`，不进仓库
+
+**运维必须**：首次部署后 SSH 到服务器读取 `.admin-credentials` 内容，妥善记录后销毁该文件。
 
 ## 代码规范
 
@@ -265,12 +309,33 @@ docs/
 
 ## 文档读取说明
 
-### 关键参考文档索引
+### 关键参考文档索引（按优先级）
+
+A 级 — 当前事实入口：
 
 ```
-docx/01-核心文档/API接口设计文档.md      # API 设计规范
-docx/01-核心文档/数据库设计文档.md        # 数据库表结构
-docx/01-核心文档/项目技术分析报告.md      # 技术架构分析
-docx/02-快速启动指南/                    # 环境搭建指南
-docs/AI完成后报告文档/                    # AI 交付报告
+docs/项目总文档/2026-05-21-项目现状总览.md         # 项目能干什么、四端边界、最近里程碑
+docs/项目总文档/2026-05-21-接口与路由速查总表.md   # 当前所有路由（用户/管理 × 前端/后端）
+docs/项目总文档/2026-05-21-数据库与迁移现状说明.md # 25+ 迁移文件 + 表分层 + 命名规则
+docs/项目总文档/2026-05-21-功能能力矩阵.md         # 项目能力名片
+docs/项目总文档/2026-05-21-后台功能Backlog.md      # 未做 / 治理项 / 决策记录
+docs/01-核心文档/2026-05-21-数据库设计文档.md      # 字段级表结构（含会员 / 激活码 / 通知 / 偏好 / 管理端表）
+deploy-guide.md                                    # 唯一权威部署手册
+```
+
+B 级 — 阶段交付报告（追溯改动用）：
+
+```
+docs/AI完成后报告文档/2026-05-21-管理端Sprint2完成报告.md
+docs/AI完成后报告文档/2026-05-20-用户端Sprint1完成报告.md
+docs/AI完成后报告文档/2026-05-20-审查报告-00-负责人总报告.md  # 6 份深度审查的入口
+docs/AI完成后报告文档/2026-05-19-Agent-D-个人中心收尾联调交付报告.md
+```
+
+C 级 — 历史归档（仅作参考，不当现状）：
+
+```
+docs/历史研究归档/                          # 旧阶段判断
+docs/01-核心文档/2026-05-17-*.md            # 上一版核心文档
+docx/                                       # 迁移前备份
 ```
