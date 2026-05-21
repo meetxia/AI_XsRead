@@ -10,7 +10,9 @@ const validateEnv = () => {
   if (!process.env.DB_HOST) errors.push('DB_HOST');
   if (!process.env.DB_USER) errors.push('DB_USER');
   if (!process.env.DB_PASSWORD) errors.push('DB_PASSWORD');
-  if (!process.env.DB_NAME) errors.push('DB_NAME');
+  // 兼容 DB_NAME / DB_DATABASE（与用户后端共用一个数据库时方便）
+  const dbName = process.env.DB_NAME || process.env.DB_DATABASE;
+  if (!dbName) errors.push('DB_NAME (或 DB_DATABASE)');
 
   // 验证JWT配置
   if (!process.env.JWT_SECRET) {
@@ -18,6 +20,14 @@ const validateEnv = () => {
   } else if (process.env.JWT_SECRET.length < 32) {
     console.error('❌ JWT_SECRET 长度必须至少32个字符');
     console.error(`   当前长度: ${process.env.JWT_SECRET.length} 字符`);
+    process.exit(1);
+  }
+
+  if (!process.env.JWT_REFRESH_SECRET) {
+    errors.push('JWT_REFRESH_SECRET (必需)');
+  } else if (process.env.JWT_REFRESH_SECRET.length < 32) {
+    console.error('❌ JWT_REFRESH_SECRET 长度必须至少32个字符');
+    console.error(`   当前长度: ${process.env.JWT_REFRESH_SECRET.length} 字符`);
     process.exit(1);
   }
 
@@ -47,12 +57,13 @@ module.exports = {
     port: process.env.DB_PORT || 3306,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+    database: process.env.DB_NAME || process.env.DB_DATABASE
   },
 
   // JWT配置 (已通过验证,确保密钥安全)
   jwt: {
     secret: process.env.JWT_SECRET,  // 必须配置,长度≥32字符
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN || '2h',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
   },

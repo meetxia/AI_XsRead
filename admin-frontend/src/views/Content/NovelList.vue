@@ -14,10 +14,12 @@
         <el-form-item label="分类">
           <el-select v-model="filters.category" placeholder="全部分类" clearable>
             <el-option label="全部" value="" />
-            <el-option label="都市言情" value="101" />
-            <el-option label="古风穿越" value="102" />
-            <el-option label="悬疑推理" value="103" />
-            <el-option label="治愈系" value="104" />
+            <el-option
+              v-for="cat in categoryOptions"
+              :key="cat.id"
+              :label="cat.name"
+              :value="String(cat.id)"
+            />
           </el-select>
         </el-form-item>
 
@@ -160,7 +162,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, Picture } from '@element-plus/icons-vue'
-import { getNovelList, deleteNovel } from '@/api/novel'
+import { getNovelList, deleteNovel, getCategories } from '@/api/novel'
 import { formatNumber, formatDate } from '@/utils/format'
 
 const router = useRouter()
@@ -179,6 +181,28 @@ const pagination = reactive({
 })
 
 const novelList = ref([])
+
+const categoryOptions = ref([
+  // 默认兜底（与 init_step1.sql 中的 categories 表 + patch_v2 升级到 6 个保持一致）
+  { id: 101, name: '都市言情' },
+  { id: 102, name: '古风穿越' },
+  { id: 103, name: '玄幻修仙' },
+  { id: 104, name: '悬疑推理' },
+  { id: 105, name: '科幻未来' },
+  { id: 106, name: '青春校园' }
+])
+
+async function loadCategories() {
+  try {
+    const res = await getCategories()
+    if (Array.isArray(res?.data) && res.data.length > 0) {
+      categoryOptions.value = res.data
+    }
+  } catch (e) {
+    // 接口不存在或失败时保留兜底，不打断页面
+    console.warn('[NovelList] 加载分类失败，使用兜底列表', e?.message || e)
+  }
+}
 
 const loadNovelList = async () => {
   loading.value = true
@@ -274,6 +298,7 @@ const handlePageSizeChange = (size) => {
 }
 
 onMounted(() => {
+  loadCategories()
   loadNovelList()
 })
 </script>

@@ -13,6 +13,7 @@ export default defineConfig({
       algorithm: 'gzip',
       ext: '.gz',
       threshold: 10240, // 10KB 以上才压缩
+      filename: '[path][base].gz',
       deleteOriginFile: false
     }),
     // Brotli 压缩
@@ -20,6 +21,7 @@ export default defineConfig({
       algorithm: 'brotliCompress',
       ext: '.br',
       threshold: 10240,
+      filename: '[path][base].br',
       deleteOriginFile: false
     }),
     // 打包分析
@@ -27,7 +29,7 @@ export default defineConfig({
       open: false,
       gzipSize: true,
       brotliSize: true,
-      filename: 'dist/stats.html'
+      filename: 'node_modules/.vite/stats.html'
     })
   ],
   resolve: {
@@ -107,5 +109,11 @@ export default defineConfig({
   optimizeDeps: {
     include: ['vue', 'vue-router', 'pinia', 'element-plus', 'axios', 'echarts'],
     exclude: []
+  },
+  // 测试配置（vitest）
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    include: ['src/__tests__/**/*.{test,spec}.{js,ts}']
   }
 })

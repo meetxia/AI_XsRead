@@ -50,3 +50,6 @@ covers-loaded-after-fix.png
 
 # 部署脚本日志与缓存
 backend/scripts/deploy.log
+
+# 管理后台首次凭证文件（一次性敏感文件，绝不允许入库）
+admin-backend/.admin-credentials

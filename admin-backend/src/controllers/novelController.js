@@ -1,6 +1,17 @@
 const db = require('../config/database');
 const Response = require('../utils/response');
 
+const ALLOWED_SORTS = new Set([
+  'last_update_time',
+  'created_at',
+  'updated_at',
+  'views',
+  'likes',
+  'collections',
+  'rating',
+  'word_count'
+]);
+
 /**
  * 小说管理控制器
  */
@@ -18,6 +29,8 @@ class NovelController {
         keyword,
         sort = 'last_update_time'
       } = req.query;
+
+      const sortField = ALLOWED_SORTS.has(String(sort)) ? sort : 'last_update_time';
 
       const offset = (parseInt(page) - 1) * parseInt(pageSize);
       
@@ -56,7 +69,7 @@ class NovelController {
         FROM novels n
         LEFT JOIN categories c ON n.category_id = c.id
         WHERE ${whereClause}
-        ORDER BY n.${sort} DESC
+        ORDER BY n.${sortField} DESC
         LIMIT ? OFFSET ?`,
         [...params, parseInt(pageSize), offset]
       );

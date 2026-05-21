@@ -49,7 +49,7 @@
       </el-form>
       
       <div class="login-footer">
-        <p>默认账号: admin / 密码: admin123</p>
+        <p>仅限授权管理员登录</p>
       </div>
     </div>
   </div>
@@ -69,8 +69,8 @@ const loginFormRef = ref(null)
 const loading = ref(false)
 
 const loginForm = reactive({
-  username: 'admin',
-  password: 'admin123'
+  username: '',
+  password: ''
 })
 
 const loginRules = {

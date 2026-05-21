@@ -20,14 +20,19 @@ const storage = multer.diskStorage({
   }
 });
 
-// 文件过滤器
+// 严格白名单（与 contactController 一致；拒绝 image/svg+xml 防 XSS）
+const ALLOWED_MIME = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp'
+]);
+
 const fileFilter = (req, file, cb) => {
-  // 只允许图片
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('只允许上传图片文件'), false);
+  if (!ALLOWED_MIME.has(file.mimetype)) {
+    return cb(new Error('仅支持 jpg / png / webp 格式'), false);
   }
+  cb(null, true);
 };
 
 // 创建上传中间件

@@ -32,8 +32,9 @@ service.interceptors.response.use(
   response => {
     const res = response.data
     
-    // 如果返回的状态码不是200，则认为是错误
-    if (res.code !== 200) {
+    // 接受 200-299 区间为成功；code 缺失也视为成功（部分接口不带 code 字段）
+    const isSuccess = res.code === undefined || (res.code >= 200 && res.code < 300)
+    if (!isSuccess) {
       ElMessage.error(res.message || '请求失败')
       
       // 401: Token过期或未授权

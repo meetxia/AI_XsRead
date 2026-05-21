@@ -63,3 +63,14 @@ export function getNovelStatistics(id) {
   })
 }
 
+/**
+ * 获取分类列表（与用户后端公开端点 /api/novels/categories 对应；
+ * 管理后端没有这个端点时退而求其次走用户后端域）
+ */
+export function getCategories() {
+  return request({
+    url: '/admin/novels/categories',
+    method: 'get'
+  })
+}
+

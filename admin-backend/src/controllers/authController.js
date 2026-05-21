@@ -138,7 +138,7 @@ class AuthController {
       }
 
       // 验证刷新令牌
-      const decoded = JWTUtil.verifyToken(refreshToken);
+      const decoded = JWTUtil.verifyRefreshToken(refreshToken);
 
       // 生成新的访问令牌
       const newAccessToken = JWTUtil.generateAccessToken({

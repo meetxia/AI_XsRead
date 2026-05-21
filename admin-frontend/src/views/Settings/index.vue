@@ -268,8 +268,9 @@ const basicRules = {
   contact_qq: [
     {
       validator: (_rule, value, cb) => {
-        if (!value) return cb()
-        /^\d{5,15}$/.test(value) ? cb() : cb(new Error('QQ 应为 5-15 位数字'))
+        if (!value) { cb(); return; }
+        const ok = /^\d{5,15}$/.test(value)
+        ok ? cb() : cb(new Error('QQ 应为 5-15 位数字'))
       },
       trigger: 'blur'
     }
@@ -365,8 +366,9 @@ const contactRules = {
   qq: [
     {
       validator: (_rule, value, cb) => {
-        if (!value) return cb()
-        /^\d{5,15}$/.test(value) ? cb() : cb(new Error('QQ 应为 5-15 位数字'))
+        if (!value) { cb(); return; }
+        const ok = /^\d{5,15}$/.test(value)
+        ok ? cb() : cb(new Error('QQ 应为 5-15 位数字'))
       },
       trigger: 'blur'
     }

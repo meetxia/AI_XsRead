@@ -66,7 +66,7 @@ jobs:
         run: npm test
 
   admin-frontend:
-    name: Admin Frontend Build
+    name: Admin Frontend Build & Test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -80,13 +80,24 @@ jobs:
         run: npm install
       - name: Build
         run: npm run build
+      - name: Vitest
+        run: npm test
 
   admin-backend:
-    name: Admin Backend Syntax Check
+    name: Admin Backend Syntax & Test
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: admin-backend
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-admin-secret-must-be-long-enough-32+chars-aaaa
+      JWT_REFRESH_SECRET: ci-admin-refresh-secret-must-be-long-enough-32++
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: ai_xsread_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -96,3 +107,5 @@ jobs:
         run: npm install
       - name: Syntax check
         run: node -c src/app.js
+      - name: Jest tests
+        run: npm test

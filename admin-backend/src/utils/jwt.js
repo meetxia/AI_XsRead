@@ -5,42 +5,35 @@ const config = require('../config');
  * JWT工具类
  */
 class JWTUtil {
-  /**
-   * 生成访问令牌
-   */
+  /** access token：用 jwt.secret + 显式 HS256 */
   static generateAccessToken(payload) {
     return jwt.sign(payload, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn
+      expiresIn: config.jwt.expiresIn,
+      algorithm: 'HS256'
     });
   }
 
-  /**
-   * 生成刷新令牌
-   */
+  /** refresh token：用独立 jwt.refreshSecret */
   static generateRefreshToken(payload) {
-    return jwt.sign(payload, config.jwt.secret, {
-      expiresIn: config.jwt.refreshExpiresIn
+    return jwt.sign(payload, config.jwt.refreshSecret, {
+      expiresIn: config.jwt.refreshExpiresIn,
+      algorithm: 'HS256'
     });
   }
 
-  /**
-   * 验证令牌
-   */
+  /** 验证 access token */
   static verifyToken(token) {
-    try {
-      return jwt.verify(token, config.jwt.secret);
-    } catch (error) {
-      throw new Error('Token无效或已过期');
-    }
+    return jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] });
   }
 
-  /**
-   * 解码令牌（不验证）
-   */
+  /** 验证 refresh token */
+  static verifyRefreshToken(token) {
+    return jwt.verify(token, config.jwt.refreshSecret, { algorithms: ['HS256'] });
+  }
+
   static decodeToken(token) {
     return jwt.decode(token);
   }
 }
 
 module.exports = JWTUtil;
-
