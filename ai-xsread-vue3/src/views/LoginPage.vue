@@ -85,7 +85,7 @@ async function onSubmit() {
         <div>
           <div class="flex items-center justify-between mb-2">
             <label class="block text-xs font-medium text-ink-700 dark:text-ink-300 uppercase tracking-wider">密码</label>
-            <a href="#" class="text-xs text-clay-700 dark:text-clay-400 underline-offset-4 hover:underline">忘记密码？</a>
+            <RouterLink to="/forgot-password" class="text-xs text-clay-700 dark:text-clay-400 underline-offset-4 hover:underline">忘记密码？</RouterLink>
           </div>
           <div class="relative">
             <input

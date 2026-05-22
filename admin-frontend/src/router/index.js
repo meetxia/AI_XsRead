@@ -75,6 +75,24 @@ const routes = [
         meta: { title: '评论管理', icon: 'ChatDotRound' }
       },
       {
+        path: 'codes',
+        name: 'Codes',
+        component: () => import('@/views/Codes/BatchList.vue'),
+        meta: { title: '激活码', icon: 'Ticket' }
+      },
+      {
+        path: 'codes/redemptions',
+        name: 'CodeRedemptions',
+        component: () => import('@/views/Codes/RedemptionList.vue'),
+        meta: { title: '激活记录', icon: 'Histogram' }
+      },
+      {
+        path: 'codes/:id',
+        name: 'CodeBatchDetail',
+        component: () => import('@/views/Codes/BatchDetail.vue'),
+        meta: { title: '批次详情', hidden: true }
+      },
+      {
         path: 'analytics',
         name: 'Analytics',
         component: () => import('@/views/Analytics/index.vue'),

@@ -141,6 +141,19 @@ const startServer = async () => {
       } catch (jobErr) {
         console.warn('⚠️  定时任务启动失败（不影响主服务）:', jobErr.message);
       }
+
+      // 会员到期提醒（每天 8:00 + 启动时立即试运行一次）
+      // 测试环境（NODE_ENV=test）不启动，避免影响 supertest
+      if (process.env.NODE_ENV !== 'test') {
+        try {
+          const { scheduleMembershipExpiryReminder } = require('./jobs/membershipExpiryReminder');
+          const handle = scheduleMembershipExpiryReminder({ pool });
+          app.locals.membershipExpiryReminder = handle;
+          console.log('⏰ 会员到期提醒任务已启动（每天 08:00）');
+        } catch (jobErr) {
+          console.warn('⚠️  会员到期提醒任务启动失败（不影响主服务）:', jobErr.message);
+        }
+      }
     }
 
     // 启动服务器

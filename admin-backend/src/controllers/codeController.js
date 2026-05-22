@@ -293,6 +293,103 @@ class CodeController {
   }
 
   /**
+   * GET /api/admin/codes/batches/:id/export.txt
+   * 流式 TXT，一码一行，UTF-8（无 BOM，避免被发卡平台导入时把 BOM 当成内容）。
+   *
+   * Query:
+   *   - status:    unused | used | void | all（缺省 unused，默认只导未使用，方便发货）
+   *   - format:    plain | dashed（缺省 dashed，4-4-4-4；plain = 纯 16 位）
+   *
+   * 输出：仅码本身，不带任何元信息，便于直接粘到第三方发卡平台。
+   */
+  static async exportBatchTxt(req, res, next) {
+    try {
+      const batchId = Number(req.params.id);
+      if (!Number.isInteger(batchId) || batchId < 1) {
+        return Response.error(res, '无效的批次 ID', 400);
+      }
+      const requestedStatus = String(req.query.status || 'unused').toLowerCase();
+      const status = ['unused', 'used', 'void', 'all'].includes(requestedStatus)
+        ? requestedStatus
+        : 'unused';
+      const format = String(req.query.format || 'dashed').toLowerCase() === 'plain'
+        ? 'plain'
+        : 'dashed';
+
+      const [batchRows] = await db.query(
+        'SELECT id, batch_no FROM code_batches WHERE id = ?',
+        [batchId]
+      );
+      if (batchRows.length === 0) {
+        return Response.error(res, '批次不存在', 404);
+      }
+      const batchNo = batchRows[0].batch_no;
+
+      const where = ['c.batch_id = ?'];
+      const params = [batchId];
+      if (status !== 'all') {
+        where.push('c.status = ?');
+        params.push(status);
+      }
+      const whereSql = where.join(' AND ');
+
+      const [codeRows] = await db.query(
+        `SELECT c.code_encrypted
+           FROM activation_codes c
+          WHERE ${whereSql}
+          ORDER BY c.id ASC`,
+        params
+      );
+
+      const filename = `batch-${batchNo}-${status}.txt`;
+      const encodedFilename = encodeURIComponent(filename);
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`
+      );
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      let exported = 0;
+      for (const row of codeRows) {
+        let plain;
+        try {
+          plain = codeCrypto.decrypt(row.code_encrypted);
+        } catch (_) {
+          // 解密失败的码跳过，不污染发卡平台
+          continue;
+        }
+        const out = format === 'plain' ? plain : codeGenerator.formatForDisplay(plain);
+        // 用 \r\n 让 Windows / 第三方平台粘贴更稳
+        res.write(out + '\r\n');
+        exported += 1;
+      }
+
+      res.end();
+
+      setImmediate(async () => {
+        try {
+          const conn = await db.getConnection();
+          try {
+            await writeAdminLog(conn, {
+              adminId: req.user.id,
+              action: 'export_batch_txt',
+              target: `batch:${batchId}`,
+              detail: { rows: exported, status, format },
+              ip: req.ip
+            });
+          } finally {
+            conn.release();
+          }
+        } catch (_) { /* ignore */ }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * GET /api/admin/codes/batches/:id/export
    * 流式 CSV，BOM + UTF-8
    */

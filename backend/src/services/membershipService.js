@@ -174,6 +174,12 @@ async function loadMembership(userId, options = {}) {
     daysRemaining = diffMs > 0 ? Math.ceil(diffMs / (1000 * 60 * 60 * 24)) : 0;
   }
 
+  // effective_* 字段：当 is_active 为 true 时反映原始等级，否则降级为普通用户
+  // 用于前端简化判断："实际享受什么等级的权益" → 避免"年卡会员 + 已过期"标签同屏割裂
+  // 不修改 vip_level / vip_level_label，保持向后兼容
+  const effectiveLevel = isActive ? level : 0;
+  const effectiveLevelLabel = LEVEL_LABELS[effectiveLevel] || '普通用户';
+
   return {
     vip_level: level,
     vip_level_label: LEVEL_LABELS[level] || '普通用户',
@@ -181,7 +187,9 @@ async function loadMembership(userId, options = {}) {
     vip_status: status,
     is_active: isActive,
     is_permanent: isPermanent,
-    days_remaining: daysRemaining
+    days_remaining: daysRemaining,
+    effective_level: effectiveLevel,
+    effective_level_label: effectiveLevelLabel
   };
 }
 

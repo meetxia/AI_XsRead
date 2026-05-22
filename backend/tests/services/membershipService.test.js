@@ -248,3 +248,66 @@ describe('membershipService.loadMembership', () => {
     expect(await loadMembership(null)).toBeNull();
   });
 });
+
+// ============================================================
+// effective_level / effective_level_label：自然回落
+// ============================================================
+describe('membershipService.loadMembership.effective_level', () => {
+  it('永久会员 → effective_level=3 / 永久会员', async () => {
+    const pool = mockPool([{ vip_level: 3, vip_expires_at: new Date(PERMANENT_SENTINEL), vip_status: 1 }]);
+    const m = await loadMembership(1, { pool });
+    expect(m.effective_level).toBe(3);
+    expect(m.effective_level_label).toBe('永久会员');
+  });
+
+  it('月卡未过期 + status=1 → effective_level=1', async () => {
+    const future = new Date(Date.now() + 5 * 86400000);
+    const pool = mockPool([{ vip_level: 1, vip_expires_at: future, vip_status: 1 }]);
+    const m = await loadMembership(1, { pool });
+    expect(m.effective_level).toBe(1);
+    expect(m.effective_level_label).toBe('月卡会员');
+  });
+
+  it('年卡未过期 + status=1 → effective_level=2', async () => {
+    const future = new Date(Date.now() + 100 * 86400000);
+    const pool = mockPool([{ vip_level: 2, vip_expires_at: future, vip_status: 1 }]);
+    const m = await loadMembership(1, { pool });
+    expect(m.effective_level).toBe(2);
+    expect(m.effective_level_label).toBe('年卡会员');
+  });
+
+  it('月卡已过期 → effective_level=0 / 普通用户（vip_level 仍保留 1 用于历史展示）', async () => {
+    const past = new Date(Date.now() - 86400000);
+    const pool = mockPool([{ vip_level: 1, vip_expires_at: past, vip_status: 1 }]);
+    const m = await loadMembership(1, { pool });
+    expect(m.is_active).toBe(false);
+    expect(m.vip_level).toBe(1);
+    expect(m.effective_level).toBe(0);
+    expect(m.effective_level_label).toBe('普通用户');
+  });
+
+  it('年卡已过期 → effective_level=0', async () => {
+    const past = new Date(Date.now() - 86400000);
+    const pool = mockPool([{ vip_level: 2, vip_expires_at: past, vip_status: 1 }]);
+    const m = await loadMembership(1, { pool });
+    expect(m.effective_level).toBe(0);
+    expect(m.effective_level_label).toBe('普通用户');
+  });
+
+  it('月卡未过期但 status=0（被停用） → effective_level=0', async () => {
+    const future = new Date(Date.now() + 5 * 86400000);
+    const pool = mockPool([{ vip_level: 1, vip_expires_at: future, vip_status: 0 }]);
+    const m = await loadMembership(1, { pool });
+    expect(m.is_active).toBe(false);
+    expect(m.vip_level).toBe(1);
+    expect(m.effective_level).toBe(0);
+    expect(m.effective_level_label).toBe('普通用户');
+  });
+
+  it('普通用户从未开通 → effective_level=0', async () => {
+    const pool = mockPool([{ vip_level: 0, vip_expires_at: null, vip_status: 1 }]);
+    const m = await loadMembership(1, { pool });
+    expect(m.effective_level).toBe(0);
+    expect(m.effective_level_label).toBe('普通用户');
+  });
+});

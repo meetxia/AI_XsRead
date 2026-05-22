@@ -11,6 +11,7 @@ router.post('/batches', adminMiddleware, CodeController.createBatch);
 router.get('/batches', CodeController.getBatches);
 router.get('/batches/:id', CodeController.getBatchDetail);
 router.get('/batches/:id/export', adminMiddleware, CodeController.exportBatch);
+router.get('/batches/:id/export.txt', adminMiddleware, CodeController.exportBatchTxt);
 
 // 作废
 router.post('/void', adminMiddleware, CodeController.voidCodes);

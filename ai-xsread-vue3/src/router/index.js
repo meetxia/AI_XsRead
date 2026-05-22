@@ -34,6 +34,8 @@ const router = createRouter({
     // 鉴权
     { path: '/login',     name: 'login',     component: () => import('@/views/LoginPage.vue'),     meta: { title: '登录' } },
     { path: '/register',  name: 'register',  component: () => import('@/views/RegisterPage.vue'),  meta: { title: '注册' } },
+    { path: '/forgot-password', name: 'forgot-password', component: () => import('@/views/ForgotPasswordPage.vue'), meta: { title: '忘记密码', requiresAuth: false } },
+    { path: '/reset-password',  name: 'reset-password',  component: () => import('@/views/ResetPasswordPage.vue'),  meta: { title: '重置密码', requiresAuth: false } },
     { path: '/onboarding/interests', name: 'onboarding-interests', component: () => import('@/views/OnboardingInterestsPage.vue'), meta: { title: '选择兴趣', requiresAuth: true } },
 
     // 其它

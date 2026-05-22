@@ -55,3 +55,27 @@ export const changePassword = (data) => {
   })
 }
 
+/**
+ * 忘记密码：申请发送重置链接
+ * @param {Object} data - { email }
+ */
+export const forgotPassword = (data) => {
+  return request({
+    url: '/auth/forgot-password',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 重置密码（凭 token + 新密码）
+ * @param {Object} data - { token, newPassword }
+ */
+export const resetPassword = (data) => {
+  return request({
+    url: '/auth/reset-password',
+    method: 'post',
+    data
+  })
+}
+
