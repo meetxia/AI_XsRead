@@ -128,10 +128,44 @@ class ScheduledJobs {
       
       try {
         const startTime = Date.now();
-        
-        // 调用存储过程更新统计
-        await this.pool.query('CALL sp_batch_update_views()');
-        await this.pool.query('CALL sp_calculate_hot_rank(7)');
+        const hotRankDays = 7;
+
+        await this.pool.query(`
+          UPDATE novels n
+          SET n.views = (
+            SELECT COUNT(DISTINCT rh.user_id)
+            FROM reading_history rh
+            WHERE rh.novel_id = n.id
+          )
+        `);
+
+        await this.pool.query(`
+          UPDATE novels n
+          SET n.hot_score = (
+            IFNULL((
+              SELECT COUNT(*)
+              FROM reading_history rh
+              WHERE rh.novel_id = n.id
+                AND rh.read_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            ), 0)
+            + n.likes * 5
+            + n.collections * 10
+            + n.comments * 3
+          )
+        `, [hotRankDays]);
+
+        await this.pool.query('UPDATE novels SET is_hot = 0');
+
+        await this.pool.query(`
+          UPDATE novels n
+          JOIN (
+            SELECT id
+            FROM novels
+            ORDER BY hot_score DESC
+            LIMIT 100
+          ) hot_novels ON hot_novels.id = n.id
+          SET n.is_hot = 1
+        `);
         
         const duration = Date.now() - startTime;
         console.log(`✅ [每小时] 统计数据更新完成 (${duration}ms)`);
@@ -288,8 +322,11 @@ class ScheduledJobs {
           WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
         `, [this.config.cleanup.logsDays]);
         
-        // 调用存储过程清理过期Token
-        await this.pool.query('CALL sp_clean_expired_tokens()');
+        await this.pool.query(`
+          DELETE FROM password_reset_tokens
+          WHERE expires_at < NOW()
+             OR (used_at IS NOT NULL AND used_at < DATE_SUB(NOW(), INTERVAL 30 DAY))
+        `);
         
         console.log(`✅ [每周] 数据清理完成`);
         console.log(`   - 阅读历史: ${result1.affectedRows} 条`);
@@ -492,4 +529,3 @@ if (require.main === module) {
   console.log('✅ 定时任务服务运行中...');
   console.log('按 Ctrl+C 停止服务');
 }
-

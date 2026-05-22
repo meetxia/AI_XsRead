@@ -3,12 +3,11 @@ import { ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
-import { forgotPassword } from '@/api/auth'
 import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
 
 useSeoMeta({
   title: '忘记密码',
-  description: '通过注册邮箱找回 MOMO 小说账号密码。',
+  description: 'MOMO 小说账号密码找回暂未开放，请联系管理员 QQ：472990945 处理。',
   url: `${SEO_DEFAULTS.siteUrl}/forgot-password`,
   robots: 'noindex,follow',
 })
@@ -16,26 +15,23 @@ useSeoMeta({
 const router = useRouter()
 
 const email = ref('')
-const loading = ref(false)
 const errorMsg = ref('')
-const successMsg = ref('')
+const adminQq = '472990945'
+const helpMsg = ref(`密码找回暂未开放，请联系管理员 QQ：${adminQq} 处理。`)
 
-async function onSubmit() {
-  if (!email.value) {
-    errorMsg.value = '请填写邮箱'
-    return
-  }
+function onSubmit() {
   errorMsg.value = ''
-  successMsg.value = ''
-  loading.value = true
+  helpMsg.value = `密码找回暂未开放，请联系管理员 QQ：${adminQq} 处理。`
+}
+
+async function copyAdminQq() {
   try {
-    const res = await forgotPassword({ email: email.value.trim() })
-    successMsg.value = res?.message || '如果该邮箱已注册，我们已发送重置链接，请检查邮箱（30 分钟内有效）'
-  } catch (err) {
-    // 后端对正常入参一律 200，这里只在限流 / 网络异常时进入
-    errorMsg.value = err?.message || '请求失败，请稍后再试'
-  } finally {
-    loading.value = false
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(adminQq)
+    }
+    helpMsg.value = `已复制管理员 QQ：${adminQq}`
+  } catch (error) {
+    helpMsg.value = `管理员 QQ：${adminQq}`
   }
 }
 </script>
@@ -54,7 +50,7 @@ async function onSubmit() {
     <main class="max-w-md mx-auto px-6 pt-12 pb-12 min-h-[calc(100vh-3.5rem)] flex flex-col">
       <div class="text-center mb-10">
         <h1 class="font-serif text-3xl font-semibold tracking-tight">找回密码</h1>
-        <p class="text-sm text-ink-700 dark:text-ink-300 mt-2">输入注册邮箱，我们会给你发送重置链接</p>
+        <p class="text-sm text-ink-700 dark:text-ink-300 mt-2">邮箱验证码开通前，请联系管理员处理账号找回</p>
       </div>
 
       <form class="space-y-4" @submit.prevent="onSubmit">
@@ -70,14 +66,14 @@ async function onSubmit() {
         </div>
 
         <p v-if="errorMsg" class="text-sm text-cinnabar-500">{{ errorMsg }}</p>
-        <p v-if="successMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ successMsg }}</p>
+        <p class="text-sm text-ink-700 dark:text-ink-300 leading-6">{{ helpMsg }}</p>
 
         <button
-          type="submit"
-          :disabled="loading"
+          type="button"
+          @click="copyAdminQq"
           class="w-full h-12 mt-2 rounded-xl bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif font-semibold hover:bg-clay-600 active:scale-[0.98] transition shadow-cream disabled:opacity-60"
         >
-          {{ loading ? '发送中…' : '发送重置链接' }}
+          复制管理员 QQ
         </button>
       </form>
 

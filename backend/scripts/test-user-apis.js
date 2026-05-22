@@ -64,9 +64,17 @@ function makeRequest(method, path, data = null, token = null) {
 async function testLogin() {
   console.log('\n🔐 测试登录...');
   try {
+    const testUsername = process.env.TEST_USERNAME || 'admin';
+    const testPassword = process.env.TEST_PASSWORD;
+
+    if (!testPassword) {
+      console.log('❌ 请通过 TEST_PASSWORD 提供测试账号密码；脚本不再内置默认密码。');
+      return false;
+    }
+
     const response = await makeRequest('POST', '/auth/login', {
-      username: 'admin',
-      password: 'admin123'
+      username: testUsername,
+      password: testPassword
     });
     
     if (response.code === 200) {

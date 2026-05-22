@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const ChapterController = require('../controllers/chapterController');
-const { authMiddleware } = require('../middlewares/auth');
+const { authMiddleware, adminMiddleware } = require('../middlewares/auth');
 
-// 所有路由都需要认证
+// 所有路由都需要管理员权限
 router.use(authMiddleware);
+router.use(adminMiddleware);
 
 // 获取章节列表
 router.get('/', ChapterController.getList);

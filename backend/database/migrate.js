@@ -215,7 +215,7 @@ async function runPendingMigrations(pool, options = {}) {
       : null;
 
     const [latestRows] = await connection.query(
-      'SELECT version FROM migrations ORDER BY version DESC LIMIT 1'
+      'SELECT version, applied_at FROM migrations ORDER BY version DESC LIMIT 1'
     );
     const lastAppliedAt = latestRows?.[0]?.applied_at || null;
 

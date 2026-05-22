@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const DashboardController = require('../controllers/dashboardController');
-const { authMiddleware } = require('../middlewares/auth');
+const { authMiddleware, adminMiddleware } = require('../middlewares/auth');
 
-// 所有路由都需要认证
+// 所有路由都需要管理员权限
 router.use(authMiddleware);
+router.use(adminMiddleware);
 
 // 获取概览统计
 router.get('/overview', DashboardController.getOverview);

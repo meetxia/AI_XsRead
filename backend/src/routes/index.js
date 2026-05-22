@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { pool } = require('../config/database');
 
 // 导入各模块路由
 const authRoutes = require('./auth');
@@ -29,23 +30,51 @@ router.use('/', seoRoutes);
 // ============================================================
 
 // 健康检查（无需登录）
-router.get(`${API_PREFIX}/health`, (req, res) => {
+router.get(`${API_PREFIX}/health`, async (req, res) => {
   const migrationsState = req.app.locals.migrationsState || {};
-  res.json({
-    code: 200,
-    message: 'success',
-    data: {
-      status: 'healthy',
-      db: 'up',
-      migrations: {
-        latestVersion: migrationsState.latestVersion || null,
-        total: migrationsState.total || 0,
-        lastAppliedAt: migrationsState.lastAppliedAt || null
-      },
-      timestamp: Date.now(),
-      uptime: process.uptime()
-    }
-  });
+  const scheduledJobs = req.app.locals.scheduledJobs;
+  const jobStatus = scheduledJobs && typeof scheduledJobs.getStatus === 'function'
+    ? scheduledJobs.getStatus()
+    : null;
+
+  try {
+    await pool.query('SELECT 1');
+
+    res.json({
+      code: 200,
+      message: 'success',
+      data: {
+        status: 'healthy',
+        db: 'up',
+        migrations: {
+          latestVersion: migrationsState.latestVersion || null,
+          total: migrationsState.total || 0,
+          lastAppliedAt: migrationsState.lastAppliedAt || null
+        },
+        jobs: jobStatus,
+        timestamp: Date.now(),
+        uptime: process.uptime()
+      }
+    });
+  } catch (error) {
+    res.status(503).json({
+      code: 503,
+      message: 'service unavailable',
+      data: {
+        status: 'unhealthy',
+        db: 'down',
+        error: error.code || 'DB_HEALTH_CHECK_FAILED',
+        migrations: {
+          latestVersion: migrationsState.latestVersion || null,
+          total: migrationsState.total || 0,
+          lastAppliedAt: migrationsState.lastAppliedAt || null
+        },
+        jobs: jobStatus,
+        timestamp: Date.now(),
+        uptime: process.uptime()
+      }
+    });
+  }
 });
 
 // API 根（无需登录）

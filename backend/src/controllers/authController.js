@@ -1,12 +1,12 @@
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/database');
 const config = require('../config');
 const Response = require('../utils/response');
 const { getRandomAvatarUrl } = require('../utils/avatar');
-const { sendEmail, buildPasswordResetLink } = require('../utils/mailer');
 const { redeemActivationCode, ActivationError } = require('./membershipController');
+
+const PASSWORD_RESET_UNAVAILABLE_MESSAGE = '密码找回暂未开放，请联系管理员 QQ：472990945 处理。';
 
 /**
  * 用户注册
@@ -359,172 +359,19 @@ const changePassword = async (req, res) => {
 };
 
 /**
- * 忘记密码 / 申请重置链接
- * 请求体：{ email }
- *
- * 安全：
- * - 不论邮箱是否存在，统一返回 200 success（避免邮箱枚举）
- * - 限流由路由层 forgotPasswordLimiter 处理
- * - DB 仅存 token 的 SHA-256 hash，不存明文
- *
- * 副作用：
- * - 邮箱存在时：写一条 password_reset_tokens（30 分钟过期）+ sendEmail
- * - 邮箱不存在时：什么也不做，但仍延迟"看起来像在工作"避免 timing attack（保留以后可加）
+ * 忘记密码临时兜底。
+ * 腾讯云企业邮箱 / 验证码服务未开通前，不发送邮件、不生成 token。
  */
 const forgotPassword = async (req, res) => {
-  const { email } = req.body || {};
-
-  // 入参基本校验：失败时也返回 200，让攻击者看到一致响应
-  const normalizedEmail = email ? String(email).trim().toLowerCase() : '';
-  const emailLooksValid = normalizedEmail && /.+@.+\..+/.test(normalizedEmail);
-  const ip = req.ip || null;
-
-  if (!emailLooksValid) {
-    return Response.success(
-      res,
-      null,
-      '如果该邮箱已注册，我们已发送重置链接，请检查邮箱（30 分钟内有效）'
-    );
-  }
-
-  try {
-    const [users] = await pool.query(
-      'SELECT id, email FROM users WHERE LOWER(email) = ? LIMIT 1',
-      [normalizedEmail]
-    );
-    const user = users[0];
-
-    if (user) {
-      const token = crypto.randomBytes(32).toString('hex'); // 64 hex 字符
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
-
-      await pool.query(
-        `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, ip)
-         VALUES (?, ?, ?, ?)`,
-        [user.id, tokenHash, expiresAt, ip]
-      );
-
-      const resetLink = buildPasswordResetLink(token);
-      try {
-        await sendEmail({
-          to: user.email,
-          subject: 'MOMO 小说 · 密码重置',
-          text:
-            `您好，\n\n` +
-            `您（或他人）发起了密码重置请求。请在 30 分钟内点击以下链接重置密码：\n\n` +
-            `${resetLink}\n\n` +
-            `如非本人操作，请忽略此邮件，您的账号仍然安全。`,
-          html:
-            `<p>您好，</p>` +
-            `<p>您（或他人）发起了密码重置请求。请在 30 分钟内点击以下链接重置密码：</p>` +
-            `<p><a href="${resetLink}">${resetLink}</a></p>` +
-            `<p>如非本人操作，请忽略此邮件，您的账号仍然安全。</p>`
-        });
-      } catch (mailErr) {
-        // 邮件发送失败不影响接口响应：fallback 已 console.log
-        // eslint-disable-next-line no-console
-        console.warn('[forgotPassword] sendEmail 异常:', mailErr.message);
-      }
-
-      // dev 环境：把链接打印到日志，方便开发者直接拷贝测试
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.log('[forgotPassword] reset link =', resetLink);
-      }
-    }
-  } catch (err) {
-    // DB 异常：仅记录日志，仍然返回 200 不暴露
-    // eslint-disable-next-line no-console
-    console.error('[forgotPassword] error:', err);
-  }
-
-  return Response.success(
-    res,
-    null,
-    '如果该邮箱已注册，我们已发送重置链接，请检查邮箱（30 分钟内有效）'
-  );
+  return Response.success(res, null, PASSWORD_RESET_UNAVAILABLE_MESSAGE);
 };
 
 /**
- * 重置密码
- * 请求体：{ token, newPassword }
- *
- * 校验：
- * - token 长度恰为 64 hex
- * - newPassword 长度 ≥ 6
- * - DB 中 token_hash 匹配 + used_at IS NULL + expires_at > NOW()
- *
- * 命中后事务内：bcrypt 更新 users.password + 标记 used_at
+ * 重置密码临时兜底。
+ * 邮件验证码链路恢复前，拒绝公开重置入口，避免用户误以为流程可用。
  */
 const resetPassword = async (req, res) => {
-  const { token, newPassword } = req.body || {};
-
-  if (!token || typeof token !== 'string' || !/^[a-f0-9]{64}$/i.test(token)) {
-    return Response.error(res, '重置链接无效或已过期', 400);
-  }
-  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
-    return Response.error(res, '新密码至少 6 位', 400);
-  }
-
-  const tokenHash = crypto.createHash('sha256').update(token.toLowerCase()).digest('hex');
-
-  let connection;
-  try {
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    const [rows] = await connection.query(
-      `SELECT id, user_id, expires_at, used_at
-         FROM password_reset_tokens
-        WHERE token_hash = ?
-        LIMIT 1
-        FOR UPDATE`,
-      [tokenHash]
-    );
-
-    const tokenRow = rows[0];
-    const now = new Date();
-
-    if (
-      !tokenRow ||
-      tokenRow.used_at ||
-      new Date(tokenRow.expires_at).getTime() <= now.getTime()
-    ) {
-      await connection.rollback();
-      connection.release();
-      return Response.error(res, '重置链接无效或已过期', 400);
-    }
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-
-    await connection.query(
-      'UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?',
-      [hashed, tokenRow.user_id]
-    );
-
-    await connection.query(
-      'UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ?',
-      [tokenRow.id]
-    );
-
-    await connection.commit();
-    connection.release();
-
-    return Response.success(res, null, '密码重置成功，请使用新密码登录');
-  } catch (err) {
-    if (connection) {
-      try {
-        await connection.rollback();
-      } catch (_) {
-        // ignore
-      }
-      connection.release();
-    }
-    // eslint-disable-next-line no-console
-    console.error('[resetPassword] error:', err);
-    return Response.error(res, '密码重置失败，请稍后再试', 500);
-  }
+  return Response.error(res, PASSWORD_RESET_UNAVAILABLE_MESSAGE, 400);
 };
 
 module.exports = {
@@ -537,4 +384,3 @@ module.exports = {
   forgotPassword,
   resetPassword
 };
-

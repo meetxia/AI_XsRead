@@ -234,6 +234,15 @@ node scripts/init-admin.js
 2. 备份当前 `git rev-parse HEAD` 与 `.env` 文件，作为回滚依据。
 3. 本机至少跑通：`node -c backend/src/app.js`、`cd ai-xsread-vue3 && npm run build`、`cd admin-frontend && npm run build`。
 
+### 部署排障备忘（2026-05-22）
+
+1. 生产后端 `.env` 的数据库名键是 `DB_DATABASE`，不一定是文档示例里的 `DB_NAME`；备份脚本读取前先确认键名，且不要打印敏感值。
+2. 在 Windows PowerShell 里执行远端 SSH 备份命令时，`$(date ...)`、`$1` 等容易被本地提前展开；复杂远端脚本优先用 `ssh ... 'bash -s'` 传 stdin，或用 Node `spawn` 传 LF 脚本。
+3. `pm2 logs xsread-backend` 里可能存在部署前历史定时任务报错；部署验收要区分“部署后新错误”和“部署前既有噪音”。2026-05-22 后代码已移除对 `sp_batch_update_views` 等存储过程的运行时依赖，新部署后不应再出现同类新错误。
+4. 线上 MySQL 不一定支持 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`；新增字段/索引迁移优先用普通 `ADD COLUMN` / `ADD INDEX`，重复字段/索引交给 `migrate.js` 的兼容忽略逻辑处理。
+5. Nginx 的 `/uploads` 静态目录要用 `location ^~ /uploads/` + 带尾斜杠的 `alias .../uploads/`，否则 `.jpg` 等正则 location 可能抢先匹配，导致管理端封面 404。
+6. 如果 `https://xs.momofx.cn/api/health` 返回管理端风格 `{"status":"ok"}`，优先检查用户域 443 server block 是否真实生效，避免 HTTPS 请求落到其他默认站点。
+
 ### 数据库迁移规范
 
 1. 文件名严格遵循 `^\d{12}__描述.sql$`，如 `202605200900__add_user_phone.sql`。不符合此规则的 SQL 不会被自动执行（这正是 legacy 文件应有的状态）。
@@ -250,7 +259,7 @@ node scripts/init-admin.js
 
 ### 管理端访问入口
 
-管理前端 dist 上传到服务器后**默认无访问入口**，必须在 Nginx 额外配置 `admin.momofx.cn` 子域名（推荐）或 `/admin/` 子路径 server block。具体配置见 `deploy-guide.md` §6。
+管理前端 dist 上传到服务器后**默认无访问入口**，必须在 Nginx 额外配置 `admin.xs.momofx.cn` 子域名（当前推荐/示例口径）或 `/admin/` 子路径 server block。具体配置见 `deploy-guide.md` §6。
 
 ### 部署后强制验收清单
 

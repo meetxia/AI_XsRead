@@ -47,7 +47,8 @@ class AuthController {
 
       const refreshToken = JWTUtil.generateRefreshToken({
         id: user.id,
-        username: user.username
+        username: user.username,
+        role: user.role
       });
 
       // 更新登录信息
@@ -140,11 +141,20 @@ class AuthController {
       // 验证刷新令牌
       const decoded = JWTUtil.verifyRefreshToken(refreshToken);
 
+      const [users] = await db.query(
+        'SELECT id, username, role, status FROM admin_users WHERE id = ? AND status = 1',
+        [decoded.id]
+      );
+
+      if (users.length === 0) {
+        return Response.error(res, 'Token无效或已过期', 401);
+      }
+
       // 生成新的访问令牌
       const newAccessToken = JWTUtil.generateAccessToken({
-        id: decoded.id,
-        username: decoded.username,
-        role: decoded.role
+        id: users[0].id,
+        username: users[0].username,
+        role: users[0].role
       });
 
       return Response.success(res, {

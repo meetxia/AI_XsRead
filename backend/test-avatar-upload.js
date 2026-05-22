@@ -86,12 +86,19 @@ function uploadFile(token, filePath) {
 async function testAvatarUpload() {
   try {
     console.log('🔧 开始测试头像上传功能...\n');
+    const testUsername = process.env.TEST_USERNAME || 'admin';
+    const testPassword = process.env.TEST_PASSWORD;
+
+    if (!testPassword) {
+      console.error('❌ 请通过 TEST_PASSWORD 提供测试账号密码；脚本不再内置默认密码。');
+      return;
+    }
     
     // 1. 登录获取Token
     console.log('1️⃣  登录获取Token...');
     const loginData = JSON.stringify({
-      username: 'admin',
-      password: 'admin123'
+      username: testUsername,
+      password: testPassword
     });
     
     const loginRes = await httpRequest({

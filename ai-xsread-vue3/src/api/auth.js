@@ -56,7 +56,7 @@ export const changePassword = (data) => {
 }
 
 /**
- * 忘记密码：申请发送重置链接
+ * 忘记密码：当前临时返回联系管理员提示
  * @param {Object} data - { email }
  */
 export const forgotPassword = (data) => {
@@ -68,7 +68,7 @@ export const forgotPassword = (data) => {
 }
 
 /**
- * 重置密码（凭 token + 新密码）
+ * 重置密码：当前临时返回联系管理员提示
  * @param {Object} data - { token, newPassword }
  */
 export const resetPassword = (data) => {

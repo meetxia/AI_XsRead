@@ -1,29 +1,12 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
-import compression from 'vite-plugin-compression'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    // Gzip 压缩
-    compression({
-      algorithm: 'gzip',
-      ext: '.gz',
-      threshold: 10240, // 10KB 以上才压缩
-      filename: '[path][base].gz',
-      deleteOriginFile: false
-    }),
-    // Brotli 压缩
-    compression({
-      algorithm: 'brotliCompress',
-      ext: '.br',
-      threshold: 10240,
-      filename: '[path][base].br',
-      deleteOriginFile: false
-    }),
     // 打包分析
     visualizer({
       open: false,

@@ -5,9 +5,9 @@
  * 跑这个脚本之前需要：
  *   1. admin-backend 在 8001 端口已启动（npm run dev）
  *   2. 数据库迁移已执行（含 code_batches / activation_codes / system_contact 等）
- *   3. admin_users 表里至少有一个可用 admin（默认 admin / admin123，否则需先 init-admin）
+ *   3. admin_users 表里至少有一个可用 admin（用 init-admin 创建，或通过环境变量提供账号）
  *
- * 默认账号通过环境变量 ADMIN_USERNAME / ADMIN_PASSWORD 覆盖。
+ * 默认账号通过环境变量 SMOKE_ADMIN_USERNAME / SMOKE_ADMIN_PASSWORD 提供。
  *
  * 流程（按顺序，失败立刻退出 1）：
  *   1. admin 登录拿 token
@@ -37,7 +37,11 @@ const USER_HOST = process.env.SMOKE_USER_HOST || '127.0.0.1';
 const USER_PORT = Number(process.env.SMOKE_USER_PORT || 8005);
 
 const ADMIN_USERNAME = process.env.SMOKE_ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.SMOKE_ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.SMOKE_ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error('[FAIL] 请通过 SMOKE_ADMIN_PASSWORD 提供管理员密码；脚本不再内置默认密码。');
+  process.exit(1);
+}
 
 // ---------- 工具函数 ----------
 

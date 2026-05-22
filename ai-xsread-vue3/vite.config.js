@@ -2,33 +2,18 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { visualizer } from 'rollup-plugin-visualizer'
-import compression from 'vite-plugin-compression'
 import tailwindcss from 'tailwindcss'
 import autoprefixer from 'autoprefixer'
 
 export default defineConfig({
   plugins: [
     vue(),
-    // Gzip 压缩
-    compression({
-      algorithm: 'gzip',
-      ext: '.gz',
-      threshold: 10240, // 10KB 以上才压缩
-      deleteOriginFile: false
-    }),
-    // Brotli 压缩
-    compression({
-      algorithm: 'brotliCompress',
-      ext: '.br',
-      threshold: 10240,
-      deleteOriginFile: false
-    }),
     // 打包分析插件
     visualizer({
       open: false,
       gzipSize: true,
       brotliSize: true,
-      filename: 'dist/stats.html'
+      filename: 'node_modules/.vite/stats.html'
     })
   ],
   resolve: {

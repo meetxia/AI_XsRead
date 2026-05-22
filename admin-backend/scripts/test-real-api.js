@@ -11,12 +11,18 @@ async function testRealAPI() {
   try {
     console.log('=== 测试管理后台API接口 ===\n');
 
+    const adminPassword = process.env.ADMIN_PASSWORD || process.env.SMOKE_ADMIN_PASSWORD;
+    if (!adminPassword) {
+      console.error('❌ 请通过 ADMIN_PASSWORD 或 SMOKE_ADMIN_PASSWORD 提供管理员密码；脚本不再内置默认密码。');
+      return;
+    }
+
     // 首先，确保有管理员账号并获取token
     console.log('1. 准备登录...');
     
     const loginResponse = await axios.post('http://localhost:8001/api/admin/login', {
       username: 'admin',
-      password: 'admin123'
+      password: adminPassword
     }).catch(err => {
       console.error('登录失败:', err.response?.data || err.message);
       return null;
