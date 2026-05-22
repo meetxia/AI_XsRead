@@ -47,6 +47,121 @@ const upload = multer({
   }
 });
 
+function removeUploadedFile(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return;
+  fs.unlinkSync(filePath);
+}
+
+async function insertNovelWithChapter(connection, novelData, userId) {
+  const [novelResult] = await connection.query(
+    `INSERT INTO novels 
+     (title, author, author_id, category_id, description, 
+      word_count, chapter_count, status, views, likes, collections, 
+      rating, rating_count, is_recommended, is_hot, 
+      last_chapter_title, last_update_time, published_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+    [
+      novelData.title,
+      novelData.author,
+      userId,
+      novelData.categoryId,
+      novelData.description,
+      novelData.wordCount,
+      1,
+      1,
+      novelData.stats.views,
+      novelData.stats.likes,
+      novelData.stats.collections,
+      novelData.stats.rating,
+      novelData.stats.ratingCount,
+      novelData.stats.isRecommended,
+      novelData.stats.isHot,
+      '正文'
+    ]
+  );
+
+  const novelId = novelResult.insertId;
+
+  await connection.query(
+    `INSERT INTO chapters 
+     (novel_id, chapter_number, title, content, word_count, is_free, status, publish_time)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [novelId, 1, '正文', novelData.content, novelData.wordCount, 1, 1]
+  );
+
+  return novelId;
+}
+
+async function importTxtNovelFile(file, userId, options = {}) {
+  const seenTitles = options.seenTitles || null;
+
+  try {
+    const content = fs.readFileSync(file.path, 'utf8');
+    const novelData = parseTxtContent(content, file.originalname);
+
+    const validation = validateTxtFile(novelData);
+    if (!validation.valid) {
+      return {
+        status: 'failed',
+        filename: novelData.filename,
+        title: novelData.title,
+        reason: validation.errors.join('; ')
+      };
+    }
+
+    if (seenTitles && seenTitles.has(novelData.title)) {
+      return {
+        status: 'failed',
+        filename: novelData.filename,
+        title: novelData.title,
+        reason: '同批次中已存在同名小说'
+      };
+    }
+
+    const [existing] = await pool.query(
+      'SELECT id FROM novels WHERE title = ?',
+      [novelData.title]
+    );
+
+    if (existing.length > 0) {
+      return {
+        status: 'exists',
+        filename: novelData.filename,
+        title: novelData.title,
+        novelId: existing[0].id
+      };
+    }
+
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+      const novelId = await insertNovelWithChapter(connection, novelData, userId);
+      await connection.commit();
+
+      if (seenTitles) {
+        seenTitles.add(novelData.title);
+      }
+
+      return {
+        status: 'success',
+        filename: novelData.filename,
+        novelId,
+        title: novelData.title,
+        wordCount: novelData.wordCount,
+        categoryId: novelData.categoryId
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } finally {
+    removeUploadedFile(file.path);
+  }
+}
+
 /**
  * 上传并导入TXT小说
  */
@@ -57,113 +172,33 @@ const uploadTxtNovel = async (req, res, next) => {
       return Response.error(res, '请选择要上传的TXT文件', 400);
     }
     
-    const userId = req.user.id;
-    const filePath = req.file.path;
     const originalName = req.file.originalname;
     
     console.log('📚 开始处理上传的小说:', originalName);
-    
-    // 读取文件内容
-    const content = fs.readFileSync(filePath, 'utf8');
-    
-    // 解析TXT内容
-    const novelData = parseTxtContent(content, originalName);
-    
-    // 验证数据
-    const validation = validateTxtFile(novelData);
-    if (!validation.valid) {
-      // 删除临时文件
-      fs.unlinkSync(filePath);
-      return Response.error(res, validation.errors.join('; '), 400);
+
+    const result = await importTxtNovelFile(req.file, req.user.id);
+
+    if (result.status === 'failed') {
+      return Response.error(res, result.reason, 400);
     }
-    
-    // 检查是否已存在同名小说
-    const [existing] = await pool.query(
-      'SELECT id FROM novels WHERE title = ?',
-      [novelData.title]
-    );
-    
-    if (existing.length > 0) {
-      fs.unlinkSync(filePath);
+
+    if (result.status === 'exists') {
       return Response.error(res, '已存在同名小说，请修改标题后重新上传', 400);
     }
-    
-    // 开始数据库事务
-    const connection = await pool.getConnection();
-    
-    try {
-      await connection.beginTransaction();
-      
-      // 插入小说记录
-      const [novelResult] = await connection.query(
-        `INSERT INTO novels 
-         (title, author, author_id, category_id, description, 
-          word_count, chapter_count, status, views, likes, collections, 
-          rating, rating_count, is_recommended, is_hot, 
-          last_chapter_title, last_update_time, published_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [
-          novelData.title,
-          novelData.author,
-          userId, // 当前登录用户为作者
-          novelData.categoryId,
-          novelData.description,
-          novelData.wordCount,
-          1, // 单章节
-          1, // 已发布
-          novelData.stats.views,
-          novelData.stats.likes,
-          novelData.stats.collections,
-          novelData.stats.rating,
-          novelData.stats.ratingCount,
-          novelData.stats.isRecommended,
-          novelData.stats.isHot,
-          '正文'
-        ]
-      );
-      
-      const novelId = novelResult.insertId;
-      
-      // 插入章节内容
-      await connection.query(
-        `INSERT INTO chapters 
-         (novel_id, chapter_number, title, content, word_count, is_free)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          novelId,
-          1,
-          '正文',
-          novelData.content,
-          novelData.wordCount,
-          1 // 免费
-        ]
-      );
-      
-      await connection.commit();
-      
-      // 删除临时文件
-      fs.unlinkSync(filePath);
-      
-      console.log('✅ 小说导入成功:', novelData.title);
-      
-      return Response.success(res, {
-        novelId,
-        title: novelData.title,
-        wordCount: novelData.wordCount,
-        categoryId: novelData.categoryId
-      }, '小说上传成功');
-      
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
-    }
+
+    console.log('✅ 小说导入成功:', result.title);
+
+    return Response.success(res, {
+      novelId: result.novelId,
+      title: result.title,
+      wordCount: result.wordCount,
+      categoryId: result.categoryId
+    }, '小说上传成功');
     
   } catch (error) {
     // 删除临时文件
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    if (req.file) {
+      removeUploadedFile(req.file.path);
     }
     
     console.error('上传失败:', error);
@@ -181,6 +216,7 @@ const batchUploadTxtNovels = async (req, res, next) => {
     }
     
     const userId = req.user.id;
+    const seenTitles = new Set();
     const results = {
       success: [],
       failed: [],
@@ -189,93 +225,32 @@ const batchUploadTxtNovels = async (req, res, next) => {
     
     for (const file of req.files) {
       try {
-        // 读取并解析文件
-        const content = fs.readFileSync(file.path, 'utf8');
-        const novelData = parseTxtContent(content, file.originalname);
-        
-        // 验证
-        const validation = validateTxtFile(novelData);
-        if (!validation.valid) {
-          fs.unlinkSync(file.path);
-          results.failed.push({
-            filename: file.originalname,
-            reason: validation.errors.join('; ')
-          });
-          continue;
-        }
-        
-        // 检查重复
-        const [existing] = await pool.query(
-          'SELECT id FROM novels WHERE title = ?',
-          [novelData.title]
-        );
-        
-        if (existing.length > 0) {
-          fs.unlinkSync(file.path);
-          results.exists.push({
-            filename: file.originalname,
-            title: novelData.title
-          });
-          continue;
-        }
-        
-        // 导入数据库
-        const connection = await pool.getConnection();
-        
-        try {
-          await connection.beginTransaction();
-          
-          // 插入小说
-          const [novelResult] = await connection.query(
-            `INSERT INTO novels 
-             (title, author, author_id, category_id, description, 
-              word_count, chapter_count, status, views, likes, collections, 
-              rating, rating_count, is_recommended, is_hot, 
-              last_chapter_title, last_update_time, published_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-            [
-              novelData.title, novelData.author, userId, novelData.categoryId,
-              novelData.description, novelData.wordCount, 1, 1,
-              novelData.stats.views, novelData.stats.likes, novelData.stats.collections,
-              novelData.stats.rating, novelData.stats.ratingCount,
-              novelData.stats.isRecommended, novelData.stats.isHot, '正文'
-            ]
-          );
-          
-          const novelId = novelResult.insertId;
-          
-          // 插入章节
-          await connection.query(
-            `INSERT INTO chapters 
-             (novel_id, chapter_number, title, content, word_count, is_free)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [novelId, 1, '正文', novelData.content, novelData.wordCount, 1]
-          );
-          
-          await connection.commit();
-          
+        const result = await importTxtNovelFile(file, userId, { seenTitles });
+
+        if (result.status === 'success') {
           results.success.push({
-            filename: file.originalname,
-            novelId,
-            title: novelData.title,
-            wordCount: novelData.wordCount
+            filename: result.filename,
+            novelId: result.novelId,
+            title: result.title,
+            wordCount: result.wordCount,
+            categoryId: result.categoryId
           });
-          
-        } catch (error) {
-          await connection.rollback();
-          throw error;
-        } finally {
-          connection.release();
+        } else if (result.status === 'exists') {
+          results.exists.push({
+            filename: result.filename,
+            title: result.title,
+            novelId: result.novelId
+          });
+        } else {
+          results.failed.push({
+            filename: result.filename,
+            title: result.title,
+            reason: result.reason
+          });
         }
-        
-        // 删除临时文件
-        fs.unlinkSync(file.path);
-        
       } catch (error) {
         console.error('处理文件失败:', file.originalname, error);
-        if (fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
+        removeUploadedFile(file.path);
         results.failed.push({
           filename: file.originalname,
           reason: error.message
@@ -344,6 +319,11 @@ module.exports = {
   uploadTxtNovel,
   batchUploadTxtNovels,
   getMyNovels,
+  __test__: {
+    importTxtNovelFile,
+    insertNovelWithChapter,
+    removeUploadedFile
+  },
   /**
    * 上传用户头像并更新用户资料
    */
@@ -382,4 +362,3 @@ module.exports = {
     }
   }
 };
-

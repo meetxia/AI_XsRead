@@ -1,6 +1,164 @@
 const db = require('../config/database');
 const Response = require('../utils/response');
 
+const CATEGORY_MAP = {
+  101: { name: '都市言情', keywords: ['总裁', '豪门', '婚姻', '恋爱', '暧昧', '前任', '闪婚', '未婚夫', '男朋友', '室友'] },
+  102: { name: '古风穿越', keywords: ['穿越', '重生', '古风', '宫廷', '王爷', '嫡女', '皇上', '太子'] },
+  103: { name: '玄幻修仙', keywords: ['修真', '仙侠', '玄幻', '灵气', '大佬', '师兄', '师妹', '尾巴'] },
+  104: { name: '悬疑推理', keywords: ['悬疑', '推理', '真相', '谜团', '杀手', '死亡', '监控', '双胞胎'] },
+  105: { name: '科幻未来', keywords: ['科幻', '星际', '未来', '机甲', '游戏', '测试', '虚拟'] },
+  106: { name: '青春校园', keywords: ['校园', '青春', '同桌', '学长', '学妹'] }
+};
+
+function normalizeTxtFilename(filename) {
+  const raw = String(filename || '');
+  if (!/[ÃÂÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßà-ÿ]/.test(raw)) {
+    return raw;
+  }
+  const restored = Buffer.from(raw, 'latin1').toString('utf8');
+  if (restored.includes('\uFFFD')) return raw;
+  return /[\u4e00-\u9fff]/.test(restored) ? restored : raw;
+}
+
+function getCategoryId(title) {
+  for (const [categoryId, info] of Object.entries(CATEGORY_MAP)) {
+    if (info.keywords.some((keyword) => title.includes(keyword))) {
+      return Number(categoryId);
+    }
+  }
+  return 101;
+}
+
+function generateAuthorName() {
+  const prefixes = ['温柔', '墨染', '清风', '流年', '浅笑', '梦回', '烟雨', '星辰'];
+  const suffixes = ['笔触', '明月', '如歌', '依依', '未央', '浅浅', '微凉'];
+  return prefixes[Math.floor(Math.random() * prefixes.length)] + suffixes[Math.floor(Math.random() * suffixes.length)];
+}
+
+function parseTxtBuffer(file) {
+  const filename = normalizeTxtFilename(file.originalname);
+  const title = filename.replace(/\.txt$/i, '').trim();
+  let content = file.buffer.toString('utf8').replace(/^\uFEFF/, '');
+  content = content.replace(/\r\n/g, '\n').trim();
+  const wordCount = content.replace(/\s/g, '').length;
+  const paragraphs = content.split('\n\n').filter((p) => p.trim());
+  const intro = paragraphs.find((p) => p.length > 50) || paragraphs[0] || content;
+  let description = intro.substring(0, 200).replace(/\n/g, ' ').trim();
+  if (description.length >= 200) description += '...';
+
+  return {
+    filename,
+    title,
+    author: generateAuthorName(),
+    content,
+    wordCount,
+    description,
+    categoryId: getCategoryId(title)
+  };
+}
+
+function validateTxtNovel(novelData) {
+  const errors = [];
+  if (!novelData.title || novelData.title.length < 2) errors.push('标题太短，至少需要2个字符');
+  if (novelData.title.length > 100) errors.push('标题太长，最多100个字符');
+  if (!novelData.content || novelData.content.length < 100) errors.push('内容太短，至少需要100个字符');
+  if (novelData.wordCount < 500) errors.push('字数太少，建议至少500字');
+  if (novelData.wordCount > 1000000) errors.push('字数太多，超长小说建议分章节上传');
+  return { valid: errors.length === 0, errors };
+}
+
+async function insertAdminNovelWithChapter(connection, novelData, adminUser) {
+  const [novelResult] = await connection.query(
+    `INSERT INTO novels (
+      title, author, author_id, category_id, description,
+      word_count, chapter_count, status, views, likes, collections,
+      rating, rating_count, is_recommended, is_hot,
+      last_chapter_title, last_update_time, published_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 1, 1, 0, 0, 0, 0, 0, 0, 0, '正文', NOW(), NOW())`,
+    [
+      novelData.title,
+      novelData.author,
+      adminUser.id,
+      novelData.categoryId,
+      novelData.description,
+      novelData.wordCount
+    ]
+  );
+
+  const novelId = novelResult.insertId;
+
+  await connection.query(
+    `INSERT INTO chapters (
+      novel_id, chapter_number, title, content, word_count, is_free, status, publish_time
+    ) VALUES (?, 1, '正文', ?, ?, 1, 1, NOW())`,
+    [novelId, novelData.content, novelData.wordCount]
+  );
+
+  await connection.query(
+    `INSERT INTO admin_logs (admin_id, admin_username, action, module, target_id, description)
+     VALUES (?, ?, 'batch_upload_txt', 'novel', ?, ?)`,
+    [adminUser.id, adminUser.username, novelId, `批量上传TXT小说: ${novelData.title}`]
+  );
+
+  return novelId;
+}
+
+async function importAdminTxtNovelFile(file, adminUser, options = {}) {
+  const seenTitles = options.seenTitles || null;
+  const novelData = parseTxtBuffer(file);
+
+  const validation = validateTxtNovel(novelData);
+  if (!validation.valid) {
+    return {
+      status: 'failed',
+      filename: novelData.filename,
+      title: novelData.title,
+      reason: validation.errors.join('; ')
+    };
+  }
+
+  if (seenTitles && seenTitles.has(novelData.title)) {
+    return {
+      status: 'failed',
+      filename: novelData.filename,
+      title: novelData.title,
+      reason: '同批次中已存在同名小说'
+    };
+  }
+
+  const [existing] = await db.query('SELECT id FROM novels WHERE title = ?', [novelData.title]);
+  if (existing.length > 0) {
+    return {
+      status: 'exists',
+      filename: novelData.filename,
+      title: novelData.title,
+      novelId: existing[0].id
+    };
+  }
+
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+    const novelId = await insertAdminNovelWithChapter(connection, novelData, adminUser);
+    await connection.commit();
+    if (seenTitles) seenTitles.add(novelData.title);
+
+    return {
+      status: 'success',
+      filename: novelData.filename,
+      novelId,
+      title: novelData.title,
+      wordCount: novelData.wordCount,
+      categoryId: novelData.categoryId
+    };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 const ALLOWED_SORTS = new Set([
   'last_update_time',
   'created_at',
@@ -75,6 +233,84 @@ class NovelController {
       );
 
       return Response.page(res, novels, total, parseInt(page), parseInt(pageSize));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 获取分类列表
+   */
+  static async getCategories(req, res, next) {
+    try {
+      const [categories] = await db.query(
+        `SELECT
+          id, name, description, sort_order
+         FROM categories
+         ORDER BY sort_order ASC, id ASC`
+      );
+
+      return Response.success(res, categories);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 管理后台批量上传 TXT 小说
+   */
+  static async batchUploadTxt(req, res, next) {
+    try {
+      if (!req.files || req.files.length === 0) {
+        return Response.error(res, '请选择要上传的TXT文件', 400);
+      }
+
+      const seenTitles = new Set();
+      const results = {
+        success: [],
+        failed: [],
+        exists: []
+      };
+
+      for (const file of req.files) {
+        try {
+          const result = await importAdminTxtNovelFile(file, req.user, { seenTitles });
+          if (result.status === 'success') {
+            results.success.push({
+              filename: result.filename,
+              novelId: result.novelId,
+              title: result.title,
+              wordCount: result.wordCount,
+              categoryId: result.categoryId
+            });
+          } else if (result.status === 'exists') {
+            results.exists.push({
+              filename: result.filename,
+              title: result.title,
+              novelId: result.novelId
+            });
+          } else {
+            results.failed.push({
+              filename: result.filename,
+              title: result.title,
+              reason: result.reason
+            });
+          }
+        } catch (error) {
+          results.failed.push({
+            filename: normalizeTxtFilename(file.originalname),
+            reason: error.message || '导入失败'
+          });
+        }
+      }
+
+      return Response.success(res, {
+        total: req.files.length,
+        successCount: results.success.length,
+        failedCount: results.failed.length,
+        existsCount: results.exists.length,
+        details: results
+      }, '批量上传完成');
     } catch (error) {
       next(error);
     }
@@ -426,5 +662,12 @@ class NovelController {
   }
 }
 
-module.exports = NovelController;
+NovelController.__test__ = {
+  normalizeTxtFilename,
+  parseTxtBuffer,
+  validateTxtNovel,
+  importAdminTxtNovelFile,
+  insertAdminNovelWithChapter
+};
 
+module.exports = NovelController;

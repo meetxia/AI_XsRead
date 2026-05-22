@@ -27,4 +27,9 @@ describe('request.js response interceptor (T-1.5)', () => {
     expect(file).toMatch(/admin_token/)
     expect(file).toMatch(/login/)
   })
+
+  it('404 分支优先使用后端返回的 message，避免统一误报为资源不存在', () => {
+    const file = fs.readFileSync(REQUEST_FILE, 'utf-8')
+    expect(file).toMatch(/error\.response\.data\?\.message/)
+  })
 })

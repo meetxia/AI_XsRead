@@ -2,10 +2,16 @@
   <div class="novel-list-container">
     <div class="page-header">
       <h2>小说管理</h2>
-      <el-button type="primary" @click="router.push('/novels/create')">
-        <el-icon><Plus /></el-icon>
-        创建小说
-      </el-button>
+      <div class="header-actions">
+        <el-button @click="batchUploadVisible = true">
+          <el-icon><Upload /></el-icon>
+          批量上传TXT
+        </el-button>
+        <el-button type="primary" @click="router.push('/novels/create')">
+          <el-icon><Plus /></el-icon>
+          创建小说
+        </el-button>
+      </div>
     </div>
 
     <!-- 筛选区域 -->
@@ -154,15 +160,78 @@
         @current-change="handlePageChange"
       />
     </div>
+
+    <el-dialog
+      v-model="batchUploadVisible"
+      title="批量上传TXT小说"
+      width="680px"
+      :close-on-click-modal="!batchUploading"
+    >
+      <el-upload
+        ref="batchUploadRef"
+        drag
+        multiple
+        accept=".txt,text/plain"
+        :auto-upload="false"
+        :limit="50"
+        :file-list="batchFileList"
+        :on-change="handleBatchFileChange"
+        :on-remove="handleBatchFileRemove"
+        :on-exceed="handleBatchFileExceed"
+      >
+        <el-icon class="upload-icon"><UploadFilled /></el-icon>
+        <div class="upload-text">拖拽 TXT 文件到这里，或点击选择</div>
+        <template #tip>
+          <div class="upload-tip">最多 50 个文件，单个不超过 10MB；文件名会作为小说标题。</div>
+        </template>
+      </el-upload>
+
+      <div v-if="batchUploadResult" class="upload-result">
+        <el-alert
+          :title="`上传完成：成功 ${batchUploadResult.successCount}，已存在 ${batchUploadResult.existsCount}，失败 ${batchUploadResult.failedCount}`"
+          type="success"
+          show-icon
+          :closable="false"
+        />
+        <el-table
+          :data="uploadResultRows"
+          size="small"
+          border
+          max-height="280"
+          class="upload-result-table"
+        >
+          <el-table-column prop="filename" label="文件" min-width="220" show-overflow-tooltip />
+          <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="statusText" label="结果" width="90">
+            <template #default="{ row }">
+              <el-tag :type="row.tagType">{{ row.statusText }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="message" label="说明" min-width="180" show-overflow-tooltip />
+        </el-table>
+      </div>
+
+      <template #footer>
+        <el-button :disabled="batchUploading" @click="closeBatchUploadDialog">关闭</el-button>
+        <el-button
+          type="primary"
+          :loading="batchUploading"
+          :disabled="batchFileList.length === 0"
+          @click="submitBatchUpload"
+        >
+          开始上传
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, Picture } from '@element-plus/icons-vue'
-import { getNovelList, deleteNovel, getCategories } from '@/api/novel'
+import { Search, Plus, Picture, Upload, UploadFilled } from '@element-plus/icons-vue'
+import { getNovelList, deleteNovel, getCategories, batchUploadTxtNovels } from '@/api/novel'
 import { formatNumber, formatDate } from '@/utils/format'
 
 const router = useRouter()
@@ -181,6 +250,34 @@ const pagination = reactive({
 })
 
 const novelList = ref([])
+const batchUploadVisible = ref(false)
+const batchUploading = ref(false)
+const batchUploadRef = ref(null)
+const batchFileList = ref([])
+const batchUploadResult = ref(null)
+
+const uploadResultRows = computed(() => {
+  const details = batchUploadResult.value?.details || {}
+  const success = (details.success || []).map(item => ({
+    ...item,
+    statusText: '成功',
+    tagType: 'success',
+    message: item.novelId ? `ID ${item.novelId}，${item.wordCount || 0}字` : ''
+  }))
+  const exists = (details.exists || []).map(item => ({
+    ...item,
+    statusText: '已存在',
+    tagType: 'warning',
+    message: item.novelId ? `已有 ID ${item.novelId}` : '同名小说已存在'
+  }))
+  const failed = (details.failed || []).map(item => ({
+    ...item,
+    statusText: '失败',
+    tagType: 'danger',
+    message: item.reason || '导入失败'
+  }))
+  return [...success, ...exists, ...failed]
+})
 
 const categoryOptions = ref([
   // 默认兜底（与 init_step1.sql 中的 categories 表 + patch_v2 升级到 6 个保持一致）
@@ -286,6 +383,59 @@ const handleDelete = async (id) => {
   }
 }
 
+const handleBatchFileChange = (file, files) => {
+  const invalid = files.find(item => {
+    const raw = item.raw
+    return raw && !/\.txt$/i.test(raw.name)
+  })
+  if (invalid) {
+    ElMessage.error('只能上传 TXT 文件')
+    batchFileList.value = files.filter(item => item.uid !== invalid.uid)
+    return
+  }
+  batchFileList.value = files
+  batchUploadResult.value = null
+}
+
+const handleBatchFileRemove = (file, files) => {
+  batchFileList.value = files
+}
+
+const handleBatchFileExceed = () => {
+  ElMessage.warning('一次最多上传 50 个 TXT 文件')
+}
+
+const submitBatchUpload = async () => {
+  const files = batchFileList.value.map(item => item.raw).filter(Boolean)
+  if (files.length === 0) {
+    ElMessage.warning('请选择要上传的TXT文件')
+    return
+  }
+
+  batchUploading.value = true
+  try {
+    const res = await batchUploadTxtNovels(files)
+    batchUploadResult.value = res.data
+    const { successCount = 0, existsCount = 0, failedCount = 0 } = res.data || {}
+    ElMessage.success(`上传完成：成功 ${successCount}，已存在 ${existsCount}，失败 ${failedCount}`)
+    if (successCount > 0) {
+      pagination.page = 1
+      await loadNovelList()
+    }
+  } catch (error) {
+    console.error('批量上传TXT失败:', error)
+  } finally {
+    batchUploading.value = false
+  }
+}
+
+const closeBatchUploadDialog = () => {
+  batchUploadVisible.value = false
+  batchFileList.value = []
+  batchUploadResult.value = null
+  batchUploadRef.value?.clearFiles()
+}
+
 const handlePageChange = (page) => {
   pagination.page = page
   loadNovelList()
@@ -314,6 +464,12 @@ onMounted(() => {
     h2 {
       font-size: 20px;
       margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
     }
   }
   
@@ -398,6 +554,31 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+.upload-icon {
+  font-size: 42px;
+  color: #909399;
+  margin-bottom: 12px;
+}
+
+.upload-text {
+  color: #606266;
+  font-size: 14px;
+}
+
+.upload-tip {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.upload-result {
+  margin-top: 16px;
+}
+
+.upload-result-table {
+  margin-top: 12px;
 }
 </style>
 

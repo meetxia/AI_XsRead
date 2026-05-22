@@ -1,0 +1,13 @@
+17. [GET] https://admin.xs.momofx.cn/api/admin/novels/categories => [200] 
+18. [GET] https://admin.xs.momofx.cn/api/admin/novels?page=1&pageSize=20&category=&status=&keyword= => [200] 
+49. [GET] https://admin.xs.momofx.cn/api/admin/novels/categories => [200] 
+50. [GET] https://admin.xs.momofx.cn/api/admin/novels?page=1&pageSize=20&category=&status=&keyword= => [200] 
+72. [GET] https://admin.xs.momofx.cn/api/admin/novels/46 => [200] 
+73. [GET] https://admin.xs.momofx.cn/api/admin/novels/chapters => [200] 
+74. [GET] https://admin.xs.momofx.cn/api/admin/novels/dashboard => [200] 
+87. [GET] https://admin.xs.momofx.cn/js/echarts-D9FbDqTI.js => [FAILED] net::ERR_ABORTED
+92. [GET] https://admin.xs.momofx.cn/js/echarts-D9FbDqTI.js => [FAILED] net::ERR_ABORTED
+108. [GET] https://admin.xs.momofx.cn/api/admin/novels/categories => [200] 
+109. [GET] https://admin.xs.momofx.cn/api/admin/novels?page=1&pageSize=20&category=&status=&keyword= => [200] 
+
+Note: 117 static requests not shown, run with "static" option to see them.

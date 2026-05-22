@@ -35,8 +35,7 @@ const Response = require('../utils/response');
 router.post(
   '/novel',
   authenticate,
-  uploadController.upload.single('file'),
-  uploadController.uploadTxtNovel
+  (req, res) => Response.error(res, '小说上传仅限管理后台使用', 403)
 );
 
 /**
@@ -67,8 +66,7 @@ router.post(
 router.post(
   '/novels/batch',
   authenticate,
-  uploadController.upload.array('files', 50), // 最多50个文件
-  uploadController.batchUploadTxtNovels
+  (req, res) => Response.error(res, '小说批量上传仅限管理后台使用', 403)
 );
 
 // 用户头像上传
@@ -138,8 +136,7 @@ router.post(
 router.get(
   '/my-novels',
   authenticate,
-  uploadController.getMyNovels
+  (req, res) => Response.error(res, '用户端不提供小说上传列表', 403)
 );
 
 module.exports = router;
-

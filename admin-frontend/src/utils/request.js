@@ -56,24 +56,25 @@ service.interceptors.response.use(
     let message = '网络请求失败'
     
     if (error.response) {
+      const serverMessage = error.response.data?.message
       switch (error.response.status) {
         case 401:
-          message = '未授权，请重新登录'
+          message = serverMessage || '未授权，请重新登录'
           localStorage.removeItem('admin_token')
           localStorage.removeItem('admin_user')
           router.push('/login')
           break
         case 403:
-          message = '拒绝访问'
+          message = serverMessage || '拒绝访问'
           break
         case 404:
-          message = '请求的资源不存在'
+          message = serverMessage || '请求的资源不存在'
           break
         case 500:
-          message = '服务器内部错误'
+          message = serverMessage || '服务器内部错误'
           break
         default:
-          message = error.response.data?.message || '请求失败'
+          message = serverMessage || '请求失败'
       }
     } else if (error.code === 'ECONNABORTED') {
       message = '请求超时'

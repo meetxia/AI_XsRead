@@ -54,6 +54,26 @@ export function deleteNovel(id) {
 }
 
 /**
+ * 批量上传 TXT 小说
+ */
+export function batchUploadTxtNovels(files) {
+  const formData = new FormData()
+  files.forEach(file => {
+    formData.append('files', file)
+  })
+
+  return request({
+    url: '/admin/novels/batch-upload',
+    method: 'post',
+    data: formData,
+    timeout: 120000,
+    headers: {
+      'Content-Type': undefined
+    }
+  })
+}
+
+/**
  * 获取小说统计数据
  */
 export function getNovelStatistics(id) {

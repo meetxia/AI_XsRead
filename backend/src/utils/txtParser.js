@@ -40,6 +40,26 @@ function generateAuthorName() {
 }
 
 /**
+ * 修复 multipart 解析器可能把 UTF-8 中文文件名按 latin1 解出的乱码。
+ * 典型形态："ä»ä»¥..."，转回 UTF-8 后应为中文标题。
+ * @param {string} filename 文件名
+ * @returns {string}
+ */
+function normalizeTxtFilename(filename) {
+  const raw = String(filename || '');
+  if (!/[ÃÂÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßà-ÿ]/.test(raw)) {
+    return raw;
+  }
+
+  const restored = Buffer.from(raw, 'latin1').toString('utf8');
+  if (restored.includes('\uFFFD')) {
+    return raw;
+  }
+
+  return /[\u4e00-\u9fff]/.test(restored) ? restored : raw;
+}
+
+/**
  * 解析TXT文件内容
  * @param {string} content 文件内容
  * @param {string} filename 文件名
@@ -47,7 +67,8 @@ function generateAuthorName() {
  */
 function parseTxtContent(content, filename) {
   // 提取标题（去除.txt后缀）
-  const title = filename.replace(/\.txt$/i, '').trim();
+  const normalizedFilename = normalizeTxtFilename(filename);
+  const title = normalizedFilename.replace(/\.txt$/i, '').trim();
   
   // 清理内容（去除BOM、统一换行符）
   let cleanContent = content.replace(/^\uFEFF/, ''); // 移除BOM
@@ -93,6 +114,7 @@ function parseTxtContent(content, filename) {
   
   return {
     title,
+    filename: normalizedFilename,
     author,
     content: cleanContent,
     wordCount,
@@ -141,6 +163,7 @@ function validateTxtFile(fileData) {
 module.exports = {
   parseTxtContent,
   validateTxtFile,
+  normalizeTxtFilename,
   getCategoryId,
   generateAuthorName,
   CATEGORY_MAP

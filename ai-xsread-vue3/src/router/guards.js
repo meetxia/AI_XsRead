@@ -10,7 +10,7 @@ import { useUserStore } from '@/stores/user'
  * 说明：
  * - 主路径 `/bookshelf`、`/profile`、`/history` 改为允许匿名访问，
  *   组件内自行渲染"未登录引导"或调匿名 API
- * - 强制鉴权的只剩账号安全、个人深度子页（书签/划线/想法/勋章/关注作者）和上传/兴趣引导
+ * - 强制鉴权的只剩账号安全、个人深度子页（书签/划线/想法/勋章/关注作者）和兴趣引导
  *   这些子页继续保留 requiresAuth: true 的 meta，由本守卫读取 to.meta.requiresAuth 兜底
  */
 const AUTH_REQUIRED_ROUTES = [
@@ -21,8 +21,7 @@ const AUTH_REQUIRED_ROUTES = [
   '/profile/notes',
   '/profile/following-authors',
   '/profile/membership',
-  '/onboarding/interests',
-  '/upload'
+  '/onboarding/interests'
 ]
 
 /**
@@ -179,4 +178,3 @@ export const handleNavigationFailure = (failure) => {
 }
 
 export default setupRouterGuards
-

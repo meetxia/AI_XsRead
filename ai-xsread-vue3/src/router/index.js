@@ -38,9 +38,6 @@ const router = createRouter({
     { path: '/reset-password',  name: 'reset-password',  component: () => import('@/views/ResetPasswordPage.vue'),  meta: { title: '重置密码', requiresAuth: false } },
     { path: '/onboarding/interests', name: 'onboarding-interests', component: () => import('@/views/OnboardingInterestsPage.vue'), meta: { title: '选择兴趣', requiresAuth: true } },
 
-    // 其它
-    { path: '/upload',    name: 'upload',    component: () => import('@/views/UploadNovelPage.vue'), meta: { title: '上传小说', requiresAuth: true } },
-
     // 兜底
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
