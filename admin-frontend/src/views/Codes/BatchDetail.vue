@@ -217,7 +217,7 @@ const formatPreview = (preview) => {
 
 const loadDetail = async () => {
   if (!Number.isInteger(batchId.value) || batchId.value < 1) {
-    ElMessage.error('无效的批次 ID')
+    router.replace('/codes')
     return
   }
   batchLoading.value = true
@@ -294,6 +294,7 @@ const handleVoid = async () => {
 }
 
 const downloadTxt = async (status) => {
+  if (!Number.isInteger(batchId.value) || batchId.value < 1) return
   try {
     await downloadBatchTxt(batchId.value, { status, format: 'dashed' })
     ElMessage.success('下载已开始')
@@ -303,6 +304,7 @@ const downloadTxt = async (status) => {
 }
 
 const downloadCsv = async () => {
+  if (!Number.isInteger(batchId.value) || batchId.value < 1) return
   try {
     await downloadBatchCsv(batchId.value)
     ElMessage.success('下载已开始')

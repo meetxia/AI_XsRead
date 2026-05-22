@@ -87,7 +87,7 @@ const routes = [
         meta: { title: '激活记录', icon: 'Histogram' }
       },
       {
-        path: 'codes/:id',
+        path: 'codes/:id(\\d+)',
         name: 'CodeBatchDetail',
         component: () => import('@/views/Codes/BatchDetail.vue'),
         meta: { title: '批次详情', hidden: true }
@@ -133,4 +133,3 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
-
