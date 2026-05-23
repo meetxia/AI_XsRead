@@ -2,8 +2,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// 确保上传目录存在
-const uploadDir = path.join(__dirname, '../../uploads/images');
+// 确保上传目录存在：管理端上传的封面要落到用户端/Nginx 对外暴露的共享目录
+const uploadDir = path.resolve(__dirname, '../../..', 'backend', 'uploads', 'images');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

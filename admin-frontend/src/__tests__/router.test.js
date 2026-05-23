@@ -12,10 +12,19 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROUTER_FILE = path.resolve(__dirname, '../router/index.js')
+const SIDEBAR_FILE = path.resolve(__dirname, '../components/Layout/AppSidebar.vue')
 
 describe('admin code routes', () => {
   it('批次详情路由只匹配数字 ID', () => {
     const file = fs.readFileSync(ROUTER_FILE, 'utf-8')
     expect(file).toMatch(/path:\s*['"]codes\/:id\(\\\\d\+\)['"]/)
+  })
+
+  it('侧边栏菜单使用绝对路径跳转，避免 /codes 叠成 /codes/codes', () => {
+    const file = fs.readFileSync(SIDEBAR_FILE, 'utf-8')
+    expect(file).toMatch(/:index="resolveMenuPath\(route\)"/)
+    expect(file).toMatch(/const resolveMenuPath = \(route\) =>/)
+    expect(file).toMatch(/return path\.startsWith\('\/'\) \? path : `\/\$\{path\}`/)
+    expect(file).not.toMatch(/:index="route\.path"/)
   })
 })

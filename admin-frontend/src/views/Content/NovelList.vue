@@ -262,7 +262,9 @@ const uploadResultRows = computed(() => {
     ...item,
     statusText: '成功',
     tagType: 'success',
-    message: item.novelId ? `ID ${item.novelId}，${item.wordCount || 0}字` : ''
+    message: item.novelId
+      ? `ID ${item.novelId}，${item.wordCount || 0}字，阅读 ${formatNumber(item.views || 0)}，收藏 ${formatNumber(item.collections || 0)}`
+      : ''
   }))
   const exists = (details.exists || []).map(item => ({
     ...item,

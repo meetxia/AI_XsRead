@@ -16,7 +16,7 @@
         <template v-for="route in menuRoutes" :key="route.path">
           <el-menu-item
             v-if="!route.meta?.hidden"
-            :index="route.path"
+            :index="resolveMenuPath(route)"
             @click="handleMenuClick(route)"
           >
             <el-icon v-if="route.meta?.icon">
@@ -46,6 +46,11 @@ const menuRoutes = computed(() => {
   const routes = router.options.routes.find(r => r.path === '/')
   return routes?.children || []
 })
+
+const resolveMenuPath = (route) => {
+  const path = route?.path || '/'
+  return path.startsWith('/') ? path : `/${path}`
+}
 
 const activeMenu = computed(() => {
   const { path } = route
@@ -121,4 +126,3 @@ const handleMenuClick = (route) => {
   }
 }
 </style>
-

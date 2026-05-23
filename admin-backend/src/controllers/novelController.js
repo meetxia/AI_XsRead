@@ -35,6 +35,35 @@ function generateAuthorName() {
   return prefixes[Math.floor(Math.random() * prefixes.length)] + suffixes[Math.floor(Math.random() * suffixes.length)];
 }
 
+function toNonNegativeInteger(value, fallback = 0) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(0, Math.floor(number));
+}
+
+function getEnvInteger(name, fallback) {
+  return toNonNegativeInteger(process.env[name], fallback);
+}
+
+function randomInteger(min, max) {
+  const lower = Math.min(min, max);
+  const upper = Math.max(min, max);
+  return Math.floor(Math.random() * (upper - lower + 1)) + lower;
+}
+
+function generateUploadStats() {
+  const minViews = getEnvInteger('TXT_UPLOAD_RANDOM_VIEWS_MIN', 1000);
+  const maxViews = getEnvInteger('TXT_UPLOAD_RANDOM_VIEWS_MAX', 50000);
+  const minCollections = getEnvInteger('TXT_UPLOAD_RANDOM_COLLECTIONS_MIN', 50);
+  const maxCollections = getEnvInteger('TXT_UPLOAD_RANDOM_COLLECTIONS_MAX', 3000);
+
+  return {
+    views: randomInteger(minViews, maxViews),
+    collections: randomInteger(minCollections, maxCollections)
+  };
+}
+
 function parseTxtBuffer(file) {
   const filename = normalizeTxtFilename(file.originalname);
   const title = filename.replace(/\.txt$/i, '').trim();
@@ -68,20 +97,24 @@ function validateTxtNovel(novelData) {
 }
 
 async function insertAdminNovelWithChapter(connection, novelData, adminUser) {
+  const stats = novelData.stats || generateUploadStats();
+
   const [novelResult] = await connection.query(
     `INSERT INTO novels (
       title, author, author_id, category_id, description,
       word_count, chapter_count, status, views, likes, collections,
       rating, rating_count, is_recommended, is_hot,
       last_chapter_title, last_update_time, published_at
-    ) VALUES (?, ?, ?, ?, ?, ?, 1, 1, 0, 0, 0, 0, 0, 0, 0, '正文', NOW(), NOW())`,
+    ) VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, 0, ?, 0, 0, 0, 0, '正文', NOW(), NOW())`,
     [
       novelData.title,
       novelData.author,
       adminUser.id,
       novelData.categoryId,
       novelData.description,
-      novelData.wordCount
+      novelData.wordCount,
+      stats.views,
+      stats.collections
     ]
   );
 
@@ -100,7 +133,10 @@ async function insertAdminNovelWithChapter(connection, novelData, adminUser) {
     [adminUser.id, adminUser.username, novelId, `批量上传TXT小说: ${novelData.title}`]
   );
 
-  return novelId;
+  return {
+    novelId,
+    stats
+  };
 }
 
 async function importAdminTxtNovelFile(file, adminUser, options = {}) {
@@ -139,7 +175,7 @@ async function importAdminTxtNovelFile(file, adminUser, options = {}) {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-    const novelId = await insertAdminNovelWithChapter(connection, novelData, adminUser);
+    const { novelId, stats } = await insertAdminNovelWithChapter(connection, novelData, adminUser);
     await connection.commit();
     if (seenTitles) seenTitles.add(novelData.title);
 
@@ -149,7 +185,9 @@ async function importAdminTxtNovelFile(file, adminUser, options = {}) {
       novelId,
       title: novelData.title,
       wordCount: novelData.wordCount,
-      categoryId: novelData.categoryId
+      categoryId: novelData.categoryId,
+      views: stats.views,
+      collections: stats.collections
     };
   } catch (error) {
     await connection.rollback();
@@ -169,6 +207,12 @@ const ALLOWED_SORTS = new Set([
   'rating',
   'word_count'
 ]);
+
+function isValidCoverUrl(cover) {
+  if (cover === undefined || cover === null || cover === '') return true;
+  const value = String(cover).trim();
+  return value.startsWith('/uploads/') || /^https?:\/\/\S+/i.test(value);
+}
 
 /**
  * 小说管理控制器
@@ -281,7 +325,9 @@ class NovelController {
               novelId: result.novelId,
               title: result.title,
               wordCount: result.wordCount,
-              categoryId: result.categoryId
+              categoryId: result.categoryId,
+              views: result.views,
+              collections: result.collections
             });
           } else if (result.status === 'exists') {
             results.exists.push({
@@ -370,21 +416,41 @@ class NovelController {
         status = 1,
         isRecommended = 0,
         isHot = 0,
-        isVip = 0
+        isVip = 0,
+        views,
+        collections
       } = req.body;
+      const normalizedViews = toNonNegativeInteger(views);
+      const normalizedCollections = toNonNegativeInteger(collections);
 
       // 验证必填字段
       if (!title || !categoryId || !description) {
         return Response.error(res, '标题、分类和简介不能为空', 400);
       }
 
+      if (!isValidCoverUrl(cover)) {
+        return Response.error(res, '封面地址无效，请重新上传封面', 400);
+      }
+
       // 插入小说
       const [result] = await db.query(
         `INSERT INTO novels (
           title, author, category_id, cover, description,
-          status, is_recommended, is_hot, is_vip, published_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-        [title, author || '佚名', categoryId, cover, description, status, isRecommended, isHot, isVip]
+          status, is_recommended, is_hot, is_vip, views, collections, published_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        [
+          title,
+          author || '佚名',
+          categoryId,
+          cover,
+          description,
+          status,
+          isRecommended,
+          isHot,
+          isVip,
+          normalizedViews,
+          normalizedCollections
+        ]
       );
 
       const novelId = result.insertId;
@@ -439,8 +505,16 @@ class NovelController {
         status,
         isRecommended,
         isHot,
-        isVip
+        isVip,
+        views,
+        collections
       } = req.body;
+      const normalizedViews = views === undefined ? undefined : toNonNegativeInteger(views);
+      const normalizedCollections = collections === undefined ? undefined : toNonNegativeInteger(collections);
+
+      if (!isValidCoverUrl(cover)) {
+        return Response.error(res, '封面地址无效，请重新上传封面', 400);
+      }
 
       // 检查小说是否存在
       const [novels] = await db.query('SELECT * FROM novels WHERE id = ?', [id]);
@@ -460,9 +534,23 @@ class NovelController {
           is_recommended = COALESCE(?, is_recommended),
           is_hot = COALESCE(?, is_hot),
           is_vip = COALESCE(?, is_vip),
+          views = COALESCE(?, views),
+          collections = COALESCE(?, collections),
           updated_at = NOW()
         WHERE id = ?`,
-        [title, categoryId, cover, description, status, isRecommended, isHot, isVip, id]
+        [
+          title,
+          categoryId,
+          cover,
+          description,
+          status,
+          isRecommended,
+          isHot,
+          isVip,
+          normalizedViews,
+          normalizedCollections,
+          id
+        ]
       );
 
       // 更新标签
@@ -667,7 +755,10 @@ NovelController.__test__ = {
   parseTxtBuffer,
   validateTxtNovel,
   importAdminTxtNovelFile,
-  insertAdminNovelWithChapter
+  insertAdminNovelWithChapter,
+  isValidCoverUrl,
+  toNonNegativeInteger,
+  generateUploadStats
 };
 
 module.exports = NovelController;

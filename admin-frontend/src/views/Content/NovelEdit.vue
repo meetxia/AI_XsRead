@@ -30,8 +30,10 @@
           <el-upload
             class="cover-uploader"
             action="/api/admin/upload/image"
+            :headers="uploadHeaders"
             :show-file-list="false"
             :on-success="handleCoverSuccess"
+            :on-error="handleCoverError"
             :before-upload="beforeCoverUpload"
           >
             <img v-if="form.cover" :src="form.cover" class="cover-preview" />
@@ -119,6 +121,34 @@
         </el-form-item>
       </el-card>
 
+      <el-card class="form-card">
+        <template #header>
+          <span>数据设置</span>
+        </template>
+
+        <div class="stats-grid">
+          <el-form-item label="阅读量" prop="views">
+            <el-input-number
+              v-model="form.views"
+              :min="0"
+              :step="100"
+              :precision="0"
+              controls-position="right"
+            />
+          </el-form-item>
+
+          <el-form-item label="收藏量" prop="collections">
+            <el-input-number
+              v-model="form.collections"
+              :min="0"
+              :step="10"
+              :precision="0"
+              controls-position="right"
+            />
+          </el-form-item>
+        </div>
+      </el-card>
+
       <div class="form-actions">
         <el-button @click="router.back()">取消</el-button>
         <el-button @click="handleSaveDraft">保存草稿</el-button>
@@ -146,6 +176,10 @@ const tagInputVisible = ref(false)
 const tagInputValue = ref('')
 
 const isEdit = computed(() => !!route.params.id)
+const uploadHeaders = computed(() => {
+  const token = localStorage.getItem('admin_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+})
 
 const form = reactive({
   title: '',
@@ -156,7 +190,35 @@ const form = reactive({
   description: '',
   isRecommended: false,
   isHot: false,
-  isVip: false
+  isVip: false,
+  views: 0,
+  collections: 0
+})
+
+const toNonNegativeInteger = (value) => {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return 0
+  return Math.max(0, Math.floor(number))
+}
+
+const normalizeNovelDetail = (novel = {}) => ({
+  title: novel.title || '',
+  cover: novel.cover || '',
+  categoryId: novel.categoryId ?? novel.category_id ?? 101,
+  tags: Array.isArray(novel.tags) ? novel.tags : [],
+  status: novel.status ?? 1,
+  description: novel.description || '',
+  isRecommended: Boolean(novel.isRecommended ?? novel.is_recommended),
+  isHot: Boolean(novel.isHot ?? novel.is_hot),
+  isVip: Boolean(novel.isVip ?? novel.is_vip),
+  views: toNonNegativeInteger(novel.views),
+  collections: toNonNegativeInteger(novel.collections)
+})
+
+const buildSubmitPayload = () => ({
+  ...form,
+  views: toNonNegativeInteger(form.views),
+  collections: toNonNegativeInteger(form.collections)
 })
 
 const rules = {
@@ -176,9 +238,22 @@ const rules = {
   ]
 }
 
-const handleCoverSuccess = (response, file) => {
-  form.cover = URL.createObjectURL(file.raw)
+const handleCoverSuccess = (response) => {
+  const isSuccess = response?.code === undefined || (response.code >= 200 && response.code < 300)
+  const uploadUrl = response?.data?.url
+
+  if (!isSuccess || !uploadUrl) {
+    ElMessage.error(response?.message || '封面上传失败')
+    return
+  }
+
+  form.cover = uploadUrl
+  formRef.value?.validateField?.('cover')
   ElMessage.success('封面上传成功')
+}
+
+const handleCoverError = (error) => {
+  ElMessage.error(error?.message || '封面上传失败')
 }
 
 const beforeCoverUpload = (file) => {
@@ -232,11 +307,12 @@ const handleSubmit = async () => {
     if (!valid) return
 
     try {
+      const payload = buildSubmitPayload()
       if (isEdit.value) {
-        await updateNovel(route.params.id, form)
+        await updateNovel(route.params.id, payload)
         ElMessage.success('修改成功')
       } else {
-        await createNovel(form)
+        await createNovel(payload)
         ElMessage.success('创建成功')
       }
       router.push('/novels')
@@ -251,7 +327,7 @@ const loadNovelDetail = async () => {
 
   try {
     const res = await getNovelDetail(route.params.id)
-    Object.assign(form, res.data)
+    Object.assign(form, normalizeNovelDetail(res.data))
   } catch (error) {
     ElMessage.error('加载小说详情失败')
     router.back()
@@ -279,6 +355,16 @@ onMounted(() => {
 
   .form-card {
     margin-bottom: 20px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    column-gap: 24px;
+
+    :deep(.el-input-number) {
+      width: 100%;
+    }
   }
 
   .cover-uploader {
@@ -329,6 +415,14 @@ onMounted(() => {
     justify-content: flex-end;
     gap: 10px;
     margin-top: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .novel-edit-container {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
   }
 }
 </style>
