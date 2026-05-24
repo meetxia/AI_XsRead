@@ -48,6 +48,7 @@ const showToast = (msg, type = 'info', duration = 2200) => {
 }
 
 const trimmedNickname = computed(() => (nickname.value || '').trim())
+const accountEmail = computed(() => userStore.userInfo?.email || '未绑定')
 
 const tagsChanged = computed(() => {
   const a = [...(tags.value || [])].sort()
@@ -200,6 +201,21 @@ const remainingLen = computed(() => {
           <p class="mt-1 text-[11px] text-ink-500 dark:text-ink-300">
             <span v-if="!nicknameValid">昵称需 1-{{ NICKNAME_MAX }} 字</span>
             <span v-else>还可输入 {{ remainingLen }} 字</span>
+          </p>
+        </section>
+
+        <!-- 账号邮箱 -->
+        <section class="mt-8">
+          <label class="block text-xs font-medium text-ink-500 dark:text-ink-300 mb-2">
+            账号邮箱
+          </label>
+          <div class="rounded-xl border border-cream-200 dark:border-night-700 bg-cream-100 dark:bg-night-800 px-3 py-2.5">
+            <p class="text-sm text-ink-800 dark:text-cream-100 break-all">
+              {{ accountEmail }}
+            </p>
+          </div>
+          <p class="mt-1 text-[11px] text-ink-500 dark:text-ink-300">
+            邮箱用于登录与账号识别，暂不支持修改。
           </p>
         </section>
 

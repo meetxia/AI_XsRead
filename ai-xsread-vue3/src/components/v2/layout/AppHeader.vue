@@ -15,10 +15,9 @@ const userStore = useUserStore()
 
 const avatarLetter = computed(() => {
   const name = userStore.userInfo?.username || userStore.userInfo?.nickname || ''
-  return (name[0] || '阮').toUpperCase()
+  return (name[0] || '读').toUpperCase()
 })
 const avatarUrl = computed(() => userStore.userInfo?.avatar || '')
-const profileLink = computed(() => userStore.isLogin ? '/profile' : '/login')
 </script>
 
 <template>
@@ -51,14 +50,29 @@ const profileLink = computed(() => userStore.isLogin ? '/profile' : '/login')
         <ThemeToggle v-if="showThemeToggle" />
 
         <RouterLink
-          v-if="showAvatar"
-          :to="profileLink"
+          v-if="showAvatar && userStore.isLogin"
+          to="/profile"
           class="w-9 h-9 ml-1 rounded-full bg-gradient-to-br from-clay-400 to-clay-600 ring-2 ring-cream-100 dark:ring-night-700 grid place-items-center text-cream-50 text-sm font-medium overflow-hidden"
           aria-label="我的"
         >
           <img v-if="avatarUrl" :src="avatarUrl" alt="头像" class="w-full h-full object-cover" />
           <span v-else>{{ avatarLetter }}</span>
         </RouterLink>
+
+        <div v-else-if="showAvatar" class="ml-2 flex items-center gap-2">
+          <RouterLink
+            to="/login"
+            class="h-9 px-3 grid place-items-center rounded-full text-sm font-medium text-ink-700 dark:text-ink-200 hover:bg-cream-100 dark:hover:bg-night-800 transition-colors"
+          >
+            登录
+          </RouterLink>
+          <RouterLink
+            to="/register"
+            class="h-9 px-3 grid place-items-center rounded-full bg-clay-600 text-sm font-medium text-cream-50 hover:bg-clay-700 transition-colors"
+          >
+            注册
+          </RouterLink>
+        </div>
       </div>
     </div>
   </header>

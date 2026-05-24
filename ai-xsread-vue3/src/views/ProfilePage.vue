@@ -50,6 +50,7 @@ const user = computed(() => {
   return {
     name: info.nickname || info.username || '读者',
     handle: info.username ? `@${info.username}` : '',
+    email: info.email || '',
     joinDays: joinDays.value,
     avatar: info.avatar || '',
     shelf: shelfCount.value,
@@ -186,6 +187,13 @@ watch(() => userStore.isLogin, (val) => {
                   <p class="text-sm text-cream-200/85 mt-0.5 truncate">
                     <span v-if="user.handle">{{ user.handle }}</span>
                     <span v-if="user.joinDays"> · 加入 {{ user.joinDays }} 天</span>
+                  </p>
+                  <p
+                    v-if="user.email"
+                    class="mt-1 text-xs text-cream-100/75 truncate"
+                    title="账号邮箱暂不支持修改"
+                  >
+                    {{ user.email }}
                   </p>
                 </div>
                 <div class="flex flex-col items-end gap-2 shrink-0">
