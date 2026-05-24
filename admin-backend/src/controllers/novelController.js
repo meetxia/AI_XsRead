@@ -42,8 +42,19 @@ function toNonNegativeInteger(value, fallback = 0) {
   return Math.max(0, Math.floor(number));
 }
 
+function normalizeRating(value, fallback = 0) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(5, Math.max(0, Number(number.toFixed(2))));
+}
+
 function getEnvInteger(name, fallback) {
   return toNonNegativeInteger(process.env[name], fallback);
+}
+
+function getEnvRating(name, fallback) {
+  return normalizeRating(process.env[name], fallback);
 }
 
 function randomInteger(min, max) {
@@ -52,15 +63,25 @@ function randomInteger(min, max) {
   return Math.floor(Math.random() * (upper - lower + 1)) + lower;
 }
 
+function randomRating(min, max) {
+  const lower = Math.min(min, max);
+  const upper = Math.max(min, max);
+  const value = Math.random() * (upper - lower) + lower;
+  return normalizeRating(value);
+}
+
 function generateUploadStats() {
   const minViews = getEnvInteger('TXT_UPLOAD_RANDOM_VIEWS_MIN', 1000);
   const maxViews = getEnvInteger('TXT_UPLOAD_RANDOM_VIEWS_MAX', 50000);
   const minCollections = getEnvInteger('TXT_UPLOAD_RANDOM_COLLECTIONS_MIN', 50);
   const maxCollections = getEnvInteger('TXT_UPLOAD_RANDOM_COLLECTIONS_MAX', 3000);
+  const minRating = getEnvRating('TXT_UPLOAD_RANDOM_RATING_MIN', 4.2);
+  const maxRating = getEnvRating('TXT_UPLOAD_RANDOM_RATING_MAX', 4.9);
 
   return {
     views: randomInteger(minViews, maxViews),
-    collections: randomInteger(minCollections, maxCollections)
+    collections: randomInteger(minCollections, maxCollections),
+    rating: randomRating(minRating, maxRating)
   };
 }
 
@@ -105,7 +126,7 @@ async function insertAdminNovelWithChapter(connection, novelData, adminUser) {
       word_count, chapter_count, status, views, likes, collections,
       rating, rating_count, is_recommended, is_hot,
       last_chapter_title, last_update_time, published_at
-    ) VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, 0, ?, 0, 0, 0, 0, '正文', NOW(), NOW())`,
+    ) VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, 0, ?, ?, 0, 0, 0, '正文', NOW(), NOW())`,
     [
       novelData.title,
       novelData.author,
@@ -114,7 +135,8 @@ async function insertAdminNovelWithChapter(connection, novelData, adminUser) {
       novelData.description,
       novelData.wordCount,
       stats.views,
-      stats.collections
+      stats.collections,
+      stats.rating
     ]
   );
 
@@ -187,7 +209,8 @@ async function importAdminTxtNovelFile(file, adminUser, options = {}) {
       wordCount: novelData.wordCount,
       categoryId: novelData.categoryId,
       views: stats.views,
-      collections: stats.collections
+      collections: stats.collections,
+      rating: stats.rating
     };
   } catch (error) {
     await connection.rollback();
@@ -327,7 +350,8 @@ class NovelController {
               wordCount: result.wordCount,
               categoryId: result.categoryId,
               views: result.views,
-              collections: result.collections
+              collections: result.collections,
+              rating: result.rating
             });
           } else if (result.status === 'exists') {
             results.exists.push({
@@ -418,10 +442,12 @@ class NovelController {
         isHot = 0,
         isVip = 0,
         views,
-        collections
+        collections,
+        rating
       } = req.body;
       const normalizedViews = toNonNegativeInteger(views);
       const normalizedCollections = toNonNegativeInteger(collections);
+      const normalizedRating = normalizeRating(rating);
 
       // 验证必填字段
       if (!title || !categoryId || !description) {
@@ -436,8 +462,8 @@ class NovelController {
       const [result] = await db.query(
         `INSERT INTO novels (
           title, author, category_id, cover, description,
-          status, is_recommended, is_hot, is_vip, views, collections, published_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+          status, is_recommended, is_hot, is_vip, views, collections, rating, published_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           title,
           author || '佚名',
@@ -449,7 +475,8 @@ class NovelController {
           isHot,
           isVip,
           normalizedViews,
-          normalizedCollections
+          normalizedCollections,
+          normalizedRating
         ]
       );
 
@@ -507,10 +534,12 @@ class NovelController {
         isHot,
         isVip,
         views,
-        collections
+        collections,
+        rating
       } = req.body;
       const normalizedViews = views === undefined ? undefined : toNonNegativeInteger(views);
       const normalizedCollections = collections === undefined ? undefined : toNonNegativeInteger(collections);
+      const normalizedRating = rating === undefined ? undefined : normalizeRating(rating);
 
       if (!isValidCoverUrl(cover)) {
         return Response.error(res, '封面地址无效，请重新上传封面', 400);
@@ -536,6 +565,7 @@ class NovelController {
           is_vip = COALESCE(?, is_vip),
           views = COALESCE(?, views),
           collections = COALESCE(?, collections),
+          rating = COALESCE(?, rating),
           updated_at = NOW()
         WHERE id = ?`,
         [
@@ -549,6 +579,7 @@ class NovelController {
           isVip,
           normalizedViews,
           normalizedCollections,
+          normalizedRating,
           id
         ]
       );
@@ -758,6 +789,7 @@ NovelController.__test__ = {
   insertAdminNovelWithChapter,
   isValidCoverUrl,
   toNonNegativeInteger,
+  normalizeRating,
   generateUploadStats
 };
 

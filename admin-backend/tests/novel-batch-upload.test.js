@@ -80,7 +80,7 @@ describe('admin NovelController batch TXT upload', () => {
     expect(chapterInsert[1]).toEqual(expect.arrayContaining([901, expect.any(String), expect.any(Number)]));
   });
 
-  test('importAdminTxtNovelFile assigns randomized views and collections on upload', async () => {
+  test('importAdminTxtNovelFile assigns randomized views, collections and rating on upload', async () => {
     const connection = makeConnection([902]);
     db.query.mockResolvedValueOnce([[]]);
     db.getConnection.mockResolvedValueOnce(connection);
@@ -94,15 +94,19 @@ describe('admin NovelController batch TXT upload', () => {
     expect(result.status).toBe('success');
     expect(result.views).toEqual(expect.any(Number));
     expect(result.collections).toEqual(expect.any(Number));
+    expect(result.rating).toEqual(expect.any(Number));
     expect(result.views).toBeGreaterThanOrEqual(1000);
     expect(result.views).toBeLessThanOrEqual(50000);
     expect(result.collections).toBeGreaterThanOrEqual(50);
     expect(result.collections).toBeLessThanOrEqual(3000);
+    expect(result.rating).toBeGreaterThanOrEqual(4.2);
+    expect(result.rating).toBeLessThanOrEqual(4.9);
 
     const novelInsert = connection.query.mock.calls.find(([sql]) => /INSERT INTO novels/i.test(sql));
     expect(novelInsert[0]).toMatch(/views, likes, collections/);
+    expect(novelInsert[0]).toMatch(/rating, rating_count/);
     expect(novelInsert[0]).not.toMatch(/1, 0, 0, 0, 0, 0, 0, 0, 0, '正文'/);
-    expect(novelInsert[1]).toEqual(expect.arrayContaining([result.views, result.collections]));
+    expect(novelInsert[1]).toEqual(expect.arrayContaining([result.views, result.collections, result.rating]));
   });
 
   test('importAdminTxtNovelFile reports existing and same-batch duplicate without writing', async () => {

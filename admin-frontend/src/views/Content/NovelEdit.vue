@@ -146,6 +146,17 @@
               controls-position="right"
             />
           </el-form-item>
+
+          <el-form-item label="评分" prop="rating">
+            <el-input-number
+              v-model="form.rating"
+              :min="0"
+              :max="5"
+              :step="0.1"
+              :precision="2"
+              controls-position="right"
+            />
+          </el-form-item>
         </div>
       </el-card>
 
@@ -192,13 +203,20 @@ const form = reactive({
   isHot: false,
   isVip: false,
   views: 0,
-  collections: 0
+  collections: 0,
+  rating: 0
 })
 
 const toNonNegativeInteger = (value) => {
   const number = Number(value)
   if (!Number.isFinite(number)) return 0
   return Math.max(0, Math.floor(number))
+}
+
+const normalizeRating = (value) => {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return 0
+  return Math.min(5, Math.max(0, Number(number.toFixed(2))))
 }
 
 const normalizeNovelDetail = (novel = {}) => ({
@@ -212,13 +230,15 @@ const normalizeNovelDetail = (novel = {}) => ({
   isHot: Boolean(novel.isHot ?? novel.is_hot),
   isVip: Boolean(novel.isVip ?? novel.is_vip),
   views: toNonNegativeInteger(novel.views),
-  collections: toNonNegativeInteger(novel.collections)
+  collections: toNonNegativeInteger(novel.collections),
+  rating: normalizeRating(novel.rating)
 })
 
 const buildSubmitPayload = () => ({
   ...form,
   views: toNonNegativeInteger(form.views),
-  collections: toNonNegativeInteger(form.collections)
+  collections: toNonNegativeInteger(form.collections),
+  rating: normalizeRating(form.rating)
 })
 
 const rules = {

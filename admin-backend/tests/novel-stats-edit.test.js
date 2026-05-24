@@ -28,7 +28,7 @@ describe('admin-backend novel stats editing', () => {
     jest.clearAllMocks();
   });
 
-  test('POST /api/admin/novels writes views and collections when creating a novel', async () => {
+  test('POST /api/admin/novels writes views, collections and rating when creating a novel', async () => {
     db.query
       .mockResolvedValueOnce([{ insertId: 321 }])
       .mockResolvedValueOnce([[{ id: 9 }]])
@@ -44,16 +44,17 @@ describe('admin-backend novel stats editing', () => {
         description: '这是一段足够长的小说简介，用来验证管理后台创建时保存数据统计字段。',
         tags: ['甜宠'],
         views: 12345,
-        collections: 678
+        collections: 678,
+        rating: 4.7
       });
 
     expect(res.body?.code).toBe(201);
     const insertCall = db.query.mock.calls.find(([sql]) => /INSERT INTO novels/i.test(sql));
-    expect(insertCall[0]).toMatch(/views, collections/);
-    expect(insertCall[1]).toEqual(expect.arrayContaining([12345, 678]));
+    expect(insertCall[0]).toMatch(/views, collections, rating/);
+    expect(insertCall[1]).toEqual(expect.arrayContaining([12345, 678, 4.7]));
   });
 
-  test('PUT /api/admin/novels/:id updates views and collections', async () => {
+  test('PUT /api/admin/novels/:id updates views, collections and rating', async () => {
     db.query
       .mockResolvedValueOnce([[{ id: 7, title: '旧书名' }]])
       .mockResolvedValueOnce([{ affectedRows: 1 }])
@@ -64,6 +65,7 @@ describe('admin-backend novel stats editing', () => {
       .send({
         views: 98765,
         collections: 4321,
+        rating: 5.8,
         tags: []
       });
 
@@ -71,6 +73,7 @@ describe('admin-backend novel stats editing', () => {
     const updateCall = db.query.mock.calls.find(([sql]) => /UPDATE novels SET/i.test(sql));
     expect(updateCall[0]).toMatch(/views = COALESCE\(\?, views\)/);
     expect(updateCall[0]).toMatch(/collections = COALESCE\(\?, collections\)/);
-    expect(updateCall[1]).toEqual(expect.arrayContaining([98765, 4321]));
+    expect(updateCall[0]).toMatch(/rating = COALESCE\(\?, rating\)/);
+    expect(updateCall[1]).toEqual(expect.arrayContaining([98765, 4321, 5]));
   });
 });
