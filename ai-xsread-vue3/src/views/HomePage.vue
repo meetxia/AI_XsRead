@@ -1,12 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AppHeader from '@/components/v2/layout/AppHeader.vue'
 import BottomNav from '@/components/v2/layout/BottomNav.vue'
-import BookCard from '@/components/v2/book/BookCard.vue'
 import BookCover from '@/components/v2/book/BookCover.vue'
 import Icon from '@/components/v2/icons/Icon.vue'
-import RankTabSection from '@/components/novel/RankTabSection.vue'
 import { getRecommendNovels, getNovelList } from '@/api/novel'
 import { useUserStore } from '@/stores/user'
 import { useSeoMeta, SEO_DEFAULTS } from '@/composables/useSeoMeta'
@@ -24,400 +22,449 @@ useSeoMeta({
 const router = useRouter()
 const userStore = useUserStore()
 
-// ─── 继续阅读（从阅读进度接口获取） ───
+const searchKeyword = ref('')
+const loading = ref(false)
 const continueBook = ref(null)
 const hasContinue = ref(false)
+const featuredBooks = ref([])
+const hotBooks = ref([])
+const visibleFeedCount = ref(8)
+const loadMoreSentinel = ref(null)
+const activeCategoryKey = ref('featured')
+let observer = null
 
-// ─── 主编荐读（第一本推荐小说） ───
-const editorPick = ref(null)
+const categories = [
+  { key: 'featured', label: '精选' },
+  { key: 'urban', label: '都市言情', categoryId: 101 },
+  { key: 'ancient', label: '古风穿越', categoryId: 102 },
+  { key: 'mystery', label: '悬疑推理', categoryId: 103 },
+  { key: 'healing', label: '治愈甜宠', categoryId: 104 },
+  { key: 'fantasy', label: '奇幻冒险', categoryId: 105 },
+  { key: 'finished', label: '完结', status: 0 },
+]
 
-// ─── 推荐书单 ───
-const books = ref([])
+const activeCategory = computed(() => (
+  categories.find(item => item.key === activeCategoryKey.value) || categories[0]
+))
 
-// ─── 排行榜（按浏览量排序） ───
-const ranks = ref([])
+const shelfGroups = computed(() => [
+  {
+    key: 'warm',
+    title: '女生热读',
+    subtitle: '高收藏 · 高人气',
+    books: hotBooks.value.slice(0, 8),
+    accent: 'text-rose-600 dark:text-rose-300',
+  },
+  {
+    key: 'new',
+    title: '新书抢先',
+    subtitle: '刚上架的故事',
+    books: featuredBooks.value.slice(3, 11),
+    accent: 'text-moss-600 dark:text-moss-400',
+  },
+  {
+    key: 'complete',
+    title: '完结可追',
+    subtitle: '一口气读完',
+    books: mergedBooks.value.slice(6, 14),
+    accent: 'text-clay-700 dark:text-clay-300',
+  },
+].filter(group => group.books.length > 0))
 
-const loading = ref(false)
+const mergedBooks = computed(() => {
+  const byId = new Map()
+  ;[...featuredBooks.value, ...hotBooks.value].forEach((book) => {
+    if (book?.id && !byId.has(book.id)) {
+      byId.set(book.id, book)
+    }
+  })
+  return [...byId.values()]
+})
+
+const feedSource = computed(() => {
+  const source = mergedBooks.value
+  if (source.length === 0) return []
+
+  const targetSize = Math.max(24, source.length * 2)
+  return Array.from({ length: targetSize }, (_, index) => {
+    const base = source[index % source.length]
+    return {
+      ...base,
+      feedKey: `${base.id}-${index}`,
+      tag: index % 3 === 0 ? '口碑上升' : (index % 3 === 1 ? '适合睡前读' : '本周有人追'),
+    }
+  })
+})
+
+const waterfallBooks = computed(() => feedSource.value.slice(0, visibleFeedCount.value))
+const canLoadMore = computed(() => visibleFeedCount.value < feedSource.value.length)
+const hotRankingBooks = computed(() => {
+  const source = hotBooks.value.length ? hotBooks.value : mergedBooks.value
+  return source.slice(0, 8)
+})
+
+function normalizeNovel(novel, index = 0) {
+  const views = Number(novel.views || novel.read_count || 0)
+  const wordCount = Number(novel.word_count || novel.words || 0)
+  const description = String(novel.description || novel.summary || '她在命运转弯处遇见新的自己，故事从此有了温度。')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  return {
+    id: novel.id || novel.novel_id || index + 1,
+    title: novel.title || '未命名小说',
+    author: novel.author || novel.author_name || '佚名',
+    category: novel.category_name || novel.category || '小说',
+    description,
+    rating: Number(novel.rating || 0).toFixed(1),
+    readers: views > 0 ? `${(views / 10000).toFixed(1)}万人在读` : '新书上架',
+    wordCount: wordCount > 0 ? `${Math.max(1, Math.round(wordCount / 10000))}万字` : '连载中',
+    cover: novel.cover || novel.cover_url || '',
+    variant: index,
+  }
+}
+
+function extractList(response) {
+  const data = response?.data
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.list)) return data.list
+  if (Array.isArray(data?.items)) return data.items
+  return []
+}
+
+function submitSearch() {
+  const keyword = searchKeyword.value.trim()
+  if (!keyword) {
+    router.push('/search')
+    return
+  }
+  router.push(`/search?keyword=${encodeURIComponent(keyword)}`)
+}
+
+function loadMore() {
+  if (!canLoadMore.value) return
+  visibleFeedCount.value = Math.min(visibleFeedCount.value + 6, feedSource.value.length)
+}
 
 async function loadData() {
   loading.value = true
   try {
-    // 并行加载推荐和排行
+    const currentCategory = activeCategory.value
+    const hotParams = {
+      sortBy: 'views',
+      order: 'DESC',
+      page: 1,
+      pageSize: 18,
+    }
+    if (currentCategory.categoryId) hotParams.categoryId = currentCategory.categoryId
+    if (currentCategory.status !== undefined) hotParams.status = currentCategory.status
+
     const [recRes, hotRes] = await Promise.allSettled([
-      getRecommendNovels({ limit: 12 }),
-      getNovelList({ sortBy: 'views', order: 'DESC', page: 1, pageSize: 5 }),
+      currentCategory.key === 'featured'
+        ? getRecommendNovels({ limit: 18 })
+        : getNovelList({ ...hotParams, sortBy: 'created_at', order: 'DESC' }),
+      getNovelList(hotParams),
     ])
 
-    // 推荐数据
     if (recRes.status === 'fulfilled' && recRes.value?.code === 200) {
-      const list = Array.isArray(recRes.value.data)
-        ? recRes.value.data
-        : (recRes.value.data?.list || [])
-
-      if (list.length > 0) {
-        // 第一本作为主编荐读
-        const first = list[0]
-        editorPick.value = {
-          id: first.id,
-          title: first.title,
-          category: first.category_name || '小说',
-          author: first.author || '佚名',
-          wordCount: first.word_count ? `${Math.round(first.word_count / 10000)} 万字` : '未知',
-          intro: (first.description || '').replace(/\r\n/g, ' ').slice(0, 120) + '…',
-          rating: Number(first.rating || 0).toFixed(1),
-          readers: first.views ? `${(first.views / 10000).toFixed(1)} 万` : '0',
-          cover: first.cover,
-        }
-        // 其余作为书单（PC 端最多显示 10 本）
-        books.value = list.slice(1, 11).map((n, i) => ({
-          id: n.id,
-          title: n.title,
-          author: n.author || '佚名',
-          cat: n.category_name || '',
-          rating: Number(n.rating || 0).toFixed(1),
-          cover: n.cover,
-          variant: i,
-        }))
-      }
+      featuredBooks.value = extractList(recRes.value).map(normalizeNovel)
     }
 
-    // 排行榜
     if (hotRes.status === 'fulfilled' && hotRes.value?.code === 200) {
-      const list = Array.isArray(hotRes.value.data)
-        ? hotRes.value.data
-        : (hotRes.value.data?.list || [])
-      const colors = [
-        'from-clay-400 to-clay-700',
-        'from-moss-500 to-moss-600',
-        'from-night-800 to-clay-700',
-        'from-cream-300 to-clay-500',
-        'from-clay-500 to-moss-600',
-      ]
-      ranks.value = list.slice(0, 5).map((n, i) => ({
-        rank: i + 1,
-        id: n.id,
-        title: n.title,
-        author: n.author || '佚名',
-        cat: n.category_name || '',
-        readers: n.views ? `${(n.views / 10000).toFixed(1)} 万` : '0',
-        rating: Number(n.rating || 0).toFixed(1),
-        color: colors[i],
-        cover: n.cover,
-        variant: i,
-      }))
+      hotBooks.value = extractList(hotRes.value).map(normalizeNovel)
     }
 
-    // 如果已登录，加载最近阅读进度
+    if (featuredBooks.value.length === 0 && hotBooks.value.length > 0) {
+      featuredBooks.value = hotBooks.value.slice(0, 12)
+    }
+    if (hotBooks.value.length === 0 && featuredBooks.value.length > 0) {
+      hotBooks.value = featuredBooks.value.slice().reverse()
+    }
+
     if (userStore.isLogin) {
       loadContinueReading()
     }
-  } catch (e) {
-    console.warn('[Home] load data error', e?.message)
+  } catch (error) {
+    console.warn('[Home] load bookstore data error', error?.message)
   } finally {
     loading.value = false
   }
 }
 
+async function selectCategory(item) {
+  if (activeCategoryKey.value === item.key || loading.value) return
+  activeCategoryKey.value = item.key
+  visibleFeedCount.value = 8
+  featuredBooks.value = []
+  hotBooks.value = []
+  await loadData()
+  await nextTick()
+  observer?.disconnect()
+  observer = null
+  setupLoadMoreObserver()
+}
+
 async function loadContinueReading() {
   try {
-    // 从阅读历史获取最近一本
     const { getReadingHistory } = await import('@/api/user')
     const res = await getReadingHistory({ page: 1, pageSize: 1 })
-    if (res?.code === 200) {
-      const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
-      if (list.length > 0) {
-        const h = list[0]
-        const progress = Math.max(0, Math.min(100, Math.round(Number(h.progress || h.reading_progress || 0))))
-        const wordCount = Number(h.word_count || h.total_words || 0)
-        const remainWords = wordCount && progress < 100 ? Math.round(wordCount * (100 - progress) / 100) : 0
-        const remainMinutes = remainWords ? Math.max(1, Math.ceil(remainWords / 350)) : null
-        const chapterNumber = h.chapter_number || h.chapter_no || ''
-        const chapterTitle = h.chapter_title || '继续阅读'
-        continueBook.value = {
-          id: h.novel_id,
-          title: h.title || '未知小说',
-          category: h.category_name || '',
-          author: h.author || '佚名',
-          chapter: chapterNumber ? `第 ${chapterNumber} 章 · ${chapterTitle}` : `上次读到 · ${chapterTitle}`,
-          progress,
-          remaining: remainMinutes ? `预计剩余 ${remainMinutes} 分钟` : '点此继续',
-          chapterId: h.chapter_id,
-        }
-        hasContinue.value = true
-      }
+    if (res?.code !== 200) return
+
+    const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+    if (list.length === 0) return
+
+    const history = list[0]
+    const progress = Math.max(0, Math.min(100, Math.round(Number(history.progress || history.reading_progress || 0))))
+    const chapterNumber = history.chapter_number || history.chapter_no || ''
+    const chapterTitle = history.chapter_title || '继续阅读'
+
+    continueBook.value = {
+      id: history.novel_id,
+      title: history.title || '未知小说',
+      author: history.author || '佚名',
+      chapter: chapterNumber ? `第 ${chapterNumber} 章 · ${chapterTitle}` : `上次读到 · ${chapterTitle}`,
+      progress,
+      chapterId: history.chapter_id,
     }
-  } catch (e) {
-    // 静默失败
+    hasContinue.value = true
+  } catch (error) {
+    // 最近阅读不是首页首屏的强依赖，失败时静默降级。
   }
 }
 
-onMounted(loadData)
+function setupLoadMoreObserver() {
+  if (!loadMoreSentinel.value || typeof IntersectionObserver === 'undefined') return
+
+  observer = new IntersectionObserver((entries) => {
+    if (entries.some(entry => entry.isIntersecting)) {
+      loadMore()
+    }
+  }, { rootMargin: '240px 0px' })
+
+  observer.observe(loadMoreSentinel.value)
+}
+
+onMounted(async () => {
+  await loadData()
+  await nextTick()
+  setupLoadMoreObserver()
+})
+
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  observer = null
+})
 </script>
 
 <template>
-  <div class="home-page bg-cream-50 dark:bg-night-900 text-ink-900 dark:text-cream-100 min-h-screen paper-texture">
-    <AppHeader />
+  <div class="home-page min-h-screen bg-cream-50 text-ink-900 dark:bg-night-900 dark:text-cream-100 paper-texture">
+    <AppHeader class="hidden lg:block" />
 
-    <main class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+    <main class="mx-auto max-w-screen-xl px-4 pb-32 sm:px-6 lg:px-8">
+      <header class="sticky top-0 z-20 -mx-4 bg-cream-50/95 px-4 pb-2 pt-3 backdrop-blur dark:bg-night-900/95 sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:pb-4 lg:pt-5 lg:backdrop-blur-none lg:dark:bg-transparent">
+        <form
+          class="flex h-11 items-center gap-2 rounded-full border border-cream-200 bg-white px-4 shadow-sm dark:border-night-700 dark:bg-night-800"
+          data-testid="home-search-entry"
+          @submit.prevent="submitSearch"
+        >
+          <Icon name="search" class="h-5 w-5 text-ink-400 dark:text-ink-300" />
+          <input
+            v-model="searchKeyword"
+            type="search"
+            class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-400 dark:placeholder:text-ink-300"
+            placeholder="搜索书名、作者、人物"
+            aria-label="搜索小说"
+          />
+          <button type="submit" class="shrink-0 text-sm font-medium text-clay-700 dark:text-clay-300">搜索</button>
+        </form>
 
-      <!-- 继续阅读（仅登录且有记录时显示） -->
-      <section v-if="hasContinue && continueBook" class="pt-5 pb-1">
-        <div class="flex items-end justify-between mb-3">
-          <div>
-            <p class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1">Continue Reading</p>
-            <h2 class="font-serif text-xl sm:text-2xl font-semibold tracking-tight">继续你的故事</h2>
+        <nav
+          class="no-scrollbar -mx-4 mt-3 flex gap-5 overflow-x-auto px-4 text-[15px] font-semibold sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0"
+          data-testid="home-category-nav"
+          aria-label="首页分类导航"
+        >
+          <button
+            v-for="item in categories"
+            :key="item.key"
+            type="button"
+            :data-testid="`home-category-tab-${item.key}`"
+            @click="selectCategory(item)"
+            :class="[
+              'shrink-0 border-b-2 pb-2 transition-colors',
+              activeCategoryKey === item.key
+                ? 'border-clay-700 text-clay-800 dark:border-clay-300 dark:text-clay-200'
+                : 'border-transparent text-ink-500 hover:text-clay-700 dark:text-ink-300 dark:hover:text-clay-300'
+            ]"
+          >
+            {{ item.label }}
+          </button>
+        </nav>
+      </header>
+
+      <section class="pt-4" data-testid="home-hot-ranking">
+        <div class="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-cream-200 dark:bg-night-800 dark:ring-night-700">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <div class="no-scrollbar flex min-w-0 flex-1 gap-5 overflow-x-auto text-lg font-semibold">
+              <span class="shrink-0 text-ink-950 dark:text-cream-50">推荐榜</span>
+              <span class="shrink-0 text-ink-400 dark:text-ink-300">完本榜</span>
+              <span class="shrink-0 text-ink-400 dark:text-ink-300">口碑榜</span>
+              <span class="shrink-0 text-ink-400 dark:text-ink-300">飙升榜</span>
+            </div>
+            <RouterLink to="/recommend?tab=hot" class="shrink-0 text-sm font-medium text-ink-700 dark:text-ink-300">
+              完整榜单
+            </RouterLink>
+          </div>
+
+          <div v-if="hotRankingBooks.length" class="grid grid-cols-2 gap-x-3 gap-y-4">
+            <RouterLink
+              v-for="(book, index) in hotRankingBooks"
+              :key="`hot-rank-${book.id}`"
+              :to="`/novel/${book.id}`"
+              class="flex min-w-0 gap-2"
+              data-testid="home-hot-rank-item"
+            >
+              <div class="h-[70px] w-[52px] shrink-0 overflow-hidden rounded-md bg-cream-200 shadow-sm dark:bg-night-700">
+                <BookCover :title="book.title" :variant="book.variant + index" :cover="book.cover" :footer="false" />
+              </div>
+              <div class="min-w-0 flex-1 pt-1">
+                <div class="flex items-baseline gap-1.5">
+                  <span
+                    :class="[
+                      'w-5 shrink-0 text-center font-serif text-lg font-bold leading-none',
+                      index < 3 ? 'text-clay-500 dark:text-clay-300' : 'text-ink-900 dark:text-cream-100'
+                    ]"
+                  >
+                    {{ index + 1 }}
+                  </span>
+                  <h2 class="line-clamp-2 text-[15px] font-semibold leading-5 text-ink-950 dark:text-cream-50">{{ book.title }}</h2>
+                </div>
+                <p class="mt-1 truncate pl-6 text-xs text-clay-500 dark:text-clay-300">{{ book.category }} · {{ book.readers }}</p>
+              </div>
+            </RouterLink>
+          </div>
+
+          <div v-else class="grid grid-cols-2 gap-x-3 gap-y-4">
+            <div v-for="item in 8" :key="item" class="flex gap-2">
+              <div class="h-[70px] w-[52px] shrink-0 rounded-md skeleton"></div>
+              <div class="flex-1 space-y-2 pt-1">
+                <div class="h-4 w-20 rounded skeleton"></div>
+                <div class="h-4 w-14 rounded skeleton"></div>
+                <div class="h-3 w-16 rounded skeleton"></div>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
+      <section v-if="hasContinue && continueBook" class="pt-4">
         <RouterLink
           :to="continueBook.chapterId ? `/reading/${continueBook.id}?chapter=${continueBook.chapterId}` : `/reading/${continueBook.id}`"
-          class="book-card relative block rounded-2xl overflow-hidden bg-gradient-to-br from-clay-500 to-clay-700 dark:from-clay-600 dark:to-clay-700 text-cream-50 shadow-cream"
+          class="block rounded-2xl bg-gradient-to-br from-clay-700 via-clay-600 to-rose-700 p-4 text-cream-50 shadow-cream"
         >
-          <div class="absolute inset-0 opacity-90">
-            <svg viewBox="0 0 400 160" class="w-full h-full" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-              <defs>
-                <linearGradient id="heroBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8B5E3C"/><stop offset="100%" stop-color="#5C3B25"/></linearGradient>
-                <radialGradient id="heroGlow" cx="0.78" cy="0.32"><stop offset="0%" stop-color="#E5D6C4" stop-opacity="0.55"/><stop offset="100%" stop-color="#5C3B25" stop-opacity="0"/></radialGradient>
-              </defs>
-              <rect width="400" height="160" fill="url(#heroBg)"/>
-              <rect width="400" height="160" fill="url(#heroGlow)"/>
-              <circle cx="332" cy="46" r="18" fill="#FDFAF6" opacity="0.85"/>
-              <circle cx="326" cy="42" r="16" fill="#A87A56" opacity="0.95"/>
-            </svg>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-xs text-cream-100/75">继续阅读</p>
+              <h1 class="mt-1 truncate font-serif text-xl font-semibold">{{ continueBook.title }}</h1>
+              <p class="mt-1 truncate text-xs text-cream-100/80">{{ continueBook.author }} · {{ continueBook.chapter }}</p>
+            </div>
+            <span class="rounded-full bg-cream-50 px-3 py-1.5 text-xs font-semibold text-clay-700">续读</span>
           </div>
-          <div class="relative p-4 sm:p-5 flex flex-col gap-3">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <span class="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full bg-cream-50/15 backdrop-blur border border-cream-50/20 font-medium">
-                  <span class="w-1.5 h-1.5 rounded-full bg-cream-50 animate-pulse"></span>
-                  <span class="truncate max-w-[18ch]">{{ continueBook.chapter }}</span>
-                </span>
-                <h3 class="mt-2 font-serif text-lg sm:text-xl font-semibold leading-tight">{{ continueBook.title }}</h3>
-                <p class="mt-0.5 text-xs text-cream-200/80">{{ continueBook.author }}<span v-if="continueBook.category"> · {{ continueBook.category }}</span></p>
-              </div>
-              <span class="shrink-0 inline-flex items-center gap-1 text-xs font-medium px-3 h-8 rounded-full bg-cream-50 text-clay-700 hover:bg-cream-100 transition">
-                续读
-                <Icon name="arrowRight" class="w-3.5 h-3.5" />
-              </span>
-            </div>
-            <div>
-              <div class="flex items-center justify-between text-[11px] text-cream-200/90 mb-1">
-                <span>已读 {{ continueBook.progress }}%</span>
-                <span class="opacity-75">{{ continueBook.remaining }}</span>
-              </div>
-              <div class="h-1 rounded-full bg-cream-50/20 overflow-hidden">
-                <div class="h-full bg-cream-50 rounded-full transition-[width] duration-500" :style="{ width: continueBook.progress + '%' }"></div>
-              </div>
-            </div>
+          <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-cream-50/20">
+            <div class="h-full rounded-full bg-cream-50" :style="{ width: continueBook.progress + '%' }"></div>
           </div>
         </RouterLink>
       </section>
 
-      <!-- 未登录时的欢迎语 -->
-      <section v-else class="pt-6 pb-1">
-        <p class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1">Welcome</p>
-        <h1 class="font-serif text-2xl sm:text-3xl font-semibold tracking-tight">故事入境，杂念自消</h1>
-        <p class="mt-1.5 text-sm text-ink-700 dark:text-ink-300">
-          <RouterLink to="/login" class="text-clay-700 dark:text-clay-400 underline underline-offset-4">登录</RouterLink>
-          后可同步阅读进度
-        </p>
-      </section>
-
-      <!-- 快捷入口 -->
-      <section class="mt-5">
-        <div class="grid grid-cols-4 gap-2 sm:gap-3">
-          <RouterLink to="/recommend?tab=hot" class="group flex flex-col items-center gap-1.5 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition-colors">
-            <div class="w-9 h-9 rounded-xl bg-clay-500/10 dark:bg-clay-400/15 grid place-items-center text-clay-600 dark:text-clay-400 group-active:scale-90 transition-transform">
-              <Icon name="fire" class="w-[18px] h-[18px]" />
+      <section v-if="loading && mergedBooks.length === 0" class="mt-5 space-y-5">
+        <div v-for="group in 3" :key="group" class="space-y-3">
+          <div class="h-5 w-28 rounded skeleton"></div>
+          <div class="flex gap-3 overflow-hidden">
+            <div v-for="item in 4" :key="item" class="w-28 shrink-0">
+              <div class="aspect-[3/4] rounded-xl skeleton"></div>
+              <div class="mt-2 h-4 w-20 rounded skeleton"></div>
             </div>
-            <span class="text-xs font-medium">本周热门</span>
-          </RouterLink>
-          <RouterLink to="/recommend?tab=new" class="group flex flex-col items-center gap-1.5 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition-colors">
-            <div class="w-9 h-9 rounded-xl bg-moss-500/10 dark:bg-moss-500/20 grid place-items-center text-moss-600 dark:text-moss-500 group-active:scale-90 transition-transform">
-              <Icon name="plus" class="w-[18px] h-[18px]" />
-            </div>
-            <span class="text-xs font-medium">新书上架</span>
-          </RouterLink>
-          <RouterLink to="/recommend?tab=finished" class="group flex flex-col items-center gap-1.5 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition-colors">
-            <div class="w-9 h-9 rounded-xl bg-clay-500/10 dark:bg-clay-400/15 grid place-items-center text-clay-600 dark:text-clay-400 group-active:scale-90 transition-transform">
-              <Icon name="check" class="w-[18px] h-[18px]" />
-            </div>
-            <span class="text-xs font-medium">完结好书</span>
-          </RouterLink>
-          <RouterLink to="/recommend?tab=editor" class="group flex flex-col items-center gap-1.5 py-3 rounded-xl bg-cream-100 dark:bg-night-800 hover:bg-cream-200 dark:hover:bg-night-700 transition-colors">
-            <div class="w-9 h-9 rounded-xl bg-moss-500/10 dark:bg-moss-500/20 grid place-items-center text-moss-600 dark:text-moss-500 group-active:scale-90 transition-transform">
-              <Icon name="starFill" class="w-[18px] h-[18px]" />
-            </div>
-            <span class="text-xs font-medium">编辑推荐</span>
-          </RouterLink>
+          </div>
         </div>
       </section>
 
-      <!-- 横向 chip：分类切换 -->
-      <section class="mt-6">
-        <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-          <RouterLink to="/recommend" class="shrink-0 px-4 h-8 inline-flex items-center rounded-full bg-clay-700 dark:bg-clay-500 text-cream-50 text-sm font-medium">为你推荐</RouterLink>
-          <RouterLink to="/recommend?categoryId=101" class="shrink-0 px-4 h-8 inline-flex items-center rounded-full bg-cream-100 dark:bg-night-800 text-ink-900 dark:text-cream-100 text-sm font-medium">都市言情</RouterLink>
-          <RouterLink to="/recommend?categoryId=102" class="shrink-0 px-4 h-8 inline-flex items-center rounded-full bg-cream-100 dark:bg-night-800 text-ink-900 dark:text-cream-100 text-sm font-medium">古风穿越</RouterLink>
-          <RouterLink to="/recommend?categoryId=104" class="shrink-0 px-4 h-8 inline-flex items-center rounded-full bg-cream-100 dark:bg-night-800 text-ink-900 dark:text-cream-100 text-sm font-medium">悬疑推理</RouterLink>
-          <RouterLink to="/recommend?categoryId=103" class="shrink-0 px-4 h-8 inline-flex items-center rounded-full bg-cream-100 dark:bg-night-800 text-ink-900 dark:text-cream-100 text-sm font-medium">玄幻修仙</RouterLink>
-          <RouterLink to="/recommend?categoryId=105" class="shrink-0 px-4 h-8 inline-flex items-center rounded-full bg-cream-100 dark:bg-night-800 text-ink-900 dark:text-cream-100 text-sm font-medium">科幻未来</RouterLink>
-        </div>
-      </section>
-
-      <!-- PC 双栏：编辑荐读 + 排行榜；移动端：堆叠 -->
-      <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- 主编荐读（PC 占 2/3，缩小成横向卡） -->
-        <section v-if="editorPick" class="lg:col-span-2 min-w-0">
-          <div class="flex items-end justify-between mb-3">
+      <section v-else class="mt-5 space-y-7" data-testid="home-horizontal-shelf">
+        <section v-for="group in shelfGroups" :key="group.key">
+          <div class="mb-3 flex items-end justify-between">
             <div>
-              <p class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1">Editor's Pick</p>
-              <h2 class="font-serif text-xl sm:text-2xl font-semibold tracking-tight">本期主编荐读</h2>
+              <h2 class="font-serif text-xl font-semibold">{{ group.title }}</h2>
+              <p :class="['mt-0.5 text-xs font-medium', group.accent]">{{ group.subtitle }}</p>
             </div>
-            <RouterLink to="/recommend" class="text-sm text-ink-700 dark:text-ink-300 hover:text-clay-700 dark:hover:text-clay-400 transition">全部</RouterLink>
+            <RouterLink to="/search" class="text-sm text-ink-500 dark:text-ink-300">更多</RouterLink>
           </div>
 
-          <article class="rounded-2xl overflow-hidden bg-cream-100 dark:bg-night-800 shadow-cream">
-            <RouterLink :to="`/novel/${editorPick.id}`" class="flex gap-3 sm:gap-5">
-              <!-- 头图：移动端 ≈ 100×144（封面比例），PC 大些 -->
-              <div class="relative w-[100px] sm:w-44 lg:w-52 aspect-[3/4] sm:aspect-[4/5] shrink-0 overflow-hidden bg-clay-500">
-                <BookCover
-                  :title="editorPick.title"
-                  sub="EDITOR'S PICK"
-                  :variant="0"
-                  :cover="editorPick.cover"
-                />
-                <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-cream-50 text-clay-700">编辑荐</span>
+          <div class="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+            <RouterLink
+              v-for="(book, index) in group.books"
+              :key="`${group.key}-${book.id}`"
+              :to="`/novel/${book.id}`"
+              class="w-[112px] shrink-0"
+            >
+              <div class="aspect-[3/4] overflow-hidden rounded-xl bg-cream-200 shadow-sm dark:bg-night-700">
+                <BookCover :title="book.title" :variant="book.variant + index" :cover="book.cover" :footer="false" />
               </div>
-              <div class="py-3 pr-3 sm:py-5 sm:pr-5 flex-1 min-w-0 flex flex-col">
-                <div class="flex items-center gap-1.5 text-[11px] text-ink-500 dark:text-ink-300 mb-1">
-                  <span>{{ editorPick.category }}</span>
-                  <span class="w-0.5 h-0.5 rounded-full bg-current"></span>
-                  <span class="truncate">{{ editorPick.author }}</span>
-                  <span class="w-0.5 h-0.5 rounded-full bg-current hidden sm:inline-block"></span>
-                  <span class="hidden sm:inline">{{ editorPick.wordCount }}</span>
-                </div>
-                <h3 class="font-serif text-base sm:text-xl font-semibold leading-snug mb-1 line-clamp-2">{{ editorPick.title }}</h3>
-                <p class="text-xs sm:text-sm text-ink-700 dark:text-ink-300 leading-relaxed line-clamp-2 sm:line-clamp-3">{{ editorPick.intro }}</p>
-                <div class="mt-auto pt-2 sm:pt-3 flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-2 text-[11px] text-ink-500 dark:text-ink-300 min-w-0">
-                    <span class="flex items-center gap-1 text-clay-500 dark:text-clay-400 shrink-0">
-                      <Icon name="starFill" class="w-3 h-3" />
-                      <span class="font-medium text-ink-900 dark:text-cream-100">{{ editorPick.rating }}</span>
-                    </span>
-                    <span class="truncate">· {{ editorPick.readers }}人在读</span>
-                  </div>
-                  <span class="shrink-0 text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 h-7 sm:h-8 inline-flex items-center rounded-full bg-clay-700 dark:bg-clay-500 text-cream-50 hover:bg-clay-600 transition">
-                    阅读
-                  </span>
-                </div>
-              </div>
+              <h3 class="mt-2 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5">{{ book.title }}</h3>
+              <p class="mt-0.5 truncate text-xs text-ink-500 dark:text-ink-300">{{ book.category }} · {{ book.rating }}</p>
             </RouterLink>
-          </article>
-        </section>
-
-        <!-- 骨架屏（加载中） -->
-        <section v-else-if="loading" class="lg:col-span-2 min-w-0">
-          <div class="h-6 w-32 rounded skeleton mb-3"></div>
-          <div class="rounded-2xl overflow-hidden bg-cream-100 dark:bg-night-800 flex">
-            <div class="w-[100px] sm:w-44 lg:w-52 aspect-[3/4] sm:aspect-[4/5] skeleton shrink-0"></div>
-            <div class="p-4 space-y-2.5 flex-1">
-              <div class="h-3 w-3/4 rounded skeleton"></div>
-              <div class="h-5 w-1/2 rounded skeleton"></div>
-              <div class="h-3 w-full rounded skeleton"></div>
-              <div class="h-3 w-2/3 rounded skeleton"></div>
-            </div>
           </div>
         </section>
+      </section>
 
-        <!-- 排行榜：PC 占 1/3 -->
-        <section class="lg:col-span-1 min-w-0">
-          <div class="flex items-end justify-between mb-3">
-            <div>
-              <p class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1">Top Charts</p>
-              <h2 class="font-serif text-xl sm:text-2xl font-semibold tracking-tight">本周读者最爱</h2>
-            </div>
-            <RouterLink to="/recommend?tab=hot" class="text-sm text-ink-700 dark:text-ink-300 hover:text-clay-700 dark:hover:text-clay-400 transition">完整榜单</RouterLink>
+      <section class="mt-8" data-testid="home-waterfall">
+        <div class="mb-3 flex items-end justify-between">
+          <div>
+            <h2 class="font-serif text-xl font-semibold">猜你喜欢</h2>
+            <p class="mt-0.5 text-xs text-ink-500 dark:text-ink-300">双列书流 · 下滑自动加载</p>
           </div>
-          <ol v-if="ranks.length" class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
-            <li v-for="r in ranks" :key="r.id">
-              <RouterLink :to="`/novel/${r.id}`" class="flex items-center gap-3 p-3 hover:bg-cream-200/40 dark:hover:bg-night-700/40 transition-colors">
-                <span :class="['font-serif text-lg font-semibold w-6 text-center shrink-0', r.rank <= 2 ? 'text-clay-700 dark:text-clay-400' : 'text-ink-500 dark:text-ink-300']">{{ r.rank }}</span>
-                <div class="w-10 h-14 rounded shadow-cream shrink-0 overflow-hidden bg-cream-200 dark:bg-night-700">
-                  <BookCover :title="r.title" :variant="r.variant" :cover="r.cover" :footer="false" />
-                </div>
-                <div class="flex-1 min-w-0">
-                  <h4 class="font-serif font-semibold text-sm truncate">{{ r.title }}</h4>
-                  <p class="text-xs text-ink-500 dark:text-ink-300 mt-0.5 truncate">{{ r.author }} · {{ r.cat }}</p>
-                </div>
-                <span class="text-xs text-clay-500 dark:text-clay-400 font-medium shrink-0">{{ r.rating }}</span>
-              </RouterLink>
-            </li>
-          </ol>
-          <div v-else-if="loading" class="rounded-2xl bg-cream-100 dark:bg-night-800 overflow-hidden divide-y divide-cream-200 dark:divide-night-700">
-            <div v-for="i in 5" :key="i" class="flex items-center gap-3 p-3">
-              <div class="w-6 h-6 rounded skeleton"></div>
-              <div class="w-10 h-14 rounded skeleton"></div>
-              <div class="flex-1 space-y-2">
-                <div class="h-4 w-3/4 rounded skeleton"></div>
-                <div class="h-3 w-1/2 rounded skeleton"></div>
+          <span class="text-xs text-ink-400 dark:text-ink-500">{{ waterfallBooks.length }}/{{ feedSource.length }}</span>
+        </div>
+
+        <div v-if="waterfallBooks.length" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <RouterLink
+            v-for="(book, index) in waterfallBooks"
+            :key="book.feedKey"
+            :to="`/novel/${book.id}`"
+            class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-cream-200 transition active:scale-[0.98] dark:bg-night-800 dark:ring-night-700"
+            data-testid="waterfall-book-card"
+          >
+            <div class="aspect-[3/4] overflow-hidden bg-cream-200 dark:bg-night-700">
+              <BookCover :title="book.title" :variant="book.variant + index" :cover="book.cover" :footer="false" />
+            </div>
+            <div class="p-3">
+              <div class="mb-1 flex items-center gap-1 text-[11px] text-clay-600 dark:text-clay-300">
+                <Icon name="sparkle" class="h-3 w-3" />
+                <span class="truncate">{{ book.tag }}</span>
+              </div>
+              <h3 class="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5">{{ book.title }}</h3>
+              <p class="mt-1 truncate text-xs text-ink-500 dark:text-ink-300">{{ book.author }} · {{ book.category }}</p>
+              <p class="mt-2 line-clamp-2 text-xs leading-5 text-ink-600 dark:text-ink-300">{{ book.description }}</p>
+              <div class="mt-3 flex items-center justify-between gap-2 text-[11px] text-ink-500 dark:text-ink-300">
+                <span class="truncate">{{ book.readers }}</span>
+                <span class="shrink-0 rounded-full bg-cream-100 px-2 py-0.5 text-clay-700 dark:bg-night-700 dark:text-clay-300">{{ book.wordCount }}</span>
               </div>
             </div>
-          </div>
-        </section>
-      </div>
+          </RouterLink>
+        </div>
 
-      <section class="mt-8">
-        <RankTabSection />
+        <div v-else-if="!loading" class="rounded-2xl bg-white p-6 text-center text-sm text-ink-500 ring-1 ring-cream-200 dark:bg-night-800 dark:text-ink-300 dark:ring-night-700">
+          暂时没有可展示的书籍，稍后再来看看。
+        </div>
+
+        <div ref="loadMoreSentinel" class="h-8"></div>
+        <button
+          v-if="canLoadMore"
+          type="button"
+          class="mx-auto mt-1 flex h-10 items-center rounded-full bg-ink-900 px-5 text-sm font-medium text-cream-50 dark:bg-cream-100 dark:text-night-900"
+          @click="loadMore"
+        >
+          加载更多
+        </button>
+        <p v-else-if="waterfallBooks.length" class="mt-3 text-center text-xs text-ink-400 dark:text-ink-500">已经到底啦</p>
       </section>
-
-      <!-- 推荐书单 -->
-      <section class="mt-8">
-        <div class="flex items-end justify-between mb-3">
-          <div>
-            <p class="text-[11px] uppercase tracking-[0.2em] text-clay-500 dark:text-clay-400 font-medium mb-1">For You</p>
-            <h2 class="font-serif text-xl sm:text-2xl font-semibold tracking-tight">推荐书单</h2>
-          </div>
-          <RouterLink to="/recommend" class="text-sm text-ink-700 dark:text-ink-300 hover:text-clay-700 dark:hover:text-clay-400 transition">查看更多</RouterLink>
-        </div>
-        <div v-if="books.length" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-          <BookCard v-for="b in books" :key="b.id" :book="b" />
-        </div>
-        <div v-else-if="loading" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-          <div v-for="i in 5" :key="i" class="aspect-[3/4] rounded-2xl skeleton"></div>
-        </div>
-      </section>
-
-      <!-- 分类专题（紧凑版） -->
-      <section class="mt-8">
-        <div class="rounded-2xl overflow-hidden bg-cream-100 dark:bg-night-800 border border-cream-200 dark:border-night-700">
-          <div class="flex flex-col sm:flex-row sm:items-center gap-4 p-5">
-            <div class="flex-1 min-w-0">
-              <p class="text-[11px] uppercase tracking-[0.25em] text-moss-600 dark:text-moss-500 font-medium mb-1">Curated · 专题</p>
-              <h3 class="font-serif text-lg font-semibold leading-tight">在文字里，我们都是赶路人</h3>
-              <p class="mt-1 text-sm text-ink-700 dark:text-ink-300 leading-relaxed">精选各类型好书，总有一本适合你。</p>
-              <RouterLink to="/recommend" class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-moss-600 dark:text-moss-500 hover:gap-2 transition-all">
-                进入发现 <Icon name="arrowRight" class="w-3.5 h-3.5" />
-              </RouterLink>
-            </div>
-            <div class="flex gap-2 overflow-x-auto no-scrollbar shrink-0">
-              <RouterLink
-                v-for="(b, i) in books.slice(0, 5)"
-                :key="b.id"
-                :to="`/novel/${b.id}`"
-                class="shrink-0 w-14 sm:w-16 aspect-[3/4] rounded-lg overflow-hidden hover:scale-105 transition-transform bg-cream-200 dark:bg-night-700"
-              >
-                <BookCover :title="b.title" :variant="i" :cover="b.cover" :footer="false" />
-              </RouterLink>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <footer class="mt-10 mb-8 text-center">
-        <p class="font-serif text-sm text-ink-500 dark:text-ink-300 italic">"故事入境，杂念自消"</p>
-        <p class="text-[11px] mt-2 text-ink-300 dark:text-ink-500 tracking-wider">© MOMO小说</p>
-      </footer>
     </main>
 
     <BottomNav />

@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "count:chapter": "node scripts/count-chapter-words.mjs",
+    "test:word-count": "node --test tests/count-chapter-words.test.mjs",
     "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts"
   },
   "devDependencies": {

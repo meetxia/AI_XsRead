@@ -6,9 +6,9 @@ import Icon from '@/components/v2/icons/Icon.vue'
 const route = useRoute()
 
 const items = [
-  { key: 'home',     to: '/',           label: '首页',  icon: 'home' },
+  { key: 'home',     to: '/',           label: '书城',  icon: 'home' },
+  { key: 'discover', to: '/recommend',  label: '分类',  icon: 'grid' },
   { key: 'shelf',    to: '/bookshelf',  label: '书架',  icon: 'shelf' },
-  { key: 'discover', to: '/recommend',  label: '发现',  icon: 'discover' },
   { key: 'profile',  to: '/profile',    label: '我的',  icon: 'user' },
 ]
 

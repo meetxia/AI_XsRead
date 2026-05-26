@@ -32,7 +32,7 @@ const avatarUrl = computed(() => userStore.userInfo?.avatar || '')
       <!-- 桌面端导航 -->
       <nav class="hidden lg:flex items-center gap-1 ml-auto mr-2">
         <RouterLink to="/" class="px-3 py-1.5 rounded-full text-sm font-medium text-ink-700 dark:text-ink-300 hover:bg-cream-100 dark:hover:bg-night-800 transition-colors">首页</RouterLink>
-        <RouterLink to="/recommend" class="px-3 py-1.5 rounded-full text-sm font-medium text-ink-700 dark:text-ink-300 hover:bg-cream-100 dark:hover:bg-night-800 transition-colors">发现</RouterLink>
+        <RouterLink to="/recommend" class="px-3 py-1.5 rounded-full text-sm font-medium text-ink-700 dark:text-ink-300 hover:bg-cream-100 dark:hover:bg-night-800 transition-colors">分类</RouterLink>
         <RouterLink to="/bookshelf" class="px-3 py-1.5 rounded-full text-sm font-medium text-ink-700 dark:text-ink-300 hover:bg-cream-100 dark:hover:bg-night-800 transition-colors">书架</RouterLink>
         <RouterLink to="/history" class="px-3 py-1.5 rounded-full text-sm font-medium text-ink-700 dark:text-ink-300 hover:bg-cream-100 dark:hover:bg-night-800 transition-colors">历史</RouterLink>
       </nav>
