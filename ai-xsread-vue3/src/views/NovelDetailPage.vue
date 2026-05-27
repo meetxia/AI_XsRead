@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import Icon from '@/components/v2/icons/Icon.vue'
 import ThemeToggle from '@/components/v2/ui/ThemeToggle.vue'
@@ -8,7 +8,8 @@ import SameAuthorRail from '@/components/novel/SameAuthorRail.vue'
 import SameTagRail from '@/components/novel/SameTagRail.vue'
 import HotNotesSection from '@/components/novel/HotNotesSection.vue'
 import FollowAuthorButton from '@/components/novel/FollowAuthorButton.vue'
-import { getNovelDetail, getChapterList, getComments, getNovelStatus, likeNovel, unlikeNovel, getNovelRating, downloadNovelTxt } from '@/api/novel'
+import InlineReadingExperience from '@/components/reading/InlineReadingExperience.vue'
+import { getNovelDetail, getChapterList, getChapterContent, getComments, getNovelStatus, likeNovel, unlikeNovel, getNovelRating, downloadNovelTxt } from '@/api/novel'
 import { addToBookshelf, removeFromBookshelf, getReadingProgress } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { buildLoginUrl } from '@/composables/useReturnUrl'
@@ -47,6 +48,19 @@ const novel = ref({
 
 const chapters = ref([])
 const totalChapters = ref(0)
+const activeChapterId = ref(null)
+const inlineReaderRef = ref(null)
+const inlineChapter = ref({
+  id: null,
+  title: '',
+  chapterNumber: 0,
+  wordCount: 0,
+  date: '',
+  vipRequired: false,
+  truncated: false,
+})
+const inlineContent = ref([])
+const inlineLoading = ref(false)
 
 const comments = ref([])
 const totalComments = ref(0)
@@ -107,7 +121,7 @@ async function loadDetail() {
         category: d.category_name || d.category || '',
         subCategory: d.category_name || '',
         rating: d.rating ?? null,
-        wordCount: d.word_count ? `${Math.round(d.word_count / 10000)} 万` : '',
+        wordCount: formatWordCount(d.word_count),
         readers: d.readers ?? d.views ?? null,
         likeCount: d.like_count ?? d.likeCount ?? null,
         commentCount: d.comment_count ?? d.commentCount ?? null,
@@ -204,11 +218,73 @@ async function loadRating() {
   }
 }
 
+function splitChapterContent(value) {
+  return String(value || '')
+    .split(/\n+/)
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
+function isActiveChapter(chapter) {
+  return String(chapter?.id) === String(activeChapterId.value)
+}
+
+async function loadInlineChapter(chapterId) {
+  if (!chapterId || inlineLoading.value) return
+  inlineLoading.value = true
+  activeChapterId.value = Number(chapterId)
+  try {
+    const res = await getChapterContent(chapterId)
+    if (res?.code === 200 && res.data) {
+      const data = res.data
+      inlineChapter.value = {
+        id: Number(chapterId),
+        title: data.title || '',
+        chapterNumber: data.chapter_number || data.chapterNumber || 0,
+        wordCount: data.word_count || data.wordCount || 0,
+        date: (data.created_at || data.createdAt || '').slice(0, 10),
+        vipRequired: Boolean(data.vip_required ?? data.vipRequired ?? false),
+        truncated: Boolean(data.truncated ?? false),
+      }
+      inlineContent.value = splitChapterContent(data.content)
+      if (!inlineContent.value.length) inlineContent.value = ['本章暂无内容。']
+      return
+    }
+    inlineContent.value = ['本章暂无内容。']
+  } catch (error) {
+    inlineContent.value = ['章节加载失败，请稍后重试。']
+  } finally {
+    inlineLoading.value = false
+  }
+}
+
+async function selectInlineChapter(chapterId) {
+  if (!chapterId) return
+  if (String(chapterId) !== String(activeChapterId.value)) {
+    await loadInlineChapter(chapterId)
+  }
+  await scrollToInlineReader()
+}
+
+async function scrollToInlineReader() {
+  await nextTick()
+  const target = inlineReaderRef.value?.$el || inlineReaderRef.value
+  target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 function formatNumber(n) {
   if (n === null || n === undefined || n === '') return ''
   n = Number(n)
   if (n >= 10000) return `${(n/10000).toFixed(1)} 万`
   return n.toLocaleString()
+}
+
+function formatWordCount(n) {
+  if (n === null || n === undefined || n === '') return ''
+  const value = Number(n)
+  if (!Number.isFinite(value) || value <= 0) return ''
+  if (value >= 10000) return `${(value / 10000).toFixed(1)} 万字`
+  return `${value.toLocaleString()}字`
 }
 
 function relativeTime(s) {
@@ -231,8 +307,12 @@ const authorLink = computed(() => {
 
 async function loadAll() {
   introExpanded.value = false
+  inlineContent.value = []
+  activeChapterId.value = null
   await Promise.allSettled([loadDetail(), loadStatus(), loadProgress(), loadRating(), loadComments()])
   await loadChapters()
+  const targetChapter = continueChapter.value || chapters.value[0]
+  if (targetChapter?.id) await loadInlineChapter(targetChapter.id)
 }
 
 function showToast(message) {
@@ -318,10 +398,10 @@ async function downloadTxt() {
 const goReading = () => {
   const targetCh = continueChapter.value || chapters.value[0]
   if (targetCh) {
-    router.push(`/reading/${novelId.value}?chapter=${targetCh.id}`)
-  } else {
-    router.push(`/reading/${novelId.value}`)
+    selectInlineChapter(targetCh.id)
+    return
   }
+  scrollToInlineReader()
 }
 
 onMounted(loadAll)
@@ -557,25 +637,41 @@ useSeoMeta(() => {
             </div>
 
             <div class="rounded-2xl bg-cream-100 dark:bg-night-800 divide-y divide-cream-200 dark:divide-night-700 overflow-hidden">
-              <RouterLink
+              <button
                 v-for="ch in sortedChapters"
                 :key="ch.id"
-                :to="`/reading/${novelId}?chapter=${ch.id}`"
-                :class="['flex items-center justify-between gap-3 p-3.5 transition', ch.current ? 'bg-clay-500/10 dark:bg-clay-400/10' : 'hover:bg-cream-200/40 dark:hover:bg-night-700/40']"
+                type="button"
+                :class="['w-full text-left flex items-center justify-between gap-3 p-3.5 transition', isActiveChapter(ch) ? 'bg-clay-500/10 dark:bg-clay-400/10' : 'hover:bg-cream-200/40 dark:hover:bg-night-700/40']"
+                @click="selectInlineChapter(ch.id)"
               >
                 <div class="flex-1 min-w-0">
-                  <p :class="['font-serif text-sm font-medium truncate', ch.current && 'text-clay-700 dark:text-clay-400']">{{ ch.title }}</p>
+                  <p :class="['font-serif text-sm font-medium truncate', isActiveChapter(ch) && 'text-clay-700 dark:text-clay-400']">{{ ch.title }}</p>
                   <p class="text-[11px] text-ink-500 dark:text-ink-300 mt-0.5">{{ ch.date }} · {{ ch.words }}<span v-if="ch.current"> · 上次阅读到这里</span></p>
                 </div>
-                <span v-if="ch.current" class="text-[11px] px-2 py-0.5 rounded-full bg-clay-500 text-cream-50 shrink-0">续读</span>
+                <span v-if="isActiveChapter(ch)" class="text-[11px] px-2 py-0.5 rounded-full bg-clay-500 text-cream-50 shrink-0">{{ ch.current ? '续读' : '当前' }}</span>
                 <span v-else-if="ch.free" class="text-[11px] px-2 py-0.5 rounded-full bg-cream-200 dark:bg-night-700 text-ink-700 dark:text-ink-300 shrink-0">免费</span>
-              </RouterLink>
+              </button>
             </div>
             <div v-if="!chapters.length" class="rounded-2xl bg-cream-100 dark:bg-night-800 p-4 text-sm text-ink-500 dark:text-ink-300">目录暂未开放</div>
             <button class="w-full mt-3 py-2.5 text-sm text-ink-700 dark:text-ink-300 font-medium border border-cream-200 dark:border-night-700 rounded-xl hover:bg-cream-100 dark:hover:bg-night-800 transition">
               查看全部 {{ totalChapters }} 章
             </button>
           </section>
+
+          <!-- 连续阅读 -->
+          <InlineReadingExperience
+            ref="inlineReaderRef"
+            :novel-id="novelId"
+            :novel-title="novel.title"
+            :chapter="inlineChapter"
+            :content="inlineContent"
+            :chapters="chapters"
+            :total-chapters="totalChapters"
+            :loading="inlineLoading"
+            :download-loading="downloadLoading"
+            @select-chapter="selectInlineChapter"
+            @download="downloadTxt"
+          />
 
           <!-- 评论 -->
           <section>
@@ -653,7 +749,7 @@ useSeoMeta(() => {
           <Icon name="download" class="w-5 h-5" />
           <span class="text-[10px]">{{ downloadLoading ? '...' : '下载' }}</span>
         </button>
-        <button @click="goReading" class="flex-1 h-12 rounded-full bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif text-base font-semibold grid place-items-center hover:bg-clay-600 active:scale-[0.98] transition shadow-cream">
+        <button data-testid="detail-start-reading" @click="goReading" class="flex-1 h-12 rounded-full bg-clay-700 dark:bg-clay-500 text-cream-50 font-serif text-base font-semibold grid place-items-center hover:bg-clay-600 active:scale-[0.98] transition shadow-cream">
           {{ ctaText }}
         </button>
       </div>

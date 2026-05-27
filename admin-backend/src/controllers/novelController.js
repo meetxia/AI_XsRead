@@ -442,12 +442,17 @@ class NovelController {
         isHot = 0,
         isVip = 0,
         views,
+        likes,
         collections,
-        rating
+        rating,
+        ratingCount,
+        rating_count
       } = req.body;
       const normalizedViews = toNonNegativeInteger(views);
+      const normalizedLikes = toNonNegativeInteger(likes);
       const normalizedCollections = toNonNegativeInteger(collections);
       const normalizedRating = normalizeRating(rating);
+      const normalizedRatingCount = toNonNegativeInteger(ratingCount ?? rating_count);
 
       // 验证必填字段
       if (!title || !categoryId || !description) {
@@ -462,8 +467,9 @@ class NovelController {
       const [result] = await db.query(
         `INSERT INTO novels (
           title, author, category_id, cover, description,
-          status, is_recommended, is_hot, is_vip, views, collections, rating, published_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+          status, is_recommended, is_hot, is_vip, views, likes, collections,
+          rating, rating_count, published_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           title,
           author || '佚名',
@@ -475,8 +481,10 @@ class NovelController {
           isHot,
           isVip,
           normalizedViews,
+          normalizedLikes,
           normalizedCollections,
-          normalizedRating
+          normalizedRating,
+          normalizedRatingCount
         ]
       );
 
@@ -534,12 +542,19 @@ class NovelController {
         isHot,
         isVip,
         views,
+        likes,
         collections,
-        rating
+        rating,
+        ratingCount,
+        rating_count
       } = req.body;
       const normalizedViews = views === undefined ? undefined : toNonNegativeInteger(views);
+      const normalizedLikes = likes === undefined ? undefined : toNonNegativeInteger(likes);
       const normalizedCollections = collections === undefined ? undefined : toNonNegativeInteger(collections);
       const normalizedRating = rating === undefined ? undefined : normalizeRating(rating);
+      const normalizedRatingCount = (ratingCount === undefined && rating_count === undefined)
+        ? undefined
+        : toNonNegativeInteger(ratingCount ?? rating_count);
 
       if (!isValidCoverUrl(cover)) {
         return Response.error(res, '封面地址无效，请重新上传封面', 400);
@@ -564,8 +579,10 @@ class NovelController {
           is_hot = COALESCE(?, is_hot),
           is_vip = COALESCE(?, is_vip),
           views = COALESCE(?, views),
+          likes = COALESCE(?, likes),
           collections = COALESCE(?, collections),
           rating = COALESCE(?, rating),
+          rating_count = COALESCE(?, rating_count),
           updated_at = NOW()
         WHERE id = ?`,
         [
@@ -578,8 +595,10 @@ class NovelController {
           isHot,
           isVip,
           normalizedViews,
+          normalizedLikes,
           normalizedCollections,
           normalizedRating,
+          normalizedRatingCount,
           id
         ]
       );

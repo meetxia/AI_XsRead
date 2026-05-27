@@ -28,7 +28,7 @@ describe('admin-backend novel stats editing', () => {
     jest.clearAllMocks();
   });
 
-  test('POST /api/admin/novels writes views, collections and rating when creating a novel', async () => {
+  test('POST /api/admin/novels writes initial stat fields when creating a novel', async () => {
     db.query
       .mockResolvedValueOnce([{ insertId: 321 }])
       .mockResolvedValueOnce([[{ id: 9 }]])
@@ -44,17 +44,20 @@ describe('admin-backend novel stats editing', () => {
         description: '这是一段足够长的小说简介，用来验证管理后台创建时保存数据统计字段。',
         tags: ['甜宠'],
         views: 12345,
+        likes: 456,
         collections: 678,
-        rating: 4.7
+        rating: 4.7,
+        ratingCount: 89
       });
 
     expect(res.body?.code).toBe(201);
     const insertCall = db.query.mock.calls.find(([sql]) => /INSERT INTO novels/i.test(sql));
-    expect(insertCall[0]).toMatch(/views, collections, rating/);
-    expect(insertCall[1]).toEqual(expect.arrayContaining([12345, 678, 4.7]));
+    expect(insertCall[0]).toMatch(/views, likes, collections/);
+    expect(insertCall[0]).toMatch(/rating, rating_count/);
+    expect(insertCall[1]).toEqual(expect.arrayContaining([12345, 456, 678, 4.7, 89]));
   });
 
-  test('PUT /api/admin/novels/:id updates views, collections and rating', async () => {
+  test('PUT /api/admin/novels/:id updates initial stat fields', async () => {
     db.query
       .mockResolvedValueOnce([[{ id: 7, title: '旧书名' }]])
       .mockResolvedValueOnce([{ affectedRows: 1 }])
@@ -64,16 +67,20 @@ describe('admin-backend novel stats editing', () => {
       .put('/api/admin/novels/7')
       .send({
         views: 98765,
+        likes: 8765,
         collections: 4321,
         rating: 5.8,
+        rating_count: 654,
         tags: []
       });
 
     expect(res.body?.code).toBe(200);
     const updateCall = db.query.mock.calls.find(([sql]) => /UPDATE novels SET/i.test(sql));
     expect(updateCall[0]).toMatch(/views = COALESCE\(\?, views\)/);
+    expect(updateCall[0]).toMatch(/likes = COALESCE\(\?, likes\)/);
     expect(updateCall[0]).toMatch(/collections = COALESCE\(\?, collections\)/);
     expect(updateCall[0]).toMatch(/rating = COALESCE\(\?, rating\)/);
-    expect(updateCall[1]).toEqual(expect.arrayContaining([98765, 4321, 5]));
+    expect(updateCall[0]).toMatch(/rating_count = COALESCE\(\?, rating_count\)/);
+    expect(updateCall[1]).toEqual(expect.arrayContaining([98765, 8765, 4321, 5, 654]));
   });
 });

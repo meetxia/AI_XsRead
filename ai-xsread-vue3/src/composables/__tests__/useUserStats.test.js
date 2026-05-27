@@ -13,8 +13,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
+let mockStatistics = {}
+
 vi.mock('@/api/user', () => ({
-  getUserStatistics: vi.fn().mockResolvedValue({ code: 200, data: {} })
+  getUserStatistics: vi.fn(() => Promise.resolve({ code: 200, data: mockStatistics }))
 }))
 
 vi.mock('vue-router', () => ({
@@ -53,6 +55,43 @@ describe('useUserStats — weekTrend default', () => {
   it('returns [] when no stats are loaded yet', () => {
     const { weekTrend } = useUserStats()
     expect(weekTrend.value).toEqual([])
+  })
+
+  it('normalizes API readTime seconds and weekly books into minute-shaped view data', async () => {
+    mockStatistics = {
+      readTime: {
+        totalSeconds: 125,
+        todaySeconds: 21,
+      },
+      readingTrend: [
+        { date: '2026-05-27', readTimeSeconds: 21, chaptersRead: 1, novelsRead: 1 }
+      ],
+      weeklyBooks: [
+        { novelId: 9, title: '春日来信', author: '佚名', readTimeSeconds: 21 }
+      ]
+    }
+
+    const { totalMinutes, todayMinutes, weekTrend, weeklyBooks, loadStats } = useUserStats()
+    await loadStats()
+
+    expect(totalMinutes.value).toBe(2)
+    expect(todayMinutes.value).toBe(0)
+    expect(weekTrend.value[0]).toMatchObject({
+      date: '2026-05-27',
+      minutes: 0,
+      duration: 0,
+      readTimeSeconds: 21,
+      chaptersRead: 1,
+      novelsRead: 1
+    })
+    expect(weeklyBooks.value).toEqual([expect.objectContaining({
+      novelId: 9,
+      title: '春日来信',
+      minutes: 0,
+      readTimeSeconds: 21
+    })])
+
+    mockStatistics = {}
   })
 })
 

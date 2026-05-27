@@ -30,10 +30,15 @@ const featuredBooks = ref([])
 const hotBooks = ref([])
 const visibleFeedCount = ref(8)
 const loadMoreSentinel = ref(null)
-const activeCategoryKey = ref('featured')
+const categoryNav = ref(null)
+const activeCategoryKey = ref('ranking')
+const swipeStart = ref(null)
+const continueToastVisible = ref(false)
 let observer = null
+let continueToastTimer = null
 
 const categories = [
+  { key: 'ranking', label: '推荐榜' },
   { key: 'featured', label: '精选' },
   { key: 'urban', label: '都市言情', categoryId: 101 },
   { key: 'ancient', label: '古风穿越', categoryId: 102 },
@@ -45,6 +50,10 @@ const categories = [
 
 const activeCategory = computed(() => (
   categories.find(item => item.key === activeCategoryKey.value) || categories[0]
+))
+
+const activeCategoryIndex = computed(() => (
+  categories.findIndex(item => item.key === activeCategoryKey.value)
 ))
 
 const shelfGroups = computed(() => [
@@ -98,8 +107,24 @@ const feedSource = computed(() => {
 
 const waterfallBooks = computed(() => feedSource.value.slice(0, visibleFeedCount.value))
 const canLoadMore = computed(() => visibleFeedCount.value < feedSource.value.length)
+const featuredRankingBooks = computed(() => {
+  const hotTopIds = new Set(hotBooks.value.slice(0, 8).map(book => book.id))
+  const differentBooks = featuredBooks.value.filter(book => !hotTopIds.has(book.id))
+  const byId = new Map()
+
+  ;[...differentBooks, ...featuredBooks.value].forEach((book) => {
+    if (book?.id && !byId.has(book.id)) {
+      byId.set(book.id, book)
+    }
+  })
+
+  return [...byId.values()]
+})
+
 const hotRankingBooks = computed(() => {
-  const source = hotBooks.value.length ? hotBooks.value : mergedBooks.value
+  const source = activeCategoryKey.value === 'ranking'
+    ? (hotBooks.value.length ? hotBooks.value : mergedBooks.value)
+    : (featuredRankingBooks.value.length ? featuredRankingBooks.value : hotBooks.value)
   return source.slice(0, 8)
 })
 
@@ -160,7 +185,7 @@ async function loadData() {
     if (currentCategory.status !== undefined) hotParams.status = currentCategory.status
 
     const [recRes, hotRes] = await Promise.allSettled([
-      currentCategory.key === 'featured'
+      ['ranking', 'featured'].includes(currentCategory.key)
         ? getRecommendNovels({ limit: 18 })
         : getNovelList({ ...hotParams, sortBy: 'created_at', order: 'DESC' }),
       getNovelList(hotParams),
@@ -199,9 +224,61 @@ async function selectCategory(item) {
   hotBooks.value = []
   await loadData()
   await nextTick()
+  scrollActiveCategoryIntoView()
   observer?.disconnect()
   observer = null
   setupLoadMoreObserver()
+}
+
+function scrollActiveCategoryIntoView() {
+  const activeButton = categoryNav.value?.querySelector?.(`[data-category-key="${activeCategoryKey.value}"]`)
+  activeButton?.scrollIntoView?.({
+    behavior: 'smooth',
+    inline: 'center',
+    block: 'nearest',
+  })
+}
+
+function switchCategoryByOffset(offset) {
+  const nextIndex = Math.max(0, Math.min(categories.length - 1, activeCategoryIndex.value + offset))
+  const nextCategory = categories[nextIndex]
+  if (!nextCategory || nextCategory.key === activeCategoryKey.value) return
+  selectCategory(nextCategory)
+}
+
+function handleSwipeStart(event) {
+  const touch = event.touches?.[0]
+  if (!touch) return
+  swipeStart.value = {
+    x: touch.clientX,
+    y: touch.clientY,
+  }
+}
+
+function handleSwipeEnd(event) {
+  if (!swipeStart.value) return
+
+  const touch = event.changedTouches?.[0]
+  if (!touch) {
+    swipeStart.value = null
+    return
+  }
+
+  const deltaX = touch.clientX - swipeStart.value.x
+  const deltaY = touch.clientY - swipeStart.value.y
+  swipeStart.value = null
+
+  if (Math.abs(deltaX) < 64 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) return
+  switchCategoryByOffset(deltaX < 0 ? 1 : -1)
+}
+
+function showContinueToast() {
+  if (!hasContinue.value || !continueBook.value) return
+  continueToastVisible.value = true
+  window.clearTimeout(continueToastTimer)
+  continueToastTimer = window.setTimeout(() => {
+    continueToastVisible.value = false
+  }, 15000)
 }
 
 async function loadContinueReading() {
@@ -227,6 +304,7 @@ async function loadContinueReading() {
       chapterId: history.chapter_id,
     }
     hasContinue.value = true
+    showContinueToast()
   } catch (error) {
     // 最近阅读不是首页首屏的强依赖，失败时静默降级。
   }
@@ -253,6 +331,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   observer?.disconnect()
   observer = null
+  window.clearTimeout(continueToastTimer)
 })
 </script>
 
@@ -279,15 +358,19 @@ onBeforeUnmount(() => {
         </form>
 
         <nav
+          ref="categoryNav"
           class="no-scrollbar -mx-4 mt-3 flex gap-5 overflow-x-auto px-4 text-[15px] font-semibold sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0"
           data-testid="home-category-nav"
           aria-label="首页分类导航"
+          @touchstart.passive="handleSwipeStart"
+          @touchend.passive="handleSwipeEnd"
         >
           <button
             v-for="item in categories"
             :key="item.key"
             type="button"
             :data-testid="`home-category-tab-${item.key}`"
+            :data-category-key="item.key"
             @click="selectCategory(item)"
             :class="[
               'shrink-0 border-b-2 pb-2 transition-colors',
@@ -301,120 +384,94 @@ onBeforeUnmount(() => {
         </nav>
       </header>
 
-      <section class="pt-4" data-testid="home-hot-ranking">
-        <div class="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-cream-200 dark:bg-night-800 dark:ring-night-700">
-          <div class="mb-3 flex items-center justify-between gap-3">
-            <div class="no-scrollbar flex min-w-0 flex-1 gap-5 overflow-x-auto text-lg font-semibold">
-              <span class="shrink-0 text-ink-950 dark:text-cream-50">推荐榜</span>
-              <span class="shrink-0 text-ink-400 dark:text-ink-300">完本榜</span>
-              <span class="shrink-0 text-ink-400 dark:text-ink-300">口碑榜</span>
-              <span class="shrink-0 text-ink-400 dark:text-ink-300">飙升榜</span>
-            </div>
-            <RouterLink to="/recommend?tab=hot" class="shrink-0 text-sm font-medium text-ink-700 dark:text-ink-300">
-              完整榜单
-            </RouterLink>
-          </div>
-
-          <div v-if="hotRankingBooks.length" class="grid grid-cols-2 gap-x-3 gap-y-4">
-            <RouterLink
-              v-for="(book, index) in hotRankingBooks"
-              :key="`hot-rank-${book.id}`"
-              :to="`/novel/${book.id}`"
-              class="flex min-w-0 gap-2"
-              data-testid="home-hot-rank-item"
-            >
-              <div class="h-[70px] w-[52px] shrink-0 overflow-hidden rounded-md bg-cream-200 shadow-sm dark:bg-night-700">
-                <BookCover :title="book.title" :variant="book.variant + index" :cover="book.cover" :footer="false" />
-              </div>
-              <div class="min-w-0 flex-1 pt-1">
-                <div class="flex items-baseline gap-1.5">
-                  <span
-                    :class="[
-                      'w-5 shrink-0 text-center font-serif text-lg font-bold leading-none',
-                      index < 3 ? 'text-clay-500 dark:text-clay-300' : 'text-ink-900 dark:text-cream-100'
-                    ]"
-                  >
-                    {{ index + 1 }}
-                  </span>
-                  <h2 class="line-clamp-2 text-[15px] font-semibold leading-5 text-ink-950 dark:text-cream-50">{{ book.title }}</h2>
+      <div
+        data-testid="home-swipe-area"
+        @touchstart.passive="handleSwipeStart"
+        @touchend.passive="handleSwipeEnd"
+      >
+        <section class="pt-4" data-testid="home-hot-ranking">
+          <div class="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-cream-200 dark:bg-night-800 dark:ring-night-700">
+            <div v-if="hotRankingBooks.length" class="grid grid-cols-2 gap-x-3 gap-y-4">
+              <RouterLink
+                v-for="(book, index) in hotRankingBooks"
+                :key="`hot-rank-${book.id}`"
+                :to="`/novel/${book.id}`"
+                class="flex min-w-0 gap-2"
+                data-testid="home-hot-rank-item"
+              >
+                <div class="h-[70px] w-[52px] shrink-0 overflow-hidden rounded-md bg-cream-200 shadow-sm dark:bg-night-700">
+                  <BookCover :title="book.title" :variant="book.variant + index" :cover="book.cover" :footer="false" />
                 </div>
-                <p class="mt-1 truncate pl-6 text-xs text-clay-500 dark:text-clay-300">{{ book.category }} · {{ book.readers }}</p>
+                <div class="min-w-0 flex-1 pt-1">
+                  <div class="flex items-baseline gap-1.5">
+                    <span
+                      :class="[
+                        'w-5 shrink-0 text-center font-serif text-lg font-bold leading-none',
+                        index < 3 ? 'text-clay-500 dark:text-clay-300' : 'text-ink-900 dark:text-cream-100'
+                      ]"
+                    >
+                      {{ index + 1 }}
+                    </span>
+                    <h2 class="line-clamp-2 text-[15px] font-semibold leading-5 text-ink-950 dark:text-cream-50">{{ book.title }}</h2>
+                  </div>
+                  <p class="mt-1 truncate pl-6 text-xs text-clay-500 dark:text-clay-300">{{ book.category }} · {{ book.readers }}</p>
+                </div>
+              </RouterLink>
+            </div>
+
+            <div v-else class="grid grid-cols-2 gap-x-3 gap-y-4">
+              <div v-for="item in 8" :key="item" class="flex gap-2">
+                <div class="h-[70px] w-[52px] shrink-0 rounded-md skeleton"></div>
+                <div class="flex-1 space-y-2 pt-1">
+                  <div class="h-4 w-20 rounded skeleton"></div>
+                  <div class="h-4 w-14 rounded skeleton"></div>
+                  <div class="h-3 w-16 rounded skeleton"></div>
+                </div>
               </div>
-            </RouterLink>
-          </div>
-
-          <div v-else class="grid grid-cols-2 gap-x-3 gap-y-4">
-            <div v-for="item in 8" :key="item" class="flex gap-2">
-              <div class="h-[70px] w-[52px] shrink-0 rounded-md skeleton"></div>
-              <div class="flex-1 space-y-2 pt-1">
-                <div class="h-4 w-20 rounded skeleton"></div>
-                <div class="h-4 w-14 rounded skeleton"></div>
-                <div class="h-3 w-16 rounded skeleton"></div>
-              </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section v-if="hasContinue && continueBook" class="pt-4">
-        <RouterLink
-          :to="continueBook.chapterId ? `/reading/${continueBook.id}?chapter=${continueBook.chapterId}` : `/reading/${continueBook.id}`"
-          class="block rounded-2xl bg-gradient-to-br from-clay-700 via-clay-600 to-rose-700 p-4 text-cream-50 shadow-cream"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="text-xs text-cream-100/75">继续阅读</p>
-              <h1 class="mt-1 truncate font-serif text-xl font-semibold">{{ continueBook.title }}</h1>
-              <p class="mt-1 truncate text-xs text-cream-100/80">{{ continueBook.author }} · {{ continueBook.chapter }}</p>
-            </div>
-            <span class="rounded-full bg-cream-50 px-3 py-1.5 text-xs font-semibold text-clay-700">续读</span>
-          </div>
-          <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-cream-50/20">
-            <div class="h-full rounded-full bg-cream-50" :style="{ width: continueBook.progress + '%' }"></div>
-          </div>
-        </RouterLink>
-      </section>
-
-      <section v-if="loading && mergedBooks.length === 0" class="mt-5 space-y-5">
-        <div v-for="group in 3" :key="group" class="space-y-3">
-          <div class="h-5 w-28 rounded skeleton"></div>
-          <div class="flex gap-3 overflow-hidden">
-            <div v-for="item in 4" :key="item" class="w-28 shrink-0">
-              <div class="aspect-[3/4] rounded-xl skeleton"></div>
-              <div class="mt-2 h-4 w-20 rounded skeleton"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section v-else class="mt-5 space-y-7" data-testid="home-horizontal-shelf">
-        <section v-for="group in shelfGroups" :key="group.key">
-          <div class="mb-3 flex items-end justify-between">
-            <div>
-              <h2 class="font-serif text-xl font-semibold">{{ group.title }}</h2>
-              <p :class="['mt-0.5 text-xs font-medium', group.accent]">{{ group.subtitle }}</p>
-            </div>
-            <RouterLink to="/search" class="text-sm text-ink-500 dark:text-ink-300">更多</RouterLink>
-          </div>
-
-          <div class="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-            <RouterLink
-              v-for="(book, index) in group.books"
-              :key="`${group.key}-${book.id}`"
-              :to="`/novel/${book.id}`"
-              class="w-[112px] shrink-0"
-            >
-              <div class="aspect-[3/4] overflow-hidden rounded-xl bg-cream-200 shadow-sm dark:bg-night-700">
-                <BookCover :title="book.title" :variant="book.variant + index" :cover="book.cover" :footer="false" />
-              </div>
-              <h3 class="mt-2 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5">{{ book.title }}</h3>
-              <p class="mt-0.5 truncate text-xs text-ink-500 dark:text-ink-300">{{ book.category }} · {{ book.rating }}</p>
-            </RouterLink>
           </div>
         </section>
-      </section>
 
-      <section class="mt-8" data-testid="home-waterfall">
+        <section v-if="loading && mergedBooks.length === 0" class="mt-5 space-y-5">
+          <div v-for="group in 3" :key="group" class="space-y-3">
+            <div class="h-5 w-28 rounded skeleton"></div>
+            <div class="flex gap-3 overflow-hidden">
+              <div v-for="item in 4" :key="item" class="w-28 shrink-0">
+                <div class="aspect-[3/4] rounded-xl skeleton"></div>
+                <div class="mt-2 h-4 w-20 rounded skeleton"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section v-else class="mt-5 space-y-7" data-testid="home-horizontal-shelf">
+          <section v-for="group in shelfGroups" :key="group.key">
+            <div class="mb-3 flex items-end justify-between">
+              <div>
+                <h2 class="font-serif text-xl font-semibold">{{ group.title }}</h2>
+                <p :class="['mt-0.5 text-xs font-medium', group.accent]">{{ group.subtitle }}</p>
+              </div>
+              <RouterLink to="/search" class="text-sm text-ink-500 dark:text-ink-300">更多</RouterLink>
+            </div>
+
+            <div class="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+              <RouterLink
+                v-for="(book, index) in group.books"
+                :key="`${group.key}-${book.id}`"
+                :to="`/novel/${book.id}`"
+                class="w-[112px] shrink-0"
+              >
+                <div class="aspect-[3/4] overflow-hidden rounded-xl bg-cream-200 shadow-sm dark:bg-night-700">
+                  <BookCover :title="book.title" :variant="book.variant + index" :cover="book.cover" :footer="false" />
+                </div>
+                <h3 class="mt-2 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5">{{ book.title }}</h3>
+                <p class="mt-0.5 truncate text-xs text-ink-500 dark:text-ink-300">{{ book.category }} · {{ book.rating }}</p>
+              </RouterLink>
+            </div>
+          </section>
+        </section>
+
+        <section class="mt-8" data-testid="home-waterfall">
         <div class="mb-3 flex items-end justify-between">
           <div>
             <h2 class="font-serif text-xl font-semibold">猜你喜欢</h2>
@@ -464,8 +521,36 @@ onBeforeUnmount(() => {
           加载更多
         </button>
         <p v-else-if="waterfallBooks.length" class="mt-3 text-center text-xs text-ink-400 dark:text-ink-500">已经到底啦</p>
-      </section>
+        </section>
+      </div>
     </main>
+
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="translate-y-4 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-4 opacity-0"
+    >
+      <section
+        v-if="continueToastVisible && continueBook"
+        class="fixed inset-x-4 bottom-24 z-30 mx-auto max-w-screen-sm sm:bottom-24"
+        data-testid="home-continue-toast"
+      >
+        <RouterLink
+          :to="continueBook.chapterId ? `/reading/${continueBook.id}?chapter=${continueBook.chapterId}` : `/reading/${continueBook.id}`"
+          class="flex min-h-[52px] items-center gap-3 rounded-full border border-cream-200/80 bg-cream-50/95 px-4 py-2 text-ink-900 shadow-lg backdrop-blur dark:border-night-700/80 dark:bg-night-800/95 dark:text-cream-50"
+        >
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold leading-5">
+              <span class="font-normal text-clay-600 dark:text-clay-300">继续阅读 · </span>{{ continueBook.title }}
+            </p>
+          </div>
+          <span class="shrink-0 rounded-full bg-clay-700 px-3 py-1.5 text-xs font-semibold text-cream-50 dark:bg-clay-300 dark:text-night-900">续读</span>
+        </RouterLink>
+      </section>
+    </Transition>
 
     <BottomNav />
   </div>

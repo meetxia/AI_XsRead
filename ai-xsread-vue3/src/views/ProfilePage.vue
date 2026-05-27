@@ -33,6 +33,7 @@ const {
   todayMinutes,
   joinDays,
   weekTrend,
+  weeklyBooks,
   formatMinutes,
   loadStats
 } = useUserStats()
@@ -292,6 +293,32 @@ watch(() => userStore.isLogin, (val) => {
             </div>
             <div class="rounded-2xl bg-cream-100 dark:bg-night-800 p-4 sm:p-5">
               <WeekBarChart :data="weekTrend" />
+              <div v-if="weeklyBooks.length" class="mt-1 mb-4 grid gap-2">
+                <RouterLink
+                  v-for="book in weeklyBooks"
+                  :key="book.novelId || book.title"
+                  :to="book.novelId ? `/novel/${book.novelId}` : '/'"
+                  class="flex items-center gap-3 rounded-xl bg-cream-50/70 dark:bg-night-900/45 px-3 py-2.5 hover:bg-cream-50 dark:hover:bg-night-900 transition"
+                >
+                  <img
+                    v-if="book.cover"
+                    :src="book.cover"
+                    :alt="book.title"
+                    class="w-9 h-12 rounded object-cover bg-cream-200 dark:bg-night-700 shrink-0"
+                  />
+                  <div v-else class="w-9 h-12 rounded bg-clay-100 dark:bg-night-700 grid place-items-center shrink-0">
+                    <Icon name="shelf" class="w-4 h-4 text-clay-600 dark:text-clay-300" />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium truncate">{{ book.title || '未命名作品' }}</p>
+                    <p class="text-xs text-ink-500 dark:text-ink-300 truncate">
+                      {{ book.author || '佚名' }}
+                      <span v-if="book.chaptersRead"> · {{ book.chaptersRead }}章</span>
+                    </p>
+                  </div>
+                  <span class="text-xs text-ink-500 dark:text-ink-300 shrink-0">{{ formatMinutes(book.minutes) }}</span>
+                </RouterLink>
+              </div>
               <div class="flex items-center justify-between text-xs text-ink-500 dark:text-ink-300 pt-3 border-t border-cream-200 dark:border-night-700">
                 <span>今日 {{ formatMinutes(todayMinutes) }}</span>
                 <span class="text-moss-600 dark:text-moss-500 font-medium">总计 {{ formatMinutes(totalMinutes) }}</span>

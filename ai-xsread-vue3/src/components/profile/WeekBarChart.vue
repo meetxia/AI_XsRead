@@ -12,7 +12,7 @@ const today = new Date().getDay() || 7
 const rows = computed(() => {
   const source = props.data.map((item, index) => ({
     day: item.day || days[index] || '',
-    minutes: Number(item.minutes ?? item.duration ?? item.value ?? 0),
+    minutes: Number(item.minutes ?? item.duration ?? item.readTime ?? item.value ?? 0),
     today: item.today ?? index + 1 === today,
   }))
   const normalized = days.map((day, index) => source[index] || { day, minutes: 0, today: index + 1 === today })

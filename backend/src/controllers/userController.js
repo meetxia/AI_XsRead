@@ -14,6 +14,14 @@ const SORTABLE_FIELDS = {
   title: 'n.title'
 };
 
+function secondsToWholeMinutes(value) {
+  return Math.floor(Math.max(0, Number(value) || 0) / 60);
+}
+
+function normalizeSeconds(value) {
+  return Math.max(0, Number(value) || 0);
+}
+
 /**
  * 获取用户书架
  *
@@ -557,6 +565,30 @@ const getUserStatistics = async (req, res) => {
     );
     const joinDays = Number(joinDaysRows[0]?.joinDays || 0);
 
+    // 本周读过的书：用于个人页"这周读了什么"展示书名。
+    const [weeklyBooksRows] = await pool.query(
+      `SELECT
+         rh.novel_id,
+         n.title,
+         n.author,
+         n.cover,
+         MAX(rh.read_time) AS last_read_time,
+         COALESCE(SUM(rh.duration), 0) AS read_time,
+         COUNT(DISTINCT rh.chapter_id) AS chapters_read
+       FROM reading_history rh
+       INNER JOIN novels n ON rh.novel_id = n.id
+       WHERE rh.user_id = ? AND rh.read_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+       GROUP BY rh.novel_id, n.title, n.author, n.cover
+       ORDER BY MAX(rh.read_time) DESC
+       LIMIT 5`,
+      [userId]
+    );
+
+    const totalSeconds = normalizeSeconds(timeStats[0]?.total_read_time);
+    const todaySeconds = normalizeSeconds(timeStats[0]?.today_read_time);
+    const weeklySeconds = normalizeSeconds(timeStats[0]?.weekly_read_time);
+    const monthlySeconds = normalizeSeconds(timeStats[0]?.monthly_read_time);
+
     return Response.success(res, {
       joinDays,
       bookshelf: {
@@ -566,10 +598,14 @@ const getUserStatistics = async (req, res) => {
         collected: bookshelfStats[0].collected_books || 0
       },
       readTime: {
-        total: timeStats[0]?.total_read_time || 0,
-        today: timeStats[0]?.today_read_time || 0,
-        weekly: timeStats[0]?.weekly_read_time || 0,
-        monthly: timeStats[0]?.monthly_read_time || 0
+        total: secondsToWholeMinutes(totalSeconds),
+        today: secondsToWholeMinutes(todaySeconds),
+        weekly: secondsToWholeMinutes(weeklySeconds),
+        monthly: secondsToWholeMinutes(monthlySeconds),
+        totalSeconds,
+        todaySeconds,
+        weeklySeconds,
+        monthlySeconds
       },
       reading: {
         totalNovels: chapterStats[0].total_novels_read || 0,
@@ -586,7 +622,20 @@ const getUserStatistics = async (req, res) => {
         novelsRead: item.novels_read,
         chaptersRead: item.chapters_read,
         count: item.chapters_read, // 用于图表显示
-        readTime: item.read_time || 0
+        readTime: secondsToWholeMinutes(item.read_time),
+        minutes: secondsToWholeMinutes(item.read_time),
+        readTimeSeconds: normalizeSeconds(item.read_time)
+      })),
+      weeklyBooks: weeklyBooksRows.map(item => ({
+        novelId: item.novel_id,
+        title: item.title,
+        author: item.author,
+        cover: item.cover,
+        lastReadTime: item.last_read_time,
+        chaptersRead: item.chapters_read || 0,
+        readTime: secondsToWholeMinutes(item.read_time),
+        minutes: secondsToWholeMinutes(item.read_time),
+        readTimeSeconds: normalizeSeconds(item.read_time)
       }))
     });
   } catch (error) {
@@ -856,4 +905,3 @@ module.exports = {
     }
   }
 };
-

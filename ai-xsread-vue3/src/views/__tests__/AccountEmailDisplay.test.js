@@ -46,6 +46,7 @@ vi.mock('@/composables/useUserStats', () => ({
     todayMinutes: { value: 25 },
     joinDays: { value: 18 },
     weekTrend: { value: [] },
+    weeklyBooks: { value: [] },
     formatMinutes: vi.fn((minutes) => `${minutes} 分钟`),
     loadStats: vi.fn()
   })
